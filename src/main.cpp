@@ -1,9 +1,17 @@
-#include <iostream>
+#include "file_mapping.h"
 
-int wmain(int argc, wchar_t** argv) {
+int main(int argc, char** argv) {
 
+	//std::wcout << L"vystup programu" << std::endl;
+	
+	std::unique_ptr<HANDLE> file = create_file(argv[1]);
+	std::unique_ptr<HANDLE> mapping = map_file(*file);
+	const double* data = get_data(*file, *mapping);
+	unmap_file(data, *file, *mapping);
 
+	mapping.reset();
+	file.reset();
 
-	std::wcout << L"vystup programu" << std::endl;
-
+	int ret = getchar();
+	return ret;
 }
