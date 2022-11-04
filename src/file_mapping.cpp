@@ -3,54 +3,85 @@
 #include "file_mapping.h"
 #include <vector>
 
-
-const std::unique_ptr <HANDLE> create_file(const char* filename)
+class FileMapping
 {
-    HANDLE file = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-    if (file == INVALID_HANDLE_VALUE)
-    {
-        return NULL;
-    };
+    private:
+        HANDLE File;
+        HANDLE Mapping;
+        const double* Data;
+        const char* Filename;
+        unsigned int FileLen;
+        unsigned int DoublesCount;
 
-    return std::make_unique<HANDLE>(file);
-}
+        bool create_file()
+        {
+            File = CreateFile(Filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+            if (File == INVALID_HANDLE_VALUE)
+            {
+                return false;
+            };
 
-const std::unique_ptr<HANDLE> map_file(const HANDLE& file) {
+            return true;
+        }
 
-    HANDLE mapping = CreateFileMapping(file, 0, PAGE_READONLY, 0, 0, 0);
-    if (mapping == 0) 
-    { 
-        CloseHandle(file);
-        return NULL; 
-    }
+        bool map_file() {
 
-    return std::make_unique<HANDLE>(mapping);
-}
+            Mapping = CreateFileMapping(File, 0, PAGE_READONLY, 0, 0, 0);
+            if (Mapping == 0)
+            {
+                CloseHandle(File);
+                return false;
+            };
 
-const double* get_data(const HANDLE& file, const HANDLE& mapping)
-{
-    unsigned int len = GetFileSize(file, 0);
-    unsigned int count = len / sizeof(double);
+            return true;
+        }
 
-    const double* data = (const double*)MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
-    if (data)
-    {
-        //// need volatile or need to use result - compiler will otherwise optimize out whole loop
-        //volatile unsigned int touch = 0;
+        void view()
+        {
+            FileLen = GetFileSize(File, 0);
+            DoublesCount = FileLen / sizeof(double);
 
-        //for (unsigned int i = 0; i < count; i++)
-        //{
-        //    double d = (double)data[i];
-        //    std::cout << d << std::endl;
-        //}
-    }
-    return data;
-}
+            Data = (const double*)MapViewOfFile(Mapping, FILE_MAP_READ, 0, 0, 0);
+        }
 
-void unmap_file(const double* data, const HANDLE& file, const HANDLE& mapping)
-{
-    UnmapViewOfFile(data);
-    CloseHandle(mapping);
-    CloseHandle(file);
-}
+    public:
+        FileMapping(const char* filename) : Filename(filename), File(INVALID_HANDLE_VALUE), Mapping(INVALID_HANDLE_VALUE), Data(NULL)
+        {
+            bool res_cf = create_file();
+            if (!res_cf)
+            {
+                return;
+            }
+            bool res_mf = map_file();
+            if (!res_mf)
+            {
+                return;
+            }
+            view();
+        }
+
+        const double* get_data() const  
+        {
+            return Data;
+        }
+
+        const unsigned int get_filelen() const
+        {
+            return FileLen;
+        }
+
+        const unsigned int get_count() const
+        {
+            return DoublesCount;
+        }
+
+        void unmap_file()
+        {
+            UnmapViewOfFile(Data);
+            CloseHandle(Mapping);
+            CloseHandle(File);
+        }
+};
+
+
 

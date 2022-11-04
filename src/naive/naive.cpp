@@ -110,7 +110,7 @@ double LogFactorial(int n)
     }
 }
 
-int nmain(int argc, char* argv[])
+int gmain(int argc, char* argv[])
 {
     std::string paths[4]
         = { "D:\\Study\\ZCU\\5.semestr\\PPR\\kiv-ppr\\referencni_rozdeleni\\exp", 
@@ -123,7 +123,7 @@ int nmain(int argc, char* argv[])
         RunningStat rs;
         std::vector<double> doubles = load_doubles(paths[i], 500);
         double doubles_size = doubles.size();
-        int n = 323;
+        int n = doubles_size;
         std::vector<double> rand_doubles;
 
         // Random samlpe
@@ -209,8 +209,6 @@ int nmain(int argc, char* argv[])
            poisson_rss = 88888.8;
        }
       
-
-       
        std::cout << "Gauss: " << gauss_rss << std::endl;
        std::cout << "Exponential: " << exp_rss << std::endl;
        std::cout << "Poisson: " << poisson_rss << std::endl;

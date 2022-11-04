@@ -1,7 +1,5 @@
 #include "config.h"
-#include <map>
-#include <fstream>
-#include <algorithm>
+#include <thread>
 
 namespace ppr
 {
@@ -51,6 +49,9 @@ namespace ppr
 			print_error("unknown mode!");
 			return false;
 		}
+
+		// Find number available of threads
+		config.thread_count = THREAD_PER_CORE * std::thread::hardware_concurrency();
 
 		return true;
 	}

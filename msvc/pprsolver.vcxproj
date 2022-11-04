@@ -24,6 +24,9 @@
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\naive\naive.cpp" />
     <ClCompile Include="..\src\config.cpp" />
+    <ClCompile Include="..\src\rss\rss.cpp" />
+    <ClCompile Include="..\src\rss\statistics.cpp" />
+    <ClCompile Include="..\src\sequential\seq_solver.cpp" />
     <ClCompile Include="..\src\smp\smp.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -32,6 +35,7 @@
     <ClInclude Include="..\src\file_mapping.h" />
     <ClInclude Include="..\src\config.h" />
     <ClInclude Include="..\src\main.h" />
+    <ClInclude Include="..\src\sequential\seq_solver.h" />
     <ClInclude Include="..\src\smp\smp.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
