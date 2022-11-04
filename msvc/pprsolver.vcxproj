@@ -19,12 +19,20 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\all\all.cpp" />
     <ClCompile Include="..\src\file_mapping.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\naive\naive.cpp" />
+    <ClCompile Include="..\src\config.cpp" />
+    <ClCompile Include="..\src\smp\smp.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\all\all.h" />
+    <ClInclude Include="..\src\data.h" />
     <ClInclude Include="..\src\file_mapping.h" />
+    <ClInclude Include="..\src\config.h" />
+    <ClInclude Include="..\src\main.h" />
+    <ClInclude Include="..\src\smp\smp.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -91,6 +99,9 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
+    <Link>
+      <EntryPointSymbol>main</EntryPointSymbol>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
