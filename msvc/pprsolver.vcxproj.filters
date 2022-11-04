@@ -42,6 +42,9 @@
     <ClCompile Include="..\src\rss\rss.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\histogram\histogram.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\file_mapping.h">

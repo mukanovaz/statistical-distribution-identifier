@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="..\src\all\all.cpp" />
     <ClCompile Include="..\src\file_mapping.cpp" />
+    <ClCompile Include="..\src\histogram\histogram.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\naive\naive.cpp" />
     <ClCompile Include="..\src\config.cpp" />
