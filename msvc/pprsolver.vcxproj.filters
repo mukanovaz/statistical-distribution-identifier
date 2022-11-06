@@ -45,6 +45,9 @@
     <ClCompile Include="..\src\histogram\histogram.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\referencni_rozdeleni\generator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\file_mapping.h">

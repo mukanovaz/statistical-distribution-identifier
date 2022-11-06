@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\referencni_rozdeleni\generator.cpp" />
     <ClCompile Include="..\src\all\all.cpp" />
     <ClCompile Include="..\src\file_mapping.cpp" />
     <ClCompile Include="..\src\histogram\histogram.cpp" />

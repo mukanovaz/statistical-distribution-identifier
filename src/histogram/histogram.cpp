@@ -6,14 +6,13 @@ namespace ppr::hist
 	class Histogram
 	{
 		private:
-			double BinCount;
 			double BinSize;
 			double Min;
 			std::vector<uint64_t> Buckets;
 
 		public:
-			Histogram(std::vector<uint64_t>& buckets, double bin_count, double bin_size, double min)
-				: Buckets(buckets), BinCount(bin_count), BinSize(bin_size), Min(min)
+			Histogram(std::vector<uint64_t>& buckets, double bin_size, double min)
+				: Buckets(buckets), BinSize(bin_size), Min(min)
 			{
 				/*double bin_count = log2(mapping.get_count()) + 1;
 				double bin_size = (stat.Get_Max() - stat.Get_Min()) / bin_count;

@@ -7,11 +7,11 @@ namespace ppr
     {
         private:
             int m_n;
-            double m_oldM, m_newM, m_oldS, m_newS, sum, max, min;
+            double m_oldM, m_newM, m_oldS, m_newS, sum, sum2, max, min;
 
         public:
             RunningStat(const double first_x) 
-                : m_n(1), m_oldM(first_x), m_newM(first_x), m_oldS(0.0), m_newS(0.0), sum(0.0), min(88888.0), max(0)
+                : m_n(1), m_oldM(first_x), m_newM(first_x), m_oldS(0.0), m_newS(0.0), sum(0.0), sum2(0.0), min(88888.0), max(0)
             {}
 
             void Clear()
@@ -27,6 +27,7 @@ namespace ppr
                 m_newM = m_oldM + (x - m_oldM) / m_n;
                 m_newS = m_oldS + (x - m_oldM) * (x - m_newM);
                 sum += x;
+                sum2 += abs(x);
 
                 min = x < min ? x : min;
                 max = x > max ? x : max;

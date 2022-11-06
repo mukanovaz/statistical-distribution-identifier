@@ -1,28 +1,35 @@
 #include<cmath>
 #include <random>
 #include <iostream>
+# define M_PI           3.14159265358979323846
 
 namespace ppr::rss
 {
-	class RSSGauss
+
+
+
+	class NormalDistribution
 	{
 		private:
-			std::default_random_engine Generator;
-			double RSS, Mean, Stddev;
-			std::normal_distribution<double> Gauss;
+			double RSS, Mean, Stddev, BinSize;
+			int BinCount;
+			std::vector<uint64_t> Buckets;
 
 		public:
-			RSSGauss(double mean, double stddev)
-				: RSS(0.0), Mean(mean), Stddev(stddev)
+			NormalDistribution(const std::vector<uint64_t>& buckets, double binsize, int bincount, double mean, double stddev)
+				: RSS(0.0), BinSize(binsize), BinCount(bincount), Buckets(buckets), Mean(mean), Stddev(stddev)
+			{}
+
+			double Pdf(double x)
 			{
-				Gauss = std::normal_distribution<double>{ Mean, Stddev };
+				double t1 = 1.0 / sqrt(2 * M_PI);
+				double t2 = exp(-0.5 * x * x);
+				return t1 * t2;
 			}
 
-			void Push(double x)
+			void Push(double y_obs, double bin)
 			{
-				double rand = Gauss(Generator);
-				//std::cout << rand << std::endl;
-				double val = x - rand;
+				double val = bin - Pdf(y_obs);
 				double tmp = RSS + (val * val);
 				RSS = tmp;
 			}
@@ -35,25 +42,27 @@ namespace ppr::rss
 
 	};
 
-	class RSSExp
+	class ExponentialDistribution
 	{
 		private:
-			std::default_random_engine Generator;
-			double RSS, Lambda;
-			std::exponential_distribution<double> Exp;
+			double RSS, Lambda, Mean, BinSize;
+			int BinCount;
+			std::vector<uint64_t> Buckets;
 
 		public:
-			RSSExp(double lambda)
-				: RSS(0.0), Lambda(lambda)
+			ExponentialDistribution(const std::vector<uint64_t>& buckets, double binsize, int bincount, double lambda, double mean)
+				: RSS(0.0), Lambda(lambda), Mean(mean), BinSize(binsize), BinCount(bincount), Buckets(buckets)
+			{}
+
+			double Pdf(double x)
 			{
-				Exp = std::exponential_distribution<double>{ lambda };
+				double t1 = -Lambda * x;
+				return Lambda * exp(-x);
 			}
 
-			void Push(double x)
+			void Push(double y_obs, double bin)
 			{
-				double rand = Exp(Generator);
-				//std::cout << rand << std::endl;
-				double val = x - rand;
+				double val = bin - Pdf(y_obs);
 				double tmp = RSS + (val * val);
 				RSS = tmp;
 			}
