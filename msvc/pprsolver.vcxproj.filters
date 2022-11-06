@@ -21,9 +21,6 @@
     <ClCompile Include="..\src\file_mapping.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\naive\naive.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

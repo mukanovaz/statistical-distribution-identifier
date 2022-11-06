@@ -2,7 +2,6 @@
 #include "../rss/statistics.cpp"
 #include "../file_mapping.h"
 #include "../file_mapping.cpp"
-#include "../rss/rss.cpp"
 #include "../histogram/histogram.cpp"
 
 namespace ppr::seq
@@ -50,7 +49,6 @@ namespace ppr::seq
 
 		// ================ [Exponential maximum likelihood estimators]
 		double exp_lambda = static_cast<double>(stat.NumDataValues()) / stat.Sum();
-		double exp_mean = 1.0 / exp_lambda;
 
 		// ================ [Poisson likelihood estimators]
 		double poisson_lambda = stat.Mean();
@@ -62,24 +60,10 @@ namespace ppr::seq
 
 		// Calculate PDF for params
 
-		// ================ [Gauss RSS]
-		ppr::rss::NormalDistribution gauss_rss(buckets, bin_size, buckets.size(), gauss_mean, gauss_sd);
-		for (unsigned int i = 0; i < buckets.size(); i++)
-		{
-			double d = (double)buckets[i];
-			gauss_rss.Push(d, (i * bin_size));
-		}
-		double g_rss = gauss_rss.Get_RSS();
-
-
-		// ================ [Exponential RSS]
-		ppr::rss::ExponentialDistribution exp_rss(buckets, bin_size, buckets.size(), exp_lambda, exp_mean);
-		for (unsigned int i = 0; i < buckets.size(); i++)
-		{
-			double d = (double)buckets[i];
-			exp_rss.Push(d, (i * bin_size));
-		}
-		double e_rss = exp_rss.Get_RSS();
+		double g_rss = hist.ComputeRssOfHistogram('n', gauss_mean, gauss_sd);
+		double e_rss = hist.ComputeRssOfHistogram('e', 0.0, 0.0, exp_lambda);
+		double p_rss = hist.ComputeRssOfHistogram('p', 0.0, 0.0, 0.0, poisson_lambda);
+		double u_rss = hist.ComputeRssOfHistogram('u', 0.0, 0.0, 0.0, 0.0, a, b);
 
 
 		return SResult::error_res(EExitStatus::STAT);
