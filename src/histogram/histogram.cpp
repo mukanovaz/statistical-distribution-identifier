@@ -1,5 +1,6 @@
 #include <cmath>
 #include <vector>
+#include <memory>
 #include "../rss/rss.cpp"
 
 namespace ppr::hist
@@ -8,13 +9,19 @@ namespace ppr::hist
 	{
 		private:
 			double BinSize;
-			double Min;
-			std::vector<uint64_t> Buckets;
+			double Min, Size;
+			std::unique_ptr<double[]> BucketsDensity;
+			std::unique_ptr<double[]> BucketFrequency;
+			std::unique_ptr<double[]> BucketEdges;
 
 		public:
-			Histogram(std::vector<uint64_t>& buckets, double bin_size, double min)
-				: Buckets(buckets), BinSize(bin_size), Min(min)
+			Histogram(int size, double bin_size, double min)
+				: Size(size), BinSize(bin_size), Min(min)
 			{
+				BucketFrequency = std::make_unique<double[]>(size);
+				BucketsDensity = std::make_unique<double[]>(size);
+				BucketEdges = std::make_unique<double[]>(size);
+				//Buckets.reserve()
 				/*double bin_count = log2(mapping.get_count()) + 1;
 				double bin_size = (stat.Get_Max() - stat.Get_Min()) / bin_count;
 				std::vector<uint64_t> buckets(static_cast<int>(bin_count) + 1);*/
@@ -23,12 +30,26 @@ namespace ppr::hist
             void Push(double x)
             {
 				double position = ((x - Min) / BinSize);
-				Buckets[static_cast<int>(position)]++;
+				BucketFrequency[static_cast<int>(position)]++;
             }
 
-			const std::vector<uint64_t> Get_buckets() const
+			void FindBucketEdges()
 			{
-				return Buckets;
+				for (unsigned int i = 0; i < Size; i++)
+				{
+					BucketEdges[i] = BinSize * i;
+					//std::cout << BucketEdges[i] << std::endl;;
+				}
+			}
+
+			void ComputePropabilityDensityOfHistogram(double count)
+			{
+				for (unsigned int i = 0; i < Size - 1; i++)
+				{
+					double diff = BucketEdges[i + 1] - BucketEdges[i];
+					BucketsDensity[i] = BucketFrequency[i] / diff/ count;
+					std::cout << BucketsDensity[i] << std::endl;;
+				}
 			}
 
 			double ComputeRssOfHistogram(char dist_val, double mean = 0.0, double stddev = 0.0, double lambda = 0.0, double mu = 0.0, double a = 0.0, double b = 0.0)
@@ -52,12 +73,12 @@ namespace ppr::hist
 					default:
 						return 0.0;
 				}
-				for (unsigned int i = 0; i < Buckets.size(); i++)
+				for (unsigned int i = 0; i < Size; i++)
 				{
-					double d = (double)Buckets[i];
+					double d = (double)BucketsDensity[i];
 					dist->Push(d, (i * BinSize));
 				}
-
+				
 				double res = dist->Get_RSS();
 				delete dist;
 				return res;

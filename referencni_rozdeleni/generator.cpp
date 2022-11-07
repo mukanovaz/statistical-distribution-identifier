@@ -27,7 +27,7 @@ void Generate_Numbers(const char* dst, const size_t count, const arg... a) {
 
 
 
-int main(int argc, char* argv[]) {
+int emain(int argc, char* argv[]) {
        
     std::cout << "Usage: output_file distribution count min max" << std::endl;
     std::cout << "\toutput_file - a filename" << std::endl;

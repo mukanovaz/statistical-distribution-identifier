@@ -19,7 +19,7 @@ namespace ppr::rss
 
 			void Push(double y_obs, double bin)
 			{
-				double val = bin - Pdf(y_obs);
+				double val = y_obs - Pdf(bin);
 				double tmp = RSS + (val * val);
 				RSS = tmp;
 			}
@@ -43,9 +43,11 @@ namespace ppr::rss
 
 			double Pdf(double x) override
 			{
-				double t1 = 1.0 / sqrt(DOUBLE_PI);
-				double t2 = exp(-0.5 * x * x);
-				return t1 * t2;
+				double t1 = 1.0 / Stddev * sqrt(DOUBLE_PI);
+				double t2 = pow((x - Mean) / Stddev, 2);
+				double t3 = -0.5 * t2;
+				double t4 = exp(t3);
+				return t1 * t4;
 			}
 	};
 
@@ -62,8 +64,11 @@ namespace ppr::rss
 			double Pdf(double x) override
 			{
 				// TODO: x >= 0
-				double t1 = -Lambda * x;
-				return Lambda * exp(-x);
+				if (x < 0) return 0;
+				double betta = 1 / Lambda;
+				double t1 = 1 / betta;
+				double t2 = exp(-(x / betta));
+				return t1 * t2;
 			}
 	};
 
@@ -79,8 +84,10 @@ namespace ppr::rss
 
 			double Pdf(double x) override
 			{
+				if (x < A) return 0;
+				if (x > B) return 0;
 				// TODO: a <= x <= b
-				double t1 = x - A;
+				double t1 = 1;
 				double t2 = B - A;
 				return t1 / t2;
 			}
@@ -93,7 +100,7 @@ namespace ppr::rss
 
 			double Factorial(double n)
 			{
-				double factorial = 0.0;
+				double factorial = 1.0;
 				for (int i = 1; i <= n; ++i) {
 					factorial *= i;
 				}
@@ -109,8 +116,8 @@ namespace ppr::rss
 			{
 				// TODO: x >= 0; Mu >= 0; If Mu == 0 -> PDF = 1.0
 				double t1 = exp(-Mu);
-				double t2 = pow(Mu, x) / Factorial(x);
-				return t1 * t2;
+				double t2 = pow(Mu, x);
+				return (t1 * t2) / Factorial(x);
 			}
 	};
 }

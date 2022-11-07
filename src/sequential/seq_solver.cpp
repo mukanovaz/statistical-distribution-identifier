@@ -30,16 +30,18 @@ namespace ppr::seq
 		// Create histogram
 		double bin_count = log2(mapping.get_count()) + 1;
 		double bin_size = (stat.Get_Max() - stat.Get_Min()) / bin_count;
-		std::vector<uint64_t> buckets(static_cast<int>(bin_count) + 1);
 
-		ppr::hist::Histogram hist(buckets, bin_size, stat.Get_Min());
+		ppr::hist::Histogram hist(static_cast<int>(bin_count) + 1, bin_size, stat.Get_Min());
 		for (unsigned int i = 0; i < mapping.get_count(); i++)
 		{
 			double d = (double)data[i];
 			hist.Push(d);
 		}
-		buckets = hist.Get_buckets();
 		mapping.unmap_file();
+
+		// Get propability density of histogram
+		hist.FindBucketEdges();
+		hist.ComputePropabilityDensityOfHistogram(mapping.get_count());
 
 		// Fit params
 		// ================ [Gauss maximum likelihood estimators]
