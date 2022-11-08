@@ -1,12 +1,34 @@
 #pragma once
+#ifndef FILEMAP_H
+#define FILEMAP_H
 #include <windows.h>
 #include <iostream>
 
+class FileMapping
+{
+    private:
+        HANDLE File;
+        HANDLE Mapping;
+        const double* Data;
+        const char* Filename;
+        unsigned int FileLen;
+        unsigned int DoublesCount;
 
-const std::unique_ptr <HANDLE> create_file(const char* filename);
+        bool CreateFile_n();
 
-const std::unique_ptr <HANDLE> map_file(const HANDLE& file);
+        bool MapFile();
 
-const double* get_data(const HANDLE& file, const HANDLE& mapping);
+        void view();
 
-void unmap_file(const double* data, const HANDLE& file, const HANDLE& mapping);
+    public:
+        FileMapping(const char* filename);
+
+        const double* GetData() const;
+
+        const unsigned int GetFileLen() const;
+
+        const unsigned int GetCount() const;
+
+        void UnmapFile();
+};
+#endif
