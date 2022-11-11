@@ -4,10 +4,9 @@
 #include <fstream>
 #include <algorithm>
 
-#define THREAD_PER_CORE 2
-
 namespace ppr
 {
+    constexpr double THREAD_PER_CORE = 1;
 
     enum class ERun_mode {
         SMP = 0,
