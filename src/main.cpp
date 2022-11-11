@@ -1,7 +1,7 @@
 #include "file_mapping.h"
 #include "config.h"
 #include "data.h"
-#include "./smp/smp.h"
+#include "./smp/smp_solver.h"
 #include "./all/all.h"
 #include "./sequential/seq_solver.h"
 
@@ -11,7 +11,7 @@ namespace ppr
 	{
 		switch (configuration.mode) {
 		case ERun_mode::SMP:  
-			return seq::run(configuration);
+			return smp::run(configuration);
 		///*case ERun_mode::ALL:  
 		//	return all::run(configuration);*/
 
