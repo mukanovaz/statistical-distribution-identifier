@@ -1,7 +1,7 @@
 #include "file_mapping.h"
 
 FileMapping::FileMapping(const char* filename) 
-    : Filename(filename), File(INVALID_HANDLE_VALUE), Mapping(INVALID_HANDLE_VALUE), Data(NULL)
+    : m_filename(filename), m_file(INVALID_HANDLE_VALUE), m_mapping(INVALID_HANDLE_VALUE), m_data(NULL)
 {
     bool res_cf = CreateFile_n();
     if (!res_cf)
@@ -18,8 +18,8 @@ FileMapping::FileMapping(const char* filename)
 
 bool FileMapping::CreateFile_n()
 {
-    File = CreateFile(Filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-    if (File == INVALID_HANDLE_VALUE)
+    m_file = CreateFile(m_filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    if (m_file == INVALID_HANDLE_VALUE)
     {
         return false;
     };
@@ -29,10 +29,10 @@ bool FileMapping::CreateFile_n()
 
 bool FileMapping::MapFile() {
 
-    Mapping = CreateFileMapping(File, 0, PAGE_READONLY, 0, 0, 0);
-    if (Mapping == 0)
+    m_mapping = CreateFileMapping(m_file, 0, PAGE_READONLY, 0, 0, 0);
+    if (m_mapping == 0)
     {
-        CloseHandle(File);
+        CloseHandle(m_file);
         return false;
     };
 
@@ -41,32 +41,32 @@ bool FileMapping::MapFile() {
 
 void FileMapping::view()
 {
-    FileLen = GetFileSize(File, 0);
-    DoublesCount = FileLen / sizeof(double);
+    m_fileLen = GetFileSize(m_file, 0);
+    m_size = m_fileLen / sizeof(double);
 
-    Data = (const double*)MapViewOfFile(Mapping, FILE_MAP_READ, 0, 0, 0);
+    m_data = (const double*)MapViewOfFile(m_mapping, FILE_MAP_READ, 0, 0, 0);
 }
 
 const double* FileMapping::GetData() const
 {
-    return Data;
+    return m_data;
 }
 
 const unsigned int FileMapping::GetFileLen() const
 {
-    return FileLen;
+    return m_fileLen;
 }
 
 const unsigned int FileMapping::GetCount() const
 {
-    return DoublesCount;
+    return m_size;
 }
 
 void FileMapping::UnmapFile()
 {
-    UnmapViewOfFile(Data);
-    CloseHandle(Mapping);
-    CloseHandle(File);
+    UnmapViewOfFile(m_data);
+    CloseHandle(m_mapping);
+    CloseHandle(m_file);
 }
 
 

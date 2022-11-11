@@ -7,12 +7,12 @@
 class FileMapping
 {
     private:
-        HANDLE File;
-        HANDLE Mapping;
-        const double* Data;
-        const char* Filename;
-        unsigned int FileLen;
-        unsigned int DoublesCount;
+        HANDLE m_file;
+        HANDLE m_mapping;
+        const double* m_data;
+        const char* m_filename;
+        unsigned int m_fileLen;
+        unsigned int m_size;
 
         bool CreateFile_n();
 
