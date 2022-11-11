@@ -7,6 +7,19 @@ enum class EDistribution {
     UNIFORM = 3
 };
 
+struct SStat
+{
+    int n;
+    double oldM;
+    double newM;
+    double oldS;
+    double newS;
+    double sum;
+    double sumAbs;
+    double max;
+    double min;
+};
+
 struct SResult
 {
     EDistribution dist;     // Result distribution
