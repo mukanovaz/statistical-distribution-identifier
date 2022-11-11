@@ -20,14 +20,14 @@ namespace ppr::seq
 
 		RunningStat stat(data[0]);
 
-		// Get statistics
+		// ================ [Get statistics]
 		for (unsigned int i = 1; i < mapping.GetCount(); i++)
 		{
 			double d = (double)data[i];
 			stat.Push(d);
 		}
 
-		// Create histogram
+		// ================ [Create histogram]
 		const double bin_count = log2(mapping.GetCount()) + 1;
 		double bin_size = (stat.Get_Max() - stat.Get_Min()) / (bin_count - 1); // TODO
 
@@ -43,27 +43,27 @@ namespace ppr::seq
 		}
 		mapping.UnmapFile();
 
-		// Get propability density of histogram
+		// ================ [Get propability density of histogram]
 		hist.ComputePropabilityDensityOfHistogram(histogramDensity, histogramFrequency, mapping.GetCount());
 
-		// Fit params
-		// ================ [Gauss maximum likelihood estimators]
+		// ================ [Fit params]
+		// Gauss maximum likelihood estimators
 		double gauss_mean = stat.Mean();
 		double gauss_variance = stat.Variance();
 		double gauss_sd = stat.StandardDeviation();
 
-		// ================ [Exponential maximum likelihood estimators]
+		// Exponential maximum likelihood estimators
 		double exp_lambda = static_cast<double>(stat.NumDataValues()) / stat.Sum();
 
-		// ================ [Poisson likelihood estimators]
+		// Poisson likelihood estimators
 		double poisson_lambda = stat.Mean();
 
-		// ================ [Uniform likelihood estimators]
+		// [Uniform likelihood estimators
 		double a = stat.Get_Min();
 		double b = stat.Get_Max();
 
 
-		// Calculate PDF for params
+		// ================ [Calculate RSS]
 		double g_rss = hist.ComputeRssOfHistogram(histogramDensity, 'n', gauss_variance, gauss_mean, gauss_sd);
 		double e_rss = hist.ComputeRssOfHistogram(histogramDensity, 'e', 0.0, 0.0, 0.0, exp_lambda);
 		double p_rss = hist.ComputeRssOfHistogram(histogramDensity, 'p', 0.0, 0.0, 0.0, 0.0, poisson_lambda);
