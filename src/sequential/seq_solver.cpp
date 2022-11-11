@@ -5,6 +5,7 @@
 
 namespace ppr::seq
 {
+	
 	SResult run(SConfig& configuration)
 	{
 		SResult result;
@@ -27,19 +28,23 @@ namespace ppr::seq
 		}
 
 		// Create histogram
-		double bin_count = log2(mapping.GetCount()) + 1;
-		double bin_size = (stat.Get_Max() - stat.Get_Min()) / bin_count;
+		const double bin_count = log2(mapping.GetCount()) + 1;
+		double bin_size = (stat.Get_Max() - stat.Get_Min()) / (bin_count - 1); // TODO
 
-		ppr::hist::Histogram hist(static_cast<int>(bin_count) + 1, bin_size, stat.Get_Min());
+		ppr::hist::Histogram hist(static_cast<int>(bin_count), bin_size, stat.Get_Min(), stat.Get_Max());
+
+		std::vector<int> histogramFrequency(static_cast<int>(bin_count));
+		std::vector<double> histogramDensity(static_cast<int>(bin_count));
+
 		for (unsigned int i = 0; i < mapping.GetCount(); i++)
 		{
 			double d = (double)data[i];
-			hist.Push(d);
+			hist.Push(histogramFrequency, d);
 		}
 		mapping.UnmapFile();
 
 		// Get propability density of histogram
-		hist.ComputePropabilityDensityOfHistogram(mapping.GetCount());
+		hist.ComputePropabilityDensityOfHistogram(histogramDensity, histogramFrequency, mapping.GetCount());
 
 		// Fit params
 		// ================ [Gauss maximum likelihood estimators]
@@ -59,10 +64,10 @@ namespace ppr::seq
 
 
 		// Calculate PDF for params
-		double g_rss = hist.ComputeRssOfHistogram('n', gauss_mean, gauss_sd);
-		double e_rss = hist.ComputeRssOfHistogram('e', 0.0, 0.0, exp_lambda);
-		double p_rss = hist.ComputeRssOfHistogram('p', 0.0, 0.0, 0.0, poisson_lambda);
-		double u_rss = hist.ComputeRssOfHistogram('u', 0.0, 0.0, 0.0, 0.0, a, b);
+		double g_rss = hist.ComputeRssOfHistogram(histogramDensity, 'n', gauss_variance, gauss_mean, gauss_sd);
+		double e_rss = hist.ComputeRssOfHistogram(histogramDensity, 'e', 0.0, 0.0, 0.0, exp_lambda);
+		double p_rss = hist.ComputeRssOfHistogram(histogramDensity, 'p', 0.0, 0.0, 0.0, 0.0, poisson_lambda);
+		double u_rss = hist.ComputeRssOfHistogram(histogramDensity, 'u', 0.0, 0.0, 0.0, 0.0, 0.0, a, b);
 
 		/*double min = std::min({ g_rss, e_rss, p_rss, u_rss });
 
