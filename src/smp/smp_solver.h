@@ -2,7 +2,7 @@
 #include "../data.h"
 #include "../config.h"
 
-namespace ppr::smp
+namespace ppr::parallel
 {
 	SResult run(SConfig& configuration);
 }
