@@ -1,11 +1,11 @@
 #include <cmath>
-#include <random>
 #include <iostream>
-#define M_PI			3.14159265358979323846
-#define DOUBLE_PI		(2 * M_PI)
 
 namespace ppr::rss
 {
+	constexpr double M_PI = 3.14159265358979323846;
+	constexpr double DOUBLE_PI = (2 * M_PI);
+
 	class Distribution
 	{
 		protected:
@@ -34,20 +34,17 @@ namespace ppr::rss
 	class NormalDistribution : public Distribution
 	{
 		private:
-			double Mean, Stddev;
+			double Mean, Stddev, Variance;
 
 		public:
-			NormalDistribution(double mean, double stddev) 
-				: Mean(mean), Stddev(stddev)
+			NormalDistribution(double mean, double stddev, double variance)
+				: Mean(mean), Stddev(stddev), Variance(variance)
 			{}
 
 			double Pdf(double x) override
 			{
-				double t1 = 1.0 / Stddev * sqrt(DOUBLE_PI);
-				double t2 = pow((x - Mean) / Stddev, 2);
-				double t3 = -0.5 * t2;
-				double t4 = exp(t3);
-				return t1 * t4;
+				return 1.0 / sqrt(DOUBLE_PI) * exp( -0.5 * x * x);
+				//return 1.0 / sqrt(DOUBLE_PI * Variance) * exp( -0.5 * pow((x - Mean)/ Stddev, 2));
 			}
 	};
 
@@ -84,12 +81,8 @@ namespace ppr::rss
 
 			double Pdf(double x) override
 			{
-				if (x < A) return 0;
-				if (x > B) return 0;
 				// TODO: a <= x <= b
-				double t1 = 1;
-				double t2 = B - A;
-				return t1 / t2;
+				return 1.0 / (B - A);
 			}
 	};
 
