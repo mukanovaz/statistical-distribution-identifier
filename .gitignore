@@ -70,3 +70,8 @@ bld/
 # Directories
 compiled/
 referencni_rozdeleni/
+msvc/packages/
+src/CMakeFiles/
+src/CMakeCache.txt
+src/cmake_install.cmake
+compiled/

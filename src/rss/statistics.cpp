@@ -5,7 +5,6 @@
 
 #include <tbb/combinable.h>
 #include <tbb/parallel_for.h>
-#include <tbb/task_arena.h>
 #include "../data.h"
 
 namespace ppr
@@ -137,12 +136,11 @@ namespace ppr
 
             void operator()(const tbb::blocked_range<size_t>& r)
             {
+                // Parameters 
                 const double* t_data = m_data;
                 SStat t_stat = m_stat;
 
-                size_t end = r.end();
-
-                for (size_t i = r.begin(); i != end; ++i)
+                for (size_t i = r.begin(); i != r.end(); ++i)
                 {
                     double x = (double)t_data[i];
 

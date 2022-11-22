@@ -1,6 +1,11 @@
 #include <cmath>
 #include <iostream>
 
+#undef min
+#undef max
+
+#include <tbb/parallel_for.h>
+
 namespace ppr::rss
 {
 	constexpr double M_PI = 3.14159265358979323846;
@@ -9,10 +14,10 @@ namespace ppr::rss
 	class Distribution
 	{
 		protected:
-			double RSS;
+			double m_rss;
 		
 		public:
-			Distribution() : RSS(0.0)
+			Distribution() : m_rss(0.0)
 			{}
 
 			virtual double Pdf(double x) { return 0.0; }
@@ -20,13 +25,18 @@ namespace ppr::rss
 			void Push(double y_obs, double bin)
 			{
 				double val = y_obs - Pdf(bin);
-				double tmp = RSS + (val * val);
-				RSS = tmp;
+				double tmp = m_rss + (val * val);
+				m_rss = tmp;
 			}
 
 			double Get_RSS() const
 			{
-				return RSS;
+				return m_rss;
+			}
+			
+			void Add_RSS(double rss)
+			{
+				m_rss += rss;
 			}
 	};
 
@@ -112,6 +122,47 @@ namespace ppr::rss
 				double t2 = pow(Mu, x);
 				return (t1 * t2) / Factorial(x);
 			}
+	};
+
+	class RSSParallel {
+
+	private:
+		ppr::rss::Distribution* m_dist;
+		std::vector<double> m_bucketDensity;
+		double m_bin_size;
+
+	public:
+
+		RSSParallel(ppr::rss::Distribution* dist, std::vector<double>& bucketDensity, double bin_size)
+			: m_dist(dist), m_bucketDensity(bucketDensity), m_bin_size(bin_size)
+		{}
+
+		RSSParallel(RSSParallel& x, tbb::split)
+		{
+			m_dist = x.m_dist;
+			m_bucketDensity = x.m_bucketDensity;
+			m_bin_size = x.m_bin_size;
+		}
+
+		void operator()(const tbb::blocked_range<size_t>& r)
+		{
+			ppr::rss::Distribution* t_dist = m_dist;    // to not discard earlier accumulations
+			std::vector<double>& t_bucketDensity = m_bucketDensity;
+		
+			for (size_t i = r.begin(); i != r.end(); ++i)
+			{
+				double d = (double)m_bucketDensity[i];
+				m_dist->Push(d, (i * m_bin_size));
+			}
+
+			m_dist = t_dist;
+
+		}
+
+		void join(const RSSParallel& y)
+		{
+			//m_dist->Add_RSS(y.m_dist->Get_RSS());
+		}
 	};
 }
 

@@ -1,10 +1,21 @@
 #pragma once
+#include<vector>
 
 enum class EDistribution {
     GAUSS = 0,
     EXP = 1,
     POISSON = 2,
     UNIFORM = 3
+};
+
+
+struct SHistogram
+{
+    double binSize = 0;
+    double max = 0; 
+    double min = 0; 
+    double size = 0; 
+    double scaleFactor = 0;
 };
 
 struct SStat

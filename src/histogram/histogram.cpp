@@ -1,7 +1,14 @@
 #include <cmath>
 #include <vector>
 #include <memory>
+
+
+#undef min
+#undef max
+
+#include <tbb/parallel_for.h>
 #include "../rss/rss.cpp"
+#include "../data.h"
 
 namespace ppr::hist
 {
@@ -78,4 +85,94 @@ namespace ppr::hist
 				return res;
 			}
 	};
+
+	//template<std::size_t N>
+	class HistogramParallel
+	{
+		private:
+			SHistogram m_histogram;
+			std::vector<int> m_bucketFrequency;
+			std::vector<double> m_bucketDensity;
+			const double* m_data;
+
+		public:
+
+			HistogramParallel(int size, double bin_size, double min, double max, const double* data)
+				: m_data(data)
+			{
+				m_bucketDensity.resize(size);
+				m_bucketFrequency.resize(size);
+				m_histogram.binSize = bin_size;
+				m_histogram.min = min;
+				m_histogram.max = max;
+				m_histogram.size = size;
+				m_histogram.scaleFactor = (m_histogram.size) / (m_histogram.max - m_histogram.min);
+			}
+
+			HistogramParallel(HistogramParallel& x, tbb::split) 
+				:m_data(x.m_data)
+			{
+				m_bucketDensity.resize(x.m_histogram.size);
+				m_bucketFrequency.resize(x.m_histogram.size);
+				m_histogram.binSize = x.m_histogram.binSize;
+				m_histogram.min = x.m_histogram.min;
+				m_histogram.max = x.m_histogram.max;
+				m_histogram.size = x.m_histogram.size;
+				m_histogram.scaleFactor = (x.m_histogram.size) / (x.m_histogram.max - x.m_histogram.min);
+			}
+			
+			void operator()(const tbb::blocked_range<size_t>& r)
+			{
+				// Parameters 
+				const double* t_data = m_data;
+				SHistogram t_histogram = m_histogram;						// to not discard earlier accumulations
+				std::vector<int>& t_bucketFrequency = m_bucketFrequency;
+				std::vector<double>& t_bucketDensity = m_bucketDensity;
+
+				for (size_t i = r.begin(); i != r.end(); ++i)
+				{
+					double x = (double)t_data[i];
+					double position = (x - t_histogram.min) * t_histogram.scaleFactor;
+					// TODO: remove if
+					if (position == t_bucketFrequency.size())
+					{
+						position--;
+					}
+					t_bucketFrequency[static_cast<int>(position)]++;
+				}
+
+				m_bucketDensity = t_bucketDensity;
+				m_bucketFrequency = t_bucketFrequency;
+			}
+
+			void join(const HistogramParallel& y)
+			{
+				std::transform(m_bucketFrequency.begin(), m_bucketFrequency.end(), y.m_bucketFrequency.begin(), m_bucketFrequency.begin(), std::plus<int>());
+			}
+
+			void ComputePropabilityDensityOfHistogram(std::vector<double>& bucket_density, double count)
+			{
+				for (unsigned int i = 0; i < m_histogram.size; i++)
+				{
+					double next_edge = m_histogram.min + (m_histogram.binSize * (static_cast<double>(i) + 1.0));
+					double curr_edge = m_histogram.min + (m_histogram.binSize * static_cast<double>(i));
+					double diff = next_edge - curr_edge;
+					bucket_density[i] = m_bucketFrequency[i] / diff / count;
+				}
+			}
+			
+			double ComputeRssOfHistogram(ppr::rss::Distribution* dist, std::vector<double>& bucket_density, int hist_size, int bin_size)
+			{
+				for (unsigned int i = 0; i < hist_size; i++)
+				{
+					double d = (double)bucket_density[i];
+					dist->Push(d, (i * bin_size));
+				}
+
+				double res = dist->Get_RSS();
+				return res;
+			}
+	};
+
 }
+

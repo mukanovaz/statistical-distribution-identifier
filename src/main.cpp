@@ -11,7 +11,7 @@ namespace ppr
 	{
 		switch (configuration.mode) {
 		case ERun_mode::SMP:  
-			return smp::run(configuration);
+			return parallel::run(configuration);
 		///*case ERun_mode::ALL:  
 		//	return all::run(configuration);*/
 
