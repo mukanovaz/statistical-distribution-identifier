@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <vector>
 
 namespace ppr
 {
@@ -25,7 +26,7 @@ namespace ppr
     struct SConfig {
         const char* input_fn;
         ERun_mode mode;
-        std::string cl_device_name;
+        std::vector<std::string> cl_devices_name;
         int thread_count;
     };
 

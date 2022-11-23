@@ -25,6 +25,7 @@
     <ClCompile Include="..\src\histogram\histogram.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\config.cpp" />
+    <ClCompile Include="..\src\opencl\gpu_solver.cpp" />
     <ClCompile Include="..\src\opencl\gpu_utils.cpp" />
     <ClCompile Include="..\src\rss\rss.cpp" />
     <ClCompile Include="..\src\rss\statistics.cpp" />
@@ -37,6 +38,7 @@
     <ClInclude Include="..\src\file_mapping.h" />
     <ClInclude Include="..\src\config.h" />
     <ClInclude Include="..\src\main.h" />
+    <ClInclude Include="..\src\opencl\gpu_solver.h" />
     <ClInclude Include="..\src\opencl\gpu_utils.h" />
     <ClInclude Include="..\src\sequential\seq_solver.h" />
     <ClInclude Include="..\src\smp\smp_solver.h" />

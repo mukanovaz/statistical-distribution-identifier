@@ -42,7 +42,8 @@ namespace ppr
 		else if (std::strncmp("all", argv[2], 3) == 0)
 		{
 			config.mode = ERun_mode::ALL;
-			config.cl_device_name = argv[3];
+			// TODO: add more devices
+			//config.cl_devices_name = argv[3];
 		}
 		else
 		{

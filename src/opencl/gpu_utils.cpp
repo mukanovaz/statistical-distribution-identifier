@@ -1,13 +1,49 @@
 #include "gpu_utils.h"
+#include <unordered_set>
+#include <algorithm>
 
 namespace ppr::gpu
 {
-   /* cl::Program CreateProgram()
+    cl::Program CreateProgram(const cl::Device* devices, const char* source)
     {
-        std::vector<cl::Platform> platforms;
-        cl::Platform::get(&platforms);
-        return null;
-    }*/
+        cl::Program::Sources src(1, { source, strlen(source) + 1 });
+        cl::Context context(*devices);
+        cl::Program program(context, src);
+
+        cl_int err = program.build("-cl-std=CL2.0");
+        // TODO: error
+        /*if (err != 0)
+        {
+            throw GetCLErrorString(err);
+        }*/
+
+        return program;
+    }
+
+    void FindDevices(std::vector<cl::Platform>& platforms, std::vector<cl::Device>& all_devices, std::vector<std::string>& user_devices)
+    {
+        for (const auto& platform : platforms)
+        {
+            // Get all devices of the current platform.
+            std::vector<cl::Device> devices;
+            platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
+
+            for (const auto& device : devices)
+            {
+                bool available = device.getInfo<CL_DEVICE_AVAILABLE>();
+                std::string device_name = device.getInfo<CL_DEVICE_NAME>();
+                std::string device_extensions = device.getInfo<CL_DEVICE_EXTENSIONS>();
+                bool exists = std::binary_search(user_devices.begin(), user_devices.end(), device_name);
+
+                if (available &&
+                    device_extensions.find("cl_khr_fp64") != std::string::npos
+                    /*exists*/) // TODO: add exists
+                {
+                    all_devices.emplace_back(device);
+                }
+            }
+        }
+    }
 
     // Source: https://gitlab.com/-/snippets/1958344
     std::string GetCLErrorString(cl_int error)
