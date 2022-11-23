@@ -1,17 +1,10 @@
 #include "smp_solver.h"
-#include "../rss/statistics.cpp"
 #include "../file_mapping.h"
-#include "../histogram/histogram.cpp"
-
-#undef min
-#undef max
-
-#include <tbb/tick_count.h>
-#include <tbb/parallel_reduce.h>
-#include <tbb/task_arena.h>
+#include "../executor.h"
 
 namespace ppr::parallel
 {
+
 	SResult run(SConfig& configuration)
 	{
 		tbb::task_arena arena(configuration.thread_count == 0 ? tbb::task_arena::automatic : static_cast<int>(configuration.thread_count));
@@ -29,12 +22,8 @@ namespace ppr::parallel
 		//  ================ [Get statistics]
 		RunningStatParallel stat(data);
 
-		tbb::tick_count t0 = tbb::tick_count::now();
-		arena.execute([&]() {
-			tbb::parallel_reduce(tbb::blocked_range<std::size_t>(1, mapping.GetCount()), stat);
-		});
-		tbb::tick_count t1 = tbb::tick_count::now();
-		std::cout << "Get statistics: " << (t1 - t0).seconds() << "sec." << std::endl;
+		double t1 = ppr::executor::RunOnCPU<RunningStatParallel>(arena, stat, 1, mapping.GetCount());
+		std::cout << "Get statistics: " << t1 << "sec." << std::endl;
 
 		//  ================ [Fit params]
 		// Gauss maximum likelihood estimators
@@ -59,12 +48,8 @@ namespace ppr::parallel
 
 		ppr::hist::HistogramParallel hist(static_cast<int>(bin_count), bin_size, stat.Get_Min(), stat.Get_Max(), data);
 
-		tbb::tick_count t3 = tbb::tick_count::now();
-		arena.execute([&]() {
-			tbb::parallel_reduce(tbb::blocked_range<std::size_t>(0, mapping.GetCount()), hist);
-		});
-		tbb::tick_count t4 = tbb::tick_count::now();
-		std::cout << "Histogram: " << (t4 - t3).seconds() << "sec." << std::endl;
+		t1 = ppr::executor::RunOnCPU<ppr::hist::HistogramParallel>(arena, hist, 0, mapping.GetCount());
+		std::cout << "Histogram: " << t1 << "sec." << std::endl;
 
 		//================ [Unmap file]
 		mapping.UnmapFile();
@@ -83,33 +68,17 @@ namespace ppr::parallel
 		ppr::rss::RSSParallel exp_rss(exp, histogramDensity, bin_size);
 		ppr::rss::RSSParallel uniform_rss(uniform, histogramDensity, bin_size);
 
-		tbb::tick_count t5 = tbb::tick_count::now();
-		arena.execute([&]() {
-			tbb::parallel_reduce(tbb::blocked_range<std::size_t>(0, static_cast<int>(bin_count)), gauss_rss);
-			});
-		tbb::tick_count t6 = tbb::tick_count::now();
-		std::cout << "Gauss RSS: " << (t6 - t5).seconds() << "sec." << std::endl;
+		t1 = ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, gauss_rss, 0, static_cast<int>(bin_count));
+		std::cout << "Gauss RSS: " << t1 << "sec." << std::endl;
 
-		t5 = tbb::tick_count::now();
-		arena.execute([&]() {
-			tbb::parallel_reduce(tbb::blocked_range<std::size_t>(0, static_cast<int>(bin_count)), poisson_rss);
-			});
-		t6 = tbb::tick_count::now();
-		std::cout << "Poisson RSS: " << (t6 - t5).seconds() << "sec." << std::endl;
+		t1 = ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, poisson_rss, 0, static_cast<int>(bin_count));
+		std::cout << "Poisson RSS: " << t1 << "sec." << std::endl;
 
-		t5 = tbb::tick_count::now();
-		arena.execute([&]() {
-			tbb::parallel_reduce(tbb::blocked_range<std::size_t>(0, static_cast<int>(bin_count)), exp_rss);
-			});
-		t6 = tbb::tick_count::now();
-		std::cout << "Exponential RSS: " << (t6 - t5).seconds() << "sec." << std::endl;
+		t1 = ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, exp_rss, 0, static_cast<int>(bin_count));
+		std::cout << "Exponential RSS: " << t1 << "sec." << std::endl;
 
-		t5 = tbb::tick_count::now();
-		arena.execute([&]() {
-			tbb::parallel_reduce(tbb::blocked_range<std::size_t>(0, static_cast<int>(bin_count)), uniform_rss);
-			});
-		t6 = tbb::tick_count::now();
-		std::cout << "Uniform RSS: " << (t6 - t5).seconds() << "sec." << std::endl;
+		t1 = ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, uniform_rss, 0, static_cast<int>(bin_count));
+		std::cout << "Uniform RSS: " << t1 << "sec." << std::endl;
 
 		double g_rss = gauss->Get_RSS();
 		double p_rss = poisson->Get_RSS();

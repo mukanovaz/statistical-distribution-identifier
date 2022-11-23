@@ -6,7 +6,7 @@
 
 namespace ppr
 {
-    constexpr double THREAD_PER_CORE = 1;
+    constexpr int THREAD_PER_CORE = 1;
 
     enum class ERun_mode {
         SMP = 0,

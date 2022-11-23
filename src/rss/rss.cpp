@@ -149,6 +149,7 @@ namespace ppr::rss
 			ppr::rss::Distribution* t_dist = m_dist;    // to not discard earlier accumulations
 			std::vector<double>& t_bucketDensity = m_bucketDensity;
 		
+			#pragma loop(ivdep)
 			for (size_t i = r.begin(); i != r.end(); ++i)
 			{
 				double d = (double)m_bucketDensity[i];

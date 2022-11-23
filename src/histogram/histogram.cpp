@@ -129,6 +129,7 @@ namespace ppr::hist
 				std::vector<int>& t_bucketFrequency = m_bucketFrequency;
 				std::vector<double>& t_bucketDensity = m_bucketDensity;
 
+				#pragma loop(ivdep)
 				for (size_t i = r.begin(); i != r.end(); ++i)
 				{
 					double x = (double)t_data[i];
@@ -152,6 +153,7 @@ namespace ppr::hist
 
 			void ComputePropabilityDensityOfHistogram(std::vector<double>& bucket_density, double count)
 			{
+				#pragma loop(ivdep)
 				for (unsigned int i = 0; i < m_histogram.size; i++)
 				{
 					double next_edge = m_histogram.min + (m_histogram.binSize * (static_cast<double>(i) + 1.0));
@@ -159,18 +161,6 @@ namespace ppr::hist
 					double diff = next_edge - curr_edge;
 					bucket_density[i] = m_bucketFrequency[i] / diff / count;
 				}
-			}
-			
-			double ComputeRssOfHistogram(ppr::rss::Distribution* dist, std::vector<double>& bucket_density, int hist_size, int bin_size)
-			{
-				for (unsigned int i = 0; i < hist_size; i++)
-				{
-					double d = (double)bucket_density[i];
-					dist->Push(d, (i * bin_size));
-				}
-
-				double res = dist->Get_RSS();
-				return res;
 			}
 	};
 

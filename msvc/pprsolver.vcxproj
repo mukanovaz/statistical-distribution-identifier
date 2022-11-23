@@ -20,22 +20,24 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\referencni_rozdeleni\generator.cpp" />
-    <ClCompile Include="..\src\all\all.cpp" />
+    <ClCompile Include="..\src\executor.cpp" />
     <ClCompile Include="..\src\file_mapping.cpp" />
     <ClCompile Include="..\src\histogram\histogram.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\config.cpp" />
+    <ClCompile Include="..\src\opencl\gpu_utils.cpp" />
     <ClCompile Include="..\src\rss\rss.cpp" />
     <ClCompile Include="..\src\rss\statistics.cpp" />
     <ClCompile Include="..\src\sequential\seq_solver.cpp" />
     <ClCompile Include="..\src\smp\smp_solver.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\all\all.h" />
     <ClInclude Include="..\src\data.h" />
+    <ClInclude Include="..\src\executor.h" />
     <ClInclude Include="..\src\file_mapping.h" />
     <ClInclude Include="..\src\config.h" />
     <ClInclude Include="..\src\main.h" />
+    <ClInclude Include="..\src\opencl\gpu_utils.h" />
     <ClInclude Include="..\src\sequential\seq_solver.h" />
     <ClInclude Include="..\src\smp\smp_solver.h" />
   </ItemGroup>
@@ -120,12 +122,16 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(TBBROOT)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\include;$(TBBROOT)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <AdditionalOptions>/Qvec-report:2 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>$(TBBROOT)\redist\intel64\vc_mt;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\lib\x64;$(TBBROOT)\redist\intel64\vc_mt;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>OpenCL.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

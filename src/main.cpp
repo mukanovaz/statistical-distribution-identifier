@@ -2,7 +2,6 @@
 #include "config.h"
 #include "data.h"
 #include "./smp/smp_solver.h"
-#include "./all/all.h"
 #include "./sequential/seq_solver.h"
 
 namespace ppr
@@ -24,7 +23,6 @@ namespace ppr
 
 int main(int argc, char** argv) {
 	ppr::SConfig conf;
-
 	bool parse_result = parse_args(argc, argv, conf);
 
 	if (!parse_result)
