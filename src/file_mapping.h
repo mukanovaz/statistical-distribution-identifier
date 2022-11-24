@@ -9,7 +9,7 @@ class FileMapping
     private:
         HANDLE m_file;
         HANDLE m_mapping;
-        const double* m_data;
+        double* m_data;
         const char* m_filename;
         unsigned int m_fileLen;
         unsigned int m_size;
@@ -23,7 +23,7 @@ class FileMapping
     public:
         FileMapping(const char* filename);
 
-        const double* GetData() const;
+        double* GetData() const;
 
         const unsigned int GetFileLen() const;
 

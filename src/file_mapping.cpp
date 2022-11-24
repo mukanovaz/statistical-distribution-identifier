@@ -44,10 +44,10 @@ void FileMapping::view()
     m_fileLen = GetFileSize(m_file, 0);
     m_size = m_fileLen / sizeof(double);
 
-    m_data = (const double*)MapViewOfFile(m_mapping, FILE_MAP_READ, 0, 0, 0);
+    m_data = (double*)MapViewOfFile(m_mapping, FILE_MAP_READ, 0, 0, 0);
 }
 
-const double* FileMapping::GetData() const
+double* FileMapping::GetData() const
 {
     return m_data;
 }

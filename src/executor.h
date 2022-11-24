@@ -8,6 +8,9 @@
 #include <tbb/blocked_range.h>
 #include "rss/statistics.cpp"
 #include "histogram/histogram.cpp"
+#include "opencl/gpu_utils.h"
+#include <numeric>
+#include <vector>
 
 namespace ppr::executor
 {
@@ -22,4 +25,19 @@ namespace ppr::executor
 
 		return (t1 - t0).seconds();
 	}
+
+	double SumVectorOnCPU(tbb::task_arena& arena, std::vector<double> data);
+
+	SStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, tbb::task_arena& arena, int data_count_for_gpu, int wg_count, double* data);
+
+	//double RunOnGPU(const char* source)
+	//{
+	//	/*tbb::tick_count t0 = tbb::tick_count::now();
+	//	arena.execute([&]() {
+	//		tbb::parallel_reduce(tbb::blocked_range<std::size_t>(begin, end), class_to_execute);
+	//		});
+	//	tbb::tick_count t1 = tbb::tick_count::now();
+
+	//	return (t1 - t0).seconds();*/
+	//}
 }

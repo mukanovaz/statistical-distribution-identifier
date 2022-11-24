@@ -6,6 +6,7 @@
 #include <tbb/combinable.h>
 #include <tbb/parallel_for.h>
 #include "../data.h"
+#include <iostream>
 
 namespace ppr
 {
@@ -106,13 +107,14 @@ namespace ppr
         private:
             SStat m_stat;
             const double* m_data;
+            const int m_first_index;
 
         public:
-            RunningStatParallel(const double* data) : m_data(data)
+            RunningStatParallel(double* data, int first_index) : m_data(data), m_first_index(first_index)
             {
                 m_stat.n = 1;
-                m_stat.oldM = data[0];
-                m_stat.newM = data[0];
+                m_stat.oldM = data[m_first_index];
+                m_stat.newM = data[m_first_index];
                 m_stat.oldS = 0.0;
                 m_stat.newS = 0.0;
                 m_stat.sum = 0.0;
@@ -121,11 +123,11 @@ namespace ppr
                 m_stat.max = 0.0;
             }
 
-            RunningStatParallel(RunningStatParallel& x, tbb::split) : m_data(x.m_data)
+            RunningStatParallel(RunningStatParallel& x, tbb::split) : m_data(x.m_data), m_first_index(x.m_first_index)
             {
                 m_stat.n = 1;
-                m_stat.oldM = x.m_data[0];
-                m_stat.newM = x.m_data[0];
+                m_stat.oldM = x.m_data[m_first_index];
+                m_stat.newM = x.m_data[m_first_index];
                 m_stat.oldS = 0.0;
                 m_stat.newS = 0.0;
                 m_stat.sum = 0.0;
@@ -142,6 +144,7 @@ namespace ppr
 
                 for (size_t i = r.begin(); i != r.end(); ++i)
                 {
+                    //std::cout << i << std::endl;
                     double x = (double)t_data[i];
 
                     t_stat.n++;

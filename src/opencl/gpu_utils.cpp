@@ -1,23 +1,50 @@
 #include "gpu_utils.h"
+#include <fstream>
+#include <string>
 #include <unordered_set>
 #include <algorithm>
+#include <iostream>
 
 namespace ppr::gpu
 {
-    cl::Program CreateProgram(const cl::Device* devices, const char* source)
+    SOpenCLConfig Init(SConfig& configuration, const std::string& file)
     {
-        cl::Program::Sources src(1, { source, strlen(source) + 1 });
-        cl::Context context(*devices);
-        cl::Program program(context, src);
+        cl_int err = 0;
 
-        cl_int err = program.build("-cl-std=CL2.0");
-        // TODO: error
-        /*if (err != 0)
+        // Find all platforms
+        std::vector<cl::Platform> platforms;
+        cl::Platform::get(&platforms);
+
+        // Find all devices on all platforms
+        std::vector<cl::Device> devices(configuration.cl_devices_name.size());
+        ppr::gpu::FindDevices(platforms, devices, configuration.cl_devices_name);
+        auto& device = devices.front();
+
+        // Create program
+        std::ifstream kernel_file(file);
+
+        std::string src((std::istreambuf_iterator<char>(kernel_file)), (std::istreambuf_iterator<char>()));
+        const char* t_src = src.c_str();
+       /* std::cout << src << std::endl;*/
+        cl::Program::Sources source(1, std::make_pair(t_src, src.length() + 1));
+
+        cl::Context context(device);
+        cl::Program program(context, source);
+        
+        // Build our program
+        err = program.build("-cl-std=CL2.0");
+        
+        if (err == CL_BUILD_PROGRAM_FAILURE)
         {
-            throw GetCLErrorString(err);
-        }*/
+            // Get the build log for the first device
+            std::string log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[0]);
+            std::cerr << log << std::endl;
+        }
+        // Create kernel
+        cl::Kernel kernel(program, "Get_Data_Statistics", &err); 
 
-        return program;
+       
+        return { device, context, program, kernel, kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device) };
     }
 
     void FindDevices(std::vector<cl::Platform>& platforms, std::vector<cl::Device>& all_devices, std::vector<std::string>& user_devices)
@@ -26,7 +53,7 @@ namespace ppr::gpu
         {
             // Get all devices of the current platform.
             std::vector<cl::Device> devices;
-            platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
+            platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
 
             for (const auto& device : devices)
             {

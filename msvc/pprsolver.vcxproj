@@ -43,6 +43,11 @@
     <ClInclude Include="..\src\sequential\seq_solver.h" />
     <ClInclude Include="..\src\smp\smp_solver.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="statistics_kernel.cl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{0F7E839C-1337-42BB-882B-F543016365DD}</ProjectGuid>

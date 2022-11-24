@@ -48,7 +48,7 @@ namespace ppr::hist
 					double curr_edge = Min + (BinSize * static_cast<double>(i));
 					double diff = next_edge - curr_edge;
 					bucket_density[i] = bucket_frequency[i] / diff / count;
-					std::cout << bucket_density[i] << std::endl;
+					/*std::cout << bucket_density[i] << std::endl;*/
 				}
 			}
 

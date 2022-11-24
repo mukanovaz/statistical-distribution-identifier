@@ -12,7 +12,7 @@ namespace ppr::parallel
 		//  ================ [Map input file]
 		FileMapping mapping(configuration.input_fn);
 
-		const double* data = mapping.GetData();
+		double* data = mapping.GetData();
 
 		if (!data)
 		{
@@ -20,7 +20,7 @@ namespace ppr::parallel
 		}
 
 		//  ================ [Get statistics]
-		RunningStatParallel stat(data);
+		RunningStatParallel stat(data, 0);
 
 		double t1 = ppr::executor::RunOnCPU<RunningStatParallel>(arena, stat, 1, mapping.GetCount());
 		std::cout << "Get statistics: " << t1 << "sec." << std::endl;

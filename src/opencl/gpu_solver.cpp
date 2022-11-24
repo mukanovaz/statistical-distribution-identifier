@@ -1,33 +1,47 @@
 #include "gpu_solver.h"
-#include "../file_mapping.h"
 #include "gpu_utils.h"
+#include "../file_mapping.h"
+#include "../executor.h"
 
 
 namespace ppr::gpu
 {
 	SResult run(SConfig& configuration)
 	{
+		tbb::task_arena arena(configuration.thread_count == 0 ? tbb::task_arena::automatic : static_cast<int>(configuration.thread_count));
+
 		//  ================ [Init OpenCL]
 		// Find CL devices
-		std::vector<cl::Platform> platforms;
-		cl::Platform::get(&platforms);
-
-		std::vector<cl::Device> devices(configuration.cl_devices_name.size());
-		ppr::gpu::FindDevices(platforms, devices, configuration.cl_devices_name);
 		
-		cl::Program program = ppr::gpu::CreateProgram(&devices.front(), "");
+		SOpenCLConfig opencl = ppr::gpu::Init(configuration, "D:/Study/ZCU/5.semestr/PPR/kiv-ppr/msvc/statistics_kernel.cl");		
 
 		//  ================ [Map input file]
 		FileMapping mapping(configuration.input_fn);
 
-		const double* data = mapping.GetData();
+		double* data = mapping.GetData();
 
 		if (!data)
 		{
 			return SResult::error_res(EExitStatus::STAT);
 		}
 
+
 		//  ================ [Get statistics]
+
+		// Get number of data, which we want to process on GPU
+		auto wg_count = mapping.GetCount() / opencl.wg_size;
+		auto data_count_for_gpu = mapping.GetCount() - (mapping.GetCount() % opencl.wg_size);
+
+		// The rest of the data we will process on CPU
+		int data_count_for_cpu = data_count_for_gpu + 1;
+
+		// Find statistics on GPU
+		SStat stat_gpu = ppr::executor::RunStatisticsOnGPU(opencl, configuration, arena, data_count_for_gpu, wg_count, data);
+
+		// Find rest of a statistics on CPU
+		RunningStatParallel stat(data, data_count_for_cpu);
+		ppr::executor::RunOnCPU<RunningStatParallel>(arena, stat, data_count_for_cpu + 1, mapping.GetCount());
+
 
 		//  ================ [Fit params]
 
@@ -39,7 +53,7 @@ namespace ppr::gpu
 		//  ================ [Get propability density of histogram]
 
 		// ================ [Calculate RSS]
-
+		//
 		return SResult::error_res(EExitStatus::STAT);
 	}
 }
