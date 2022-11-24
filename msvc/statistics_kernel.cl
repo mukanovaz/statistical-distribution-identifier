@@ -7,13 +7,11 @@ __kernel void Get_Data_Statistics(
 	__local double* local_sumAbs,
 	__local double* local_min,
 	__local double* local_max,
-	__local double* local_mean,
 
 	__global double* out_sum,
 	__global double* out_sumAbs,
 	__global double* out_min,
-	__global double* out_max,
-	__global double* out_mean
+	__global double* out_max
 	)
 {		
 	size_t globalId = get_global_id(0);
@@ -21,10 +19,9 @@ __kernel void Get_Data_Statistics(
 	size_t localId = get_local_id(0);
 
 	local_sum[localId] = data[globalId];
-	local_sumAbs[localId] = data[globalId];
+	local_sumAbs[localId] = fabs(data[globalId]);
 	local_min[localId] = data[globalId];
 	local_max[localId] = data[globalId];
-	local_mean[localId] = data[globalId] / 2.0;
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -33,11 +30,9 @@ __kernel void Get_Data_Statistics(
 		if (localId < i)
 		{
 			local_sum[localId] += local_sum[localId + i];
-			local_sumAbs[localId] = get_local_size(0);
-			/*local_sumAbs[localId] += fabs(local_sumAbs[localId + i]);
+			local_sumAbs[localId] += local_sumAbs[localId + i];
 			local_min[localId] = min(local_min[localId], local_min[localId + i]);
 			local_max[localId] = max(local_max[localId], local_max[localId + i]);
-			local_mean[localId] = (local_mean[localId] / 2.0) + (local_mean[localId + i] / 2.0);*/
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
@@ -46,8 +41,7 @@ __kernel void Get_Data_Statistics(
 	{
 		out_sum[get_group_id(0)] = local_sum[0];
 		out_sumAbs[get_group_id(0)] = local_sumAbs[0];
-		/*out_min[get_group_id(0)] = local_min[0];
+		out_min[get_group_id(0)] = local_min[0];
 		out_max[get_group_id(0)] = local_max[0];
-		out_mean[get_group_id(0)] = local_mean[0];*/
 	}
 }

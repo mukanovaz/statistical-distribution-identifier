@@ -24,7 +24,7 @@ namespace ppr::gpu
 		{
 			return SResult::error_res(EExitStatus::STAT);
 		}
-
+		
 
 		//  ================ [Get statistics]
 
@@ -33,15 +33,16 @@ namespace ppr::gpu
 		auto data_count_for_gpu = mapping.GetCount() - (mapping.GetCount() % opencl.wg_size);
 
 		// The rest of the data we will process on CPU
-		int data_count_for_cpu = data_count_for_gpu + 1;
-
-		// Find statistics on GPU
-		SStat stat_gpu = ppr::executor::RunStatisticsOnGPU(opencl, configuration, arena, data_count_for_gpu, wg_count, data);
+		unsigned long data_count_for_cpu = data_count_for_gpu + 1;
 
 		// Find rest of a statistics on CPU
 		RunningStatParallel stat(data, data_count_for_cpu);
-		ppr::executor::RunOnCPU<RunningStatParallel>(arena, stat, data_count_for_cpu + 1, mapping.GetCount());
+		ppr::executor::RunOnCPU<RunningStatParallel>(arena, stat, 1, mapping.GetCount());
 
+		// Find statistics on GPU
+		SDataStat stat_gpu = ppr::executor::RunStatisticsOnGPU(opencl, configuration, arena, data_count_for_gpu, wg_count, data);
+
+		
 
 		//  ================ [Fit params]
 

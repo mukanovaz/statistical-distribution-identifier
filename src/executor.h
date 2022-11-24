@@ -28,7 +28,7 @@ namespace ppr::executor
 
 	double SumVectorOnCPU(tbb::task_arena& arena, std::vector<double> data);
 
-	SStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, tbb::task_arena& arena, int data_count_for_gpu, int wg_count, double* data);
+	SDataStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, tbb::task_arena& arena, unsigned long data_count_for_gpu, unsigned long wg_count, double* data);
 
 	//double RunOnGPU(const char* source)
 	//{

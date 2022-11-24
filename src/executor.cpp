@@ -5,10 +5,10 @@ namespace ppr::executor
 {
 	// https://www.cs.cmu.edu/afs/cs/academic/class/15499-s09/www/handouts/TBB-HPCC07.pdf
 	class MinIndexBody {
-		const std::vector<double> const my_a;
+		const std::vector<double> my_a;
 	public:
 		double value_of_min;
-		long index_of_min;
+		size_t index_of_min;
 
 		MinIndexBody(const std::vector<double> a) :
 			my_a(a),
@@ -24,8 +24,7 @@ namespace ppr::executor
 
 		void operator()(const tbb::blocked_range<size_t>& r) {
 			const std::vector<double> a = my_a;
-			int end = r.end();
-			for (size_t i = r.begin(); i != end; ++i) {
+			for (size_t i = r.begin(); i != r.end(); ++i) {
 				double value = a[i];
 				if (value < value_of_min) {
 					value_of_min = value;
@@ -55,9 +54,8 @@ namespace ppr::executor
 		return sum;
 	}
 
-	SStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, tbb::task_arena& arena, int data_count_for_gpu, int wg_count, double* data)
+	SDataStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, tbb::task_arena& arena, unsigned long data_count_for_gpu, unsigned long wg_count, double* data)
 	{
-	
 		cl_int err = 0;
 
 		cl::Buffer buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, data_count_for_gpu * sizeof(double), data, &err);
@@ -87,10 +85,10 @@ namespace ppr::executor
 
 		// Pass all data to GPU
 		err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(data_count_for_gpu), cl::NDRange(opencl.wg_size));
-		err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_FALSE, 0, wg_count * sizeof(double), out_sum.data());
-		err = cmd_queue.enqueueReadBuffer(out_sumAbs_buf, CL_FALSE, 0, wg_count * sizeof(double), out_sumAbs.data());
-		err = cmd_queue.enqueueReadBuffer(out_min_buf, CL_FALSE, 0, wg_count * sizeof(double), out_min.data());
-		err = cmd_queue.enqueueReadBuffer(out_max_buf, CL_FALSE, 0, wg_count * sizeof(double), out_max.data());
+		err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, wg_count * sizeof(double), out_sum.data());
+		err = cmd_queue.enqueueReadBuffer(out_sumAbs_buf, CL_TRUE, 0, wg_count * sizeof(double), out_sumAbs.data());
+		err = cmd_queue.enqueueReadBuffer(out_min_buf, CL_TRUE, 0, wg_count * sizeof(double), out_min.data());
+		err = cmd_queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, wg_count * sizeof(double), out_max.data());
 
 		cl::finish();
 
@@ -101,15 +99,11 @@ namespace ppr::executor
 		ppr::executor::RunOnCPU<MinIndexBody>(arena, mib, 0, wg_count);
 
 		return { 
-			data_count_for_gpu, // n
-			0.0,				// oldM
-			0.0,				// newM
-			0.0,				// oldS
-			0.0,				// newS
-			sum,				// sum
-			sumAbs,				// sumAbs
-			0.0,				// max
-			mib.value_of_min	// min
+			data_count_for_gpu,			// n
+			sum,						// sum
+			sumAbs,						// sumAbs
+			0.0,						// max
+			mib.value_of_min			// min
 		};
 	}
 

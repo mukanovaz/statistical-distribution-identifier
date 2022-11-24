@@ -22,7 +22,7 @@ namespace ppr::parallel
 		//  ================ [Get statistics]
 		RunningStatParallel stat(data, 0);
 
-		double t1 = ppr::executor::RunOnCPU<RunningStatParallel>(arena, stat, 1, mapping.GetCount());
+		double t1 = ppr::executor::RunOnCPU<RunningStatParallel>(arena, stat, 1, 1792);
 		std::cout << "Get statistics: " << t1 << "sec." << std::endl;
 
 		//  ================ [Fit params]
