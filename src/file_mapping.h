@@ -30,5 +30,7 @@ class FileMapping
         const unsigned int GetCount() const;
 
         void UnmapFile();
+
+        void ReadInChunks(const WCHAR* pszFileName);
 };
 #endif

@@ -69,4 +69,49 @@ void FileMapping::UnmapFile()
     CloseHandle(m_file);
 }
 
+// Calls ProcessChunk with each chunk of the file.
+void FileMapping::ReadInChunks(const WCHAR* pszFileName) {
+    // Offsets must be a multiple of the system's allocation granularity.  We
+    // guarantee this by making our view size equal to the allocation granularity.
+    SYSTEM_INFO sysinfo = { 0 };
+    ::GetSystemInfo(&sysinfo);
+    DWORD cbView = sysinfo.dwAllocationGranularity;
+
+    HANDLE hfile = ::CreateFileW(pszFileName, GENERIC_READ, FILE_SHARE_READ,
+        NULL, OPEN_EXISTING, 0, NULL);
+    if (hfile != INVALID_HANDLE_VALUE) {
+        LARGE_INTEGER file_size = { 0 };
+        ::GetFileSizeEx(hfile, &file_size);
+        const unsigned long long cbFile =
+            static_cast<unsigned long long>(file_size.QuadPart);
+
+        HANDLE hmap = ::CreateFileMappingW(hfile, NULL, PAGE_READONLY, 0, 0, NULL);
+        if (hmap != NULL) {
+            for (unsigned long long offset = 0; offset < cbFile; offset += cbView) {
+                DWORD high = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFFul);
+                DWORD low = static_cast<DWORD>(offset & 0xFFFFFFFFul);
+                // The last view may be shorter.
+                if (offset + cbView > cbFile) {
+                    cbView = static_cast<int>(cbFile - offset);
+                }
+
+
+
+                const double* pView = static_cast<const double*>(
+                    ::MapViewOfFile(hmap, FILE_MAP_READ, high, low, cbView));
+
+                MEMORY_BASIC_INFORMATION mbi = { 0 };
+                VirtualQueryEx(GetCurrentProcess(), pView, &mbi, sizeof(mbi));
+
+                if (pView != NULL) {
+                    //ProcessChunk(pView, cbView);
+                    double test = 0;
+                }
+            }
+            ::CloseHandle(hmap);
+        }
+        ::CloseHandle(hfile);
+    }
+}
+
 
