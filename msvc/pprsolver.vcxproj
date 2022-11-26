@@ -44,6 +44,7 @@
     <ClInclude Include="..\src\smp\smp_solver.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="histogram_kernel.cl" />
     <None Include="statistics_kernel.cl">
       <FileType>Document</FileType>
     </None>

@@ -85,5 +85,8 @@
     <None Include="statistics_kernel.cl">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="histogram_kernel.cl">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

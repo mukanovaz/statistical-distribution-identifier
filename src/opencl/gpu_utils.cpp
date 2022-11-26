@@ -7,9 +7,10 @@
 
 namespace ppr::gpu
 {
-    SOpenCLConfig Init(SConfig& configuration, const std::string& file)
+    SOpenCLConfig Init(SConfig& configuration, const std::string& file, const char* kernel_name)
     {
         cl_int err = 0;
+        SOpenCLConfig opencl;
 
         // Find all platforms
         std::vector<cl::Platform> platforms;
@@ -18,33 +19,61 @@ namespace ppr::gpu
         // Find all devices on all platforms
         std::vector<cl::Device> devices(configuration.cl_devices_name.size());
         ppr::gpu::FindDevices(platforms, devices, configuration.cl_devices_name);
-        auto& device = devices.front();
+        opencl.device = devices.front();
 
         // Create program
+        CreateProgram(opencl, file);
+
+        // Create kernel
+        CreateKernel(opencl, kernel_name);
+       
+        return opencl;
+    }
+
+    void UpdateProgram(SOpenCLConfig& opencl, const std::string& file, const char* kernel_name)
+    {
+        // Update program
+        CreateProgram(opencl, file);
+
+        // Update kernel
+        CreateKernel(opencl, kernel_name);
+    }
+
+    void CreateKernel(SOpenCLConfig& opencl, const char* kernel_name)
+    {
+        cl_int err = 0;
+
+        cl::Kernel kernel(opencl.program, kernel_name, &err);
+        opencl.kernel = kernel;
+        opencl.wg_size = kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(opencl.device);
+    }
+
+    void CreateProgram(SOpenCLConfig& opencl, const std::string& file)
+    {
+        cl_int err = 0;
+
         std::ifstream kernel_file(file);
 
         std::string src((std::istreambuf_iterator<char>(kernel_file)), (std::istreambuf_iterator<char>()));
         const char* t_src = src.c_str();
-       /* std::cout << src << std::endl;*/
         cl::Program::Sources source(1, std::make_pair(t_src, src.length() + 1));
 
-        cl::Context context(device);
+        cl::Context context(opencl.device);
+        auto test = opencl.device.getInfo< CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
         cl::Program program(context, source);
-        
+
         // Build our program
         err = program.build("-cl-std=CL2.0");
-        
+
         if (err == CL_BUILD_PROGRAM_FAILURE)
         {
             // Get the build log for the first device
-            std::string log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[0]);
+            std::string log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(opencl.device);
             std::cerr << log << std::endl;
         }
-        // Create kernel
-        cl::Kernel kernel(program, "Get_Data_Statistics", &err); 
 
-       
-        return { device, context, program, kernel, kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device) };
+        opencl.program = program;
+        opencl.context = context;
     }
 
     void FindDevices(std::vector<cl::Platform>& platforms, std::vector<cl::Device>& all_devices, std::vector<std::string>& user_devices)

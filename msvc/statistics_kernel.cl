@@ -14,9 +14,10 @@ __kernel void Get_Data_Statistics(
 	__global double* out_max
 	)
 {		
-	size_t globalId = get_global_id(0);
-	size_t localSize = get_local_size(0);
-	size_t localId = get_local_id(0);
+	uint globalId = get_global_id(0);
+	uint localSize = get_local_size(0);
+	uint localId = get_local_id(0);
+	uint groupId = get_group_id(0);
 
 	local_sum[localId] = data[globalId];
 	local_sumAbs[localId] = fabs(data[globalId]);
@@ -39,9 +40,9 @@ __kernel void Get_Data_Statistics(
 
 	if (localId == 0)
 	{
-		out_sum[get_group_id(0)] = local_sum[0];
-		out_sumAbs[get_group_id(0)] = local_sumAbs[0];
-		out_min[get_group_id(0)] = local_min[0];
-		out_max[get_group_id(0)] = local_max[0];
+		out_sum[groupId] = local_sum[0];
+		out_sumAbs[groupId] = local_sumAbs[0];
+		out_min[groupId] = local_min[0];
+		out_max[groupId] = local_max[0];
 	}
 }

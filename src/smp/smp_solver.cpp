@@ -22,8 +22,26 @@ namespace ppr::parallel
 		//  ================ [Get statistics]
 		RunningStatParallel stat(data, 0);
 
-		double t1 = ppr::executor::RunOnCPU<RunningStatParallel>(arena, stat, 1, 1792);
+		double t1 = ppr::executor::RunOnCPU<RunningStatParallel>(arena, stat, 1, mapping.GetCount());
 		std::cout << "Get statistics: " << t1 << "sec." << std::endl;
+
+		//  ================ [Create frequency histogram]
+		const double bin_count = log2(mapping.GetCount()) + 1;
+		double bin_size = (stat.Get_Max() - stat.Get_Min()) / (bin_count - 1);
+		std::vector<int> histogramFreq(static_cast<int>(bin_count));
+		std::vector<double> histogramDensity(static_cast<int>(bin_count));
+
+		ppr::hist::HistogramParallel hist(static_cast<int>(bin_count), bin_size, stat.Get_Min(), stat.Get_Max(), data, 0.0);
+
+		t1 = ppr::executor::RunOnCPU<ppr::hist::HistogramParallel>(arena, hist, 0, mapping.GetCount());
+		std::cout << "Histogram: " << t1 << "sec." << std::endl;
+
+		//================ [Unmap file]
+		mapping.UnmapFile();
+
+		//  ================ [Get propability density of histogram]
+		hist.ComputePropabilityDensityOfHistogram(histogramDensity, mapping.GetCount());
+
 
 		//  ================ [Fit params]
 		// Gauss maximum likelihood estimators
@@ -40,22 +58,6 @@ namespace ppr::parallel
 		// Uniform likelihood estimators
 		double a = stat.Get_Min();
 		double b = stat.Get_Max();
-
-		//  ================ [Create frequency histogram]
-		const double bin_count = log2(mapping.GetCount()) + 1;
-		double bin_size = (stat.Get_Max() - stat.Get_Min()) / (bin_count - 1); // TODO
-		std::vector<double> histogramDensity(static_cast<int>(bin_count));
-
-		ppr::hist::HistogramParallel hist(static_cast<int>(bin_count), bin_size, stat.Get_Min(), stat.Get_Max(), data);
-
-		t1 = ppr::executor::RunOnCPU<ppr::hist::HistogramParallel>(arena, hist, 0, mapping.GetCount());
-		std::cout << "Histogram: " << t1 << "sec." << std::endl;
-
-		//================ [Unmap file]
-		mapping.UnmapFile();
-
-		//  ================ [Get propability density of histogram]
-		hist.ComputePropabilityDensityOfHistogram(histogramDensity, mapping.GetCount());
 
 		// ================ [Calculate RSS]
 		ppr::rss::Distribution* gauss = new ppr::rss::NormalDistribution(gauss_mean, gauss_sd, gauss_variance);

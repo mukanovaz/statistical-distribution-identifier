@@ -4,40 +4,59 @@
 namespace ppr::executor
 {
 	// https://www.cs.cmu.edu/afs/cs/academic/class/15499-s09/www/handouts/TBB-HPCC07.pdf
-	class MinIndexBody {
+	class MinParallel {
 		const std::vector<double> my_a;
 	public:
 		double value_of_min;
-		size_t index_of_min;
 
-		MinIndexBody(const std::vector<double> a) :
+		MinParallel(const std::vector<double> a) :
 			my_a(a),
-			value_of_min(FLT_MAX),
-			index_of_min(-1)
+			value_of_min(FLT_MAX)
 		{}
 
-		MinIndexBody(MinIndexBody& x, tbb::split) :
+		MinParallel(MinParallel& x, tbb::split) :
 			my_a(x.my_a),
-			value_of_min(FLT_MAX),
-			index_of_min(-1)
+			value_of_min(FLT_MAX)
 		{}
 
 		void operator()(const tbb::blocked_range<size_t>& r) {
 			const std::vector<double> a = my_a;
 			for (size_t i = r.begin(); i != r.end(); ++i) {
 				double value = a[i];
-				if (value < value_of_min) {
-					value_of_min = value;
-					index_of_min = i;
-				}
+				value_of_min = std::min({ value_of_min , value });
 			}
 		}
 
-		void join(const MinIndexBody& y) {
-			if (y.value_of_min < value_of_min) {
-				value_of_min = y.value_of_min;
-				index_of_min = y.index_of_min;
+		void join(const MinParallel& y) {
+			value_of_min = std::min({ value_of_min , y.value_of_min });
+		}
+	};
+
+	class MaxParallel {
+		const std::vector<double> my_a;
+	public:
+		double value_of_max;
+
+		MaxParallel(const std::vector<double> a) :
+			my_a(a),
+			value_of_max(FLT_MIN)
+		{}
+
+		MaxParallel(MaxParallel& x, tbb::split) :
+			my_a(x.my_a),
+			value_of_max(FLT_MIN)
+		{}
+
+		void operator()(const tbb::blocked_range<size_t>& r) {
+			const std::vector<double> a = my_a;
+			for (size_t i = r.begin(); i != r.end(); ++i) {
+				double value = a[i];
+				value_of_max = std::max({ value_of_max , value });
 			}
+		}
+
+		void join(const MaxParallel& y) {
+			value_of_max = std::max({ value_of_max , y.value_of_max });
 		}
 	};
 
@@ -54,15 +73,15 @@ namespace ppr::executor
 		return sum;
 	}
 
-	SDataStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, tbb::task_arena& arena, unsigned long data_count_for_gpu, unsigned long wg_count, double* data)
+	SDataStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, tbb::task_arena& arena, double* data)
 	{
 		cl_int err = 0;
 
-		cl::Buffer buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, data_count_for_gpu * sizeof(double), data, &err);
-		cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, wg_count * sizeof(double), nullptr, &err);
-		cl::Buffer out_sumAbs_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, wg_count * sizeof(double), nullptr, &err);
-		cl::Buffer out_min_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, wg_count * sizeof(double), nullptr, &err);
-		cl::Buffer out_max_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, wg_count * sizeof(double), nullptr, &err);
+		cl::Buffer buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
+		cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
+		cl::Buffer out_sumAbs_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
+		cl::Buffer out_min_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
+		cl::Buffer out_max_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
 
 		// Set method arguments
 		err = opencl.kernel.setArg(0, buf);
@@ -76,37 +95,75 @@ namespace ppr::executor
 		err = opencl.kernel.setArg(8, out_max_buf);
 
 		// Result data
-		std::vector<double> out_sum(wg_count);
-		std::vector<double> out_sumAbs(wg_count);
-		std::vector<double> out_min(wg_count);
-		std::vector<double> out_max(wg_count);
+		std::vector<double> out_sum(opencl.wg_count);
+		std::vector<double> out_sumAbs(opencl.wg_count);
+		std::vector<double> out_min(opencl.wg_count);
+		std::vector<double> out_max(opencl.wg_count);
 
 		cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
 
 		// Pass all data to GPU
-		err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(data_count_for_gpu), cl::NDRange(opencl.wg_size));
-		err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, wg_count * sizeof(double), out_sum.data());
-		err = cmd_queue.enqueueReadBuffer(out_sumAbs_buf, CL_TRUE, 0, wg_count * sizeof(double), out_sumAbs.data());
-		err = cmd_queue.enqueueReadBuffer(out_min_buf, CL_TRUE, 0, wg_count * sizeof(double), out_min.data());
-		err = cmd_queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, wg_count * sizeof(double), out_max.data());
+		err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(opencl.data_count_for_gpu), cl::NDRange(opencl.wg_size));
+		err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_sum.data());
+		err = cmd_queue.enqueueReadBuffer(out_sumAbs_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_sumAbs.data());
+		err = cmd_queue.enqueueReadBuffer(out_min_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_min.data());
+		err = cmd_queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_max.data());
 
 		cl::finish();
 
 		// Agregate results on CPU
 		double sum = ppr::executor::SumVectorOnCPU(arena, out_sum);
 		double sumAbs = ppr::executor::SumVectorOnCPU(arena, out_sumAbs);
-		MinIndexBody mib(out_min);
-		ppr::executor::RunOnCPU<MinIndexBody>(arena, mib, 0, wg_count);
+		MinParallel minp(out_min);
+		ppr::executor::RunOnCPU<MinParallel>(arena, minp, 0, opencl.wg_count);
+		MaxParallel maxp(out_max);
+		ppr::executor::RunOnCPU<MaxParallel>(arena, maxp, 0, opencl.wg_count);
 
 		return { 
-			data_count_for_gpu,			// n
+			opencl.data_count_for_gpu,	// n
 			sum,						// sum
 			sumAbs,						// sumAbs
-			0.0,						// max
-			mib.value_of_min			// min
+			maxp.value_of_max,			// max
+			minp.value_of_min,			// min
+			0.0,						// mean
+			0.0							// variance
 		};
 	}
 
+	void RunHistogramOnGPU(SOpenCLConfig& opencl, SDataStat& data_stat, SHistogram& histogram, tbb::task_arena& arena, double* data, std::vector<int>& freq_buckets)
+	{
+		cl_int err = 0;
+		
+		cl::Buffer buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
+		cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, histogram.binCount * sizeof(int), freq_buckets.data(), &err);
+		cl::Buffer out_var_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
 
+		// Set method arguments
+ 		err = opencl.kernel.setArg(0, buf);
+		err = opencl.kernel.setArg(1, opencl.wg_size * sizeof(double), nullptr);
+		err = opencl.kernel.setArg(2, out_sum_buf);
+		err = opencl.kernel.setArg(3, out_var_buf);
+		err = opencl.kernel.setArg(4, sizeof(double), &data_stat.mean);
+		err = opencl.kernel.setArg(5, sizeof(double), &data_stat.min);
+		err = opencl.kernel.setArg(6, sizeof(double), &histogram.scaleFactor);
+		err = opencl.kernel.setArg(7, sizeof(double), &histogram.binSize);
+		err = opencl.kernel.setArg(8, sizeof(double), &histogram.binCount);
+
+		// Result data
+		std::vector<double> out_var(opencl.wg_count);
+
+		cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
+
+		// Pass all data to GPU
+		err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(opencl.data_count_for_gpu), cl::NDRange(opencl.wg_size));
+		err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, histogram.binCount * sizeof(int), freq_buckets.data());
+		err = cmd_queue.enqueueReadBuffer(out_var_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_var.data());
+
+		cl::finish();
+		
+		// Agregate results on CPU
+		double var = ppr::executor::SumVectorOnCPU(arena, out_var);
+		data_stat.variance = var;
+	}
 	
 }

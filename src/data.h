@@ -14,7 +14,7 @@ struct SHistogram
     double binSize = 0.0;
     double max = 0.0;
     double min = 0.0;
-    unsigned int size = 0;
+    unsigned int binCount = 0;
     double scaleFactor = 0.0;
 };
 
@@ -38,6 +38,8 @@ struct SDataStat
     double sumAbs = 0.0;
     double max = 0.0;
     double min = 0.0;
+    double mean = 0.0;
+    double variance = 0.0;
 };
 
 struct SResult

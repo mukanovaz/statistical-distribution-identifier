@@ -10,6 +10,9 @@ namespace ppr
 {
     constexpr int THREAD_PER_CORE = 1;
     const constexpr char* STAT_KERNEL = "D:/Study/ZCU/5.semestr/PPR/kiv-ppr/msvc/statistics_kernel.cl";
+    const constexpr char* STAT_KERNEL_NAME = "Get_Data_Statistics";
+    const constexpr char* HIST_KERNEL = "D:/Study/ZCU/5.semestr/PPR/kiv-ppr/msvc/histogram_kernel.cl";
+    const constexpr char* HIST_KERNEL_NAME = "Get_Data_Histogram";
 
     enum class ERun_mode {
         SMP = 0,
@@ -38,6 +41,8 @@ namespace ppr
         cl::Program program{};
         cl::Kernel kernel{};
         size_t wg_size = 0;
+        unsigned long data_count_for_gpu = 0;
+        unsigned long wg_count = 0;
     };
 
     bool parse_args(int argc, char** argv, SConfig& config);

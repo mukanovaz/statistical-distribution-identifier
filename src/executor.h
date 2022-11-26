@@ -28,16 +28,7 @@ namespace ppr::executor
 
 	double SumVectorOnCPU(tbb::task_arena& arena, std::vector<double> data);
 
-	SDataStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, tbb::task_arena& arena, unsigned long data_count_for_gpu, unsigned long wg_count, double* data);
+	SDataStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, tbb::task_arena& arena, double* data);
 
-	//double RunOnGPU(const char* source)
-	//{
-	//	/*tbb::tick_count t0 = tbb::tick_count::now();
-	//	arena.execute([&]() {
-	//		tbb::parallel_reduce(tbb::blocked_range<std::size_t>(begin, end), class_to_execute);
-	//		});
-	//	tbb::tick_count t1 = tbb::tick_count::now();
-
-	//	return (t1 - t0).seconds();*/
-	//}
+	void RunHistogramOnGPU(SOpenCLConfig& opencl, SDataStat& data_stat, SHistogram& histogram, tbb::task_arena& arena, double* data, std::vector<int>& freq_buckets);
 }
