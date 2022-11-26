@@ -29,7 +29,7 @@ namespace ppr
     };
 
     struct SConfig {
-        const char* input_fn{};
+        const WCHAR* input_fn{};
         ERun_mode mode{};
         std::vector<std::string> cl_devices_name{};
         int thread_count = 0;
@@ -42,6 +42,7 @@ namespace ppr
         cl::Kernel kernel{};
         size_t wg_size = 0;
         unsigned long data_count_for_gpu = 0;
+        unsigned long data_count_for_cpu = 0;
         unsigned long wg_count = 0;
     };
 

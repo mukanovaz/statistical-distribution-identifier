@@ -3,6 +3,15 @@
 
 namespace ppr
 {
+	const WCHAR* Char2Wchar(const char* c)
+	{
+		const size_t cSize = strlen(c) + 1;
+		WCHAR* wc = new WCHAR[cSize];
+		mbstowcs(wc, c, cSize);
+
+		return wc;
+	}
+
 	char asciitolower(char in) {
 		if (in <= 'Z' && in >= 'A')
 			return in - ('Z' - 'z');
@@ -19,7 +28,7 @@ namespace ppr
 		}
 
 		// Check if file exist
-		config.input_fn = argv[1];
+		config.input_fn = Char2Wchar(argv[1]);
 
 		std::string file_name = argv[1];
 		std::ifstream file(file_name, std::ios::binary);

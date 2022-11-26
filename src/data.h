@@ -48,6 +48,7 @@ struct SResult
     int status = 0;
     double gauss_mean = 0.0;
     double gauss_variance = 0.0;
+    double gauss_stdev = 0.0;
     double exp_lambda = 0.0;
     long poisson_lambda = 0;
     double uniform_a = 0.0;
