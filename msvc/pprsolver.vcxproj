@@ -37,6 +37,7 @@
     <ClInclude Include="..\src\executor.h" />
     <ClInclude Include="..\src\file_mapping.h" />
     <ClInclude Include="..\src\config.h" />
+    <ClInclude Include="..\src\histogram\histogram.h" />
     <ClInclude Include="..\src\main.h" />
     <ClInclude Include="..\src\opencl\gpu_solver.h" />
     <ClInclude Include="..\src\opencl\gpu_utils.h" />

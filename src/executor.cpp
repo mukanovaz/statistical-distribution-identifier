@@ -133,9 +133,11 @@ namespace ppr::executor
 	void RunHistogramOnGPU(SOpenCLConfig& opencl, SDataStat& data_stat, SHistogram& histogram, tbb::task_arena& arena, double* data, std::vector<int>& freq_buckets)
 	{
 		cl_int err = 0;
-		
+
+		std::vector<cl_uint> out_histogram(2 * histogram.binCount, 0);
+
 		cl::Buffer buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
-		cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, histogram.binCount * sizeof(int), freq_buckets.data(), &err);
+		cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, out_histogram.size() * sizeof(cl_uint), out_histogram.data(), &err);
 		cl::Buffer out_var_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
 
 		// Set method arguments
@@ -156,11 +158,17 @@ namespace ppr::executor
 
 		// Pass all data to GPU
 		err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(opencl.data_count_for_gpu), cl::NDRange(opencl.wg_size));
-		err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, histogram.binCount * sizeof(int), freq_buckets.data());
+		err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, out_histogram.size() * sizeof(cl_uint), out_histogram.data());
 		err = cmd_queue.enqueueReadBuffer(out_var_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_var.data());
 
 		cl::finish();
-		
+
+		for (int i = 0; i < histogram.binCount; i++)
+		{
+			const size_t value = static_cast<size_t>(out_histogram.at(2 * i)) + static_cast<size_t>(out_histogram.at(2 * i + 1)) * sizeof(cl_uint);
+			freq_buckets[i] += value;
+		}
+
 		// Agregate results on CPU
 		double var = ppr::executor::SumVectorOnCPU(arena, out_var);
 		data_stat.variance += var;

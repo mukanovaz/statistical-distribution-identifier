@@ -25,18 +25,20 @@ __kernel void Get_Data_Histogram(
     
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    //  Compute the interval number 
-    int position = (int)((data[globalId] - min) * scale_factor);
 
-    if (position == bin_count)
+    double value = data[globalId];
+
+    if (min < 0)
     {
-        position -= 1;
+        value /= 2;
     }
 
-    // increase the hist count for interval 'position'
-    uint val = atomic_inc(&out_sum[position]);
-    atomic_add(&out_sum[position], val == 0xFFFFFFFF);
-  
+    int position = (int)((value - min) / bin_size);
+    uint old_value = atomic_inc(&out_sum[2 * position]);
+    uint carry = old_value == 0xFFFFFFFF;
+    atomic_add(&out_sum[2 * position + 1], carry);
+
+
     // Compute part of gauss variance
     for (int i = 1; i < groupSize; i++)
     {

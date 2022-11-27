@@ -46,12 +46,13 @@ namespace ppr
             void UnmapFile();
 
             void ReadInChunks(
+                SHistogram& hist,
                 SConfig& config,
                 SOpenCLConfig& opencl, 
                 SDataStat& stat, 
                 tbb::task_arena& arena, 
-                std::vector<double>& histogram,
-                void (*ProcessChunk) (SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned int, double*, std::vector<double>&));
+                std::vector<int>& histogram,
+                void (*ProcessChunk) (SHistogram& hist, SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned int, double*, std::vector<int>&));
 
     };
 }

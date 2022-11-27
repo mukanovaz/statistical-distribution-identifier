@@ -10,7 +10,6 @@ namespace ppr
 
 		size_t outSize;
 		mbstowcs_s(&outSize, wc, size, c, size - 1);
-
 		return wc;
 	}
 

@@ -3,8 +3,22 @@
 #include <functional>
 #include <array>
 
+#define _CRTDBG_MAP_ALLOC
+
+
 namespace ppr::gpu
 {
+	void ComputePropabilityDensityOfHistogram(SHistogram& hist, std::vector<int>& bucket_frequency, std::vector<double>& bucket_density, double count)
+	{
+		for (unsigned int i = 0; i < hist.binCount; i++)
+		{
+			double next_edge = hist.min + (hist.binSize * (static_cast<double>(i) + 1.0));
+			double curr_edge = hist.min + (hist.binSize * static_cast<double>(i));
+			double diff = next_edge - curr_edge;
+			bucket_density[i] = bucket_frequency[i] / diff / count;
+		}
+	}
+
 	SResult run(SConfig& configuration)
 	{
 		//  ================ [Init TBB]
@@ -17,9 +31,10 @@ namespace ppr::gpu
 		FileMapping mapping(configuration.input_fn);
 
 		//  ================ [Allocations]
+		SHistogram hist;
 		SResult res;
 		SDataStat stat;
-		std::vector<double> tmp(0);
+		std::vector<int> tmp(0);
 		unsigned int data_count = mapping.GetCount();
 
 		// Get number of data, which we want to process on GPU
@@ -31,7 +46,7 @@ namespace ppr::gpu
 
 		//  ================ [Get statistics]
 		tbb::tick_count t0 = tbb::tick_count::now();
-		mapping.ReadInChunks(configuration, opencl, stat, arena, tmp, &GetStatistics);
+		mapping.ReadInChunks(hist, configuration, opencl, stat, arena, tmp, &GetStatistics);
 		tbb::tick_count t1 = tbb::tick_count::now();
 		std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 
@@ -43,20 +58,26 @@ namespace ppr::gpu
 		ppr::gpu::UpdateProgram(opencl, HIST_KERNEL, HIST_KERNEL_NAME);
 
 		// Find histogram limits
-		SHistogram hist;
 		hist.binCount = log2(stat.n) + 1;
 		hist.binSize = (stat.max - stat.min) / (hist.binCount - 1);
 		hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
 
 		// Allocate memmory
+		std::vector<int> histogramFreq(static_cast<int>(hist.binCount));
 		std::vector<double> histogramDensity(static_cast<int>(hist.binCount));
+		cl_int err = 0;
+
+		// Run
 		t0 = tbb::tick_count::now();
-		mapping.ReadInChunks(configuration, opencl, stat, arena, histogramDensity, &CreateFrequencyHistogram);
+		mapping.ReadInChunks(hist, configuration, opencl, stat, arena, histogramFreq, &CreateFrequencyHistogram);
 		t1 = tbb::tick_count::now();
 		std::cout << "Histogram:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 	
 		// Find variance
 		stat.variance = stat.variance / stat.n;
+
+		//  ================ [Create density histogram]
+		ComputePropabilityDensityOfHistogram(hist, histogramFreq, histogramDensity, stat.n);
 
 		//	================ [Fit params]
 		res.isNegative = !(std::floor(stat.sum) == std::floor(stat.sumAbs));
@@ -87,7 +108,7 @@ namespace ppr::gpu
 		return res;
 	}
 
-	void GetStatistics(SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<double>& histogram)
+	void GetStatistics(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
 	{
 		if (opencl.data_count_for_cpu < data_count)
 		{
@@ -117,24 +138,24 @@ namespace ppr::gpu
 			stat.sum += stat_gpu.sum;
 			stat.sumAbs += stat_gpu.sumAbs;
 		}
-
 	}
 
-	void CreateFrequencyHistogram(SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<double>& histogram)
+	void CreateFrequencyHistogram(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
 	{
-		// Update kernel program
-		ppr::gpu::UpdateProgram(opencl, HIST_KERNEL, HIST_KERNEL_NAME);
+		if (opencl.data_count_for_cpu < data_count)
+		{
+			// Run on CPU
+			ppr::hist::HistogramParallel hist_cpu(hist.binCount, hist.binSize, stat.min, stat.max, data, stat.mean);
+			ppr::executor::RunOnCPU<ppr::hist::HistogramParallel>(arena, hist_cpu, opencl.data_count_for_cpu, data_count);
 
-		// Run on CPU
-		ppr::hist::HistogramParallel hist_cpu(hist.binCount, hist.binSize, stat.min, stat.max, data, stat.mean);
-		ppr::executor::RunOnCPU<ppr::hist::HistogramParallel>(arena, hist_cpu, opencl.data_count_for_cpu, data_count);
+			// Transform vector
+			std::transform(histogram.begin(), histogram.end(), hist_cpu.m_bucketFrequency.begin(), histogram.begin(), std::plus<int>());
+			
+			stat.variance += hist_cpu.m_var; // GPU + CPU "half" variance
+		}
 
 		// Run on GPU
-		ppr::executor::RunHistogramOnGPU(opencl, stat, hist, arena, data, hist_cpu.m_bucketFrequency);
-
-		hist_cpu.ComputePropabilityDensityOfHistogram(histogram, data_count);
-
-		stat.variance += hist_cpu.m_var; // GPU + CPU "half" variance
+		ppr::executor::RunHistogramOnGPU(opencl, stat, hist, arena, data, histogram);
 	}
 
 	void AnalyzeResults(SResult& res)
@@ -195,97 +216,97 @@ namespace ppr::gpu
 		res.uniform_rss = uniform->Get_RSS();
 	}
 
-	SResult run2(SConfig& configuration)
-	{
-		tbb::task_arena arena(configuration.thread_count == 0 ? tbb::task_arena::automatic : static_cast<int>(configuration.thread_count));
+	//SResult run2(SConfig& configuration)
+	//{
+	//	tbb::task_arena arena(configuration.thread_count == 0 ? tbb::task_arena::automatic : static_cast<int>(configuration.thread_count));
 
-		//  ================ [Init OpenCL]
+	//	//  ================ [Init OpenCL]
 
-		SOpenCLConfig opencl = ppr::gpu::Init(configuration, STAT_KERNEL, STAT_KERNEL_NAME);
+	//	SOpenCLConfig opencl = ppr::gpu::Init(configuration, STAT_KERNEL, STAT_KERNEL_NAME);
 
-		//  ================ [Map input file]
-		FileMapping mapping(configuration.input_fn);
+	//	//  ================ [Map input file]
+	//	FileMapping mapping(configuration.input_fn);
 
-		double* data = mapping.GetData();
+	//	double* data = mapping.GetData();
 
-		if (!data)
-		{
-			return SResult::error_res(EExitStatus::STAT);
-		}
+	//	if (!data)
+	//	{
+	//		return SResult::error_res(EExitStatus::STAT);
+	//	}
 
-		//  ================ [Allocations]
-		SResult res;
-		SDataStat stat;
-		std::vector<double> tmp(0);
-		unsigned int data_count = mapping.GetCount();
+	//	//  ================ [Allocations]
+	//	SHistogram hist;
+	//	SResult res;
+	//	SDataStat stat;
+	//	std::vector<double> tmp(0);
+	//	unsigned int data_count = mapping.GetCount();
 
-		// Get number of data, which we want to process on GPU
-		opencl.wg_count = data_count / opencl.wg_size;
-		opencl.data_count_for_gpu = data_count - (data_count % opencl.wg_size);
+	//	// Get number of data, which we want to process on GPU
+	//	opencl.wg_count = data_count / opencl.wg_size;
+	//	opencl.data_count_for_gpu = data_count - (data_count % opencl.wg_size);
 
-		// The rest of the data we will process on CPU
-		opencl.data_count_for_cpu = opencl.data_count_for_gpu + 1;
+	//	// The rest of the data we will process on CPU
+	//	opencl.data_count_for_cpu = opencl.data_count_for_gpu + 1;
 
-		//  ================ [Get statistics]
-		tbb::tick_count t0 = tbb::tick_count::now();
-		GetStatistics(configuration, opencl, stat, arena, data_count, data, tmp);
-		tbb::tick_count t1 = tbb::tick_count::now();
-		std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
+	//	//  ================ [Get statistics]
+	//	tbb::tick_count t0 = tbb::tick_count::now();
+	//	GetStatistics(hist, configuration, opencl, stat, arena, data_count, data, tmp);
+	//	tbb::tick_count t1 = tbb::tick_count::now();
+	//	std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 
-		// Find mean
-		stat.mean = stat.sum / stat.n;
+	//	// Find mean
+	//	stat.mean = stat.sum / stat.n;
 
-		//  ================ [Create frequency histogram]
-		// Update kernel program
-		ppr::gpu::UpdateProgram(opencl, HIST_KERNEL, HIST_KERNEL_NAME);
+	//	//  ================ [Create frequency histogram]
+	//	// Update kernel program
+	//	ppr::gpu::UpdateProgram(opencl, HIST_KERNEL, HIST_KERNEL_NAME);
 
-		// Find histogram limits
-		SHistogram hist;
-		hist.binCount = log2(stat.n) + 1;
-		hist.binSize = (stat.max - stat.min) / (hist.binCount - 1);
-		hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
-		
-		// Allocate memmory
-		std::vector<double> histogramDensity(static_cast<int>(hist.binCount));
+	//	// Find histogram limits
+	//	hist.binCount = log2(stat.n) + 1;
+	//	hist.binSize = (stat.max - stat.min) / (hist.binCount - 1);
+	//	hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
+	//	
+	//	// Allocate memmory
+	//	std::vector<double> histogramDensity(static_cast<int>(hist.binCount));
 
-		// Create histogram
-		t0 = tbb::tick_count::now();
-		CreateFrequencyHistogram(configuration, opencl, stat, arena, data_count, data, histogramDensity);
-		t1 = tbb::tick_count::now();
-		std::cout << "Histogram:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
+	//	// Create histogram
+	//	t0 = tbb::tick_count::now();
+	//	CreateFrequencyHistogram(hist, configuration, opencl, stat, arena, data_count, data, histogramDensity);
+	//	t1 = tbb::tick_count::now();
+	//	std::cout << "Histogram:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 
-		// Find variance
-		stat.variance = stat.variance / stat.n;
+	//	// Find variance
+	//	stat.variance = stat.variance / stat.n;
 
-		//	================ [Unmap file]
-		mapping.UnmapFile();
+	//	//	================ [Unmap file]
+	//	mapping.UnmapFile();
 
-		//	================ [Fit params]
-		res.isNegative = !(std::floor(stat.sum) == std::floor(stat.sumAbs));
-		res.isInteger = std::floor(stat.sum) == stat.sum;
+	//	//	================ [Fit params]
+	//	res.isNegative = !(std::floor(stat.sum) == std::floor(stat.sumAbs));
+	//	res.isInteger = std::floor(stat.sum) == stat.sum;
 
-		// Gauss maximum likelihood estimators
-		res.gauss_mean = stat.mean;
-		res.gauss_variance = stat.variance;
-		res.gauss_stdev = sqrt(stat.variance);
+	//	// Gauss maximum likelihood estimators
+	//	res.gauss_mean = stat.mean;
+	//	res.gauss_variance = stat.variance;
+	//	res.gauss_stdev = sqrt(stat.variance);
 
-		// Exponential maximum likelihood estimators
-		res.exp_lambda = stat.n / stat.sum;
+	//	// Exponential maximum likelihood estimators
+	//	res.exp_lambda = stat.n / stat.sum;
 
-		// Poisson likelihood estimators
-		res.poisson_lambda = stat.sum / stat.n;
+	//	// Poisson likelihood estimators
+	//	res.poisson_lambda = stat.sum / stat.n;
 
-		// Uniform likelihood estimators
-		res.uniform_a = stat.min;
-		res.uniform_b = stat.max;
+	//	// Uniform likelihood estimators
+	//	res.uniform_a = stat.min;
+	//	res.uniform_b = stat.max;
 
-		//	================ [Calculate RSS]
-		CalculateHistogramRSS(res, arena, histogramDensity, hist);
+	//	//	================ [Calculate RSS]
+	//	CalculateHistogramRSS(res, arena, histogramDensity, hist);
 
-		//	================ [Analyze]
-		AnalyzeResults(res);
+	//	//	================ [Analyze]
+	//	AnalyzeResults(res);
 
-		std::cout << "Finish." << std::endl;
-		return res;
-	}
+	//	std::cout << "Finish." << std::endl;
+	//	return res;
+	//}
 }

@@ -1,3 +1,6 @@
+#define _CRTDBG_MAP_ALLOC
+#include<crtdbg.h>
+
 #include "file_mapping.h"
 #include "config.h"
 #include "data.h"
@@ -44,7 +47,6 @@ void GetDistString(SResult result)
 int main(int argc, char** argv) {
 	ppr::SConfig conf;
 	bool parse_result = parse_args(argc, argv, conf);
-
 	if (!parse_result)
 	{
 		return ppr::EExitStatus::ARGS;
@@ -54,6 +56,8 @@ int main(int argc, char** argv) {
 
 	GetDistString(result);
 	std::cout << "RSS [g/n:" << result.gauss_rss << " p:" << result.poisson_rss << " e:" << result.exp_rss << " u:" << result.uniform_rss << "]" << std::endl;
+
+	_CrtDumpMemoryLeaks();
 
 	getchar();
 	return result.status;

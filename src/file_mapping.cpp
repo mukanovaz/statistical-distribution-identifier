@@ -1,4 +1,7 @@
 #include "file_mapping.h"
+
+#define _CRTDBG_MAP_ALLOC
+
 #define BUFFER_SIZE 100 // TODO: change
 
 namespace ppr
@@ -39,7 +42,7 @@ namespace ppr
         {
             m_file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
             // Free multibyte character buffer 
-            free(path);
+            delete[] path;
         }
 
         if (m_file == INVALID_HANDLE_VALUE)
@@ -92,18 +95,19 @@ namespace ppr
     // Calls ProcessChunk with each chunk of the file.
     // https://stackoverflow.com/questions/9889557/mapping-large-files-using-mapviewoffile
     void FileMapping::ReadInChunks(
+        SHistogram& hist,
         SConfig& config,
         SOpenCLConfig& opencl,
         SDataStat& stat,
         tbb::task_arena& arena,
-        std::vector<double>& histogram,
-        void (*ProcessChunk) (SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned int, double*, std::vector<double>&))
+        std::vector<int>& histogram,
+        void (*ProcessChunk) (SHistogram& hist, SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned int, double*, std::vector<int>&))
     {
         // Offsets must be a multiple of the system's allocation granularity.  We
         // guarantee this by making our view size equal to the allocation granularity.
         SYSTEM_INFO sysinfo = { 0 };
         ::GetSystemInfo(&sysinfo);
-        double scale = MAX_FILE_SIZE_MEM / sysinfo.dwAllocationGranularity;
+        double scale = static_cast<double>(MAX_FILE_SIZE_MEM) / sysinfo.dwAllocationGranularity;
         m_allocationGranularity = sysinfo.dwAllocationGranularity * scale;
 
 
@@ -140,7 +144,7 @@ namespace ppr
                         opencl.data_count_for_cpu = opencl.data_count_for_gpu + 1;
 
                         // Run
-                        ProcessChunk(config, opencl, stat, arena, data_in_chunk, pView, histogram);
+                        ProcessChunk(hist, config, opencl, stat, arena, data_in_chunk, pView, histogram);
 
                         UnmapViewOfFile(pView);
                     }

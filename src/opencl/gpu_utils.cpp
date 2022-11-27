@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <iostream>
 
+#define _CRTDBG_MAP_ALLOC
+#include<crtdbg.h>
+
 namespace ppr::gpu
 {
     SOpenCLConfig Init(SConfig& configuration, const std::string& file, const char* kernel_name)
@@ -26,7 +29,7 @@ namespace ppr::gpu
 
         // Create kernel
         CreateKernel(opencl, kernel_name);
-       
+        _CrtDumpMemoryLeaks();
         return opencl;
     }
 

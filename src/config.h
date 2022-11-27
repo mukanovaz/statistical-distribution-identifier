@@ -41,21 +41,11 @@ namespace ppr
         cl::Context context{};
         cl::Program program{};
         cl::Kernel kernel{};
+        cl::Buffer out_sum_buf{};
         size_t wg_size = 0;
         unsigned long data_count_for_gpu = 0;
         unsigned long data_count_for_cpu = 0;
         unsigned long wg_count = 0;
-    };
-
-    struct SParam
-    {
-        SConfig& configuration;
-        SOpenCLConfig& opencl;
-        SDataStat& stat;
-        tbb::task_arena& arena;
-        unsigned int data_count;
-        double* data;
-        std::vector<double>& histogram;
     };
 
     bool parse_args(int argc, char** argv, SConfig& config);

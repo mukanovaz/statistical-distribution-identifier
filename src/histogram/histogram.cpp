@@ -1,14 +1,4 @@
-#include <cmath>
-#include <vector>
-#include <memory>
-
-
-#undef min
-#undef max
-
-#include <tbb/parallel_for.h>
-#include "../rss/rss.cpp"
-#include "../data.h"
+#include "histogram.h"
 
 namespace ppr::hist
 {
@@ -131,10 +121,10 @@ namespace ppr::hist
 				for (size_t i = r.begin(); i != r.end(); ++i)
 				{
 					double x = (double)t_data[i];
-					double position = (x - t_histogram.min) * t_histogram.scaleFactor;
+					int position = static_cast<int>((x - t_histogram.min) * t_histogram.scaleFactor);
 					position = position == t_bucketFrequency.size() ? position - 1 : position;
 
-					t_bucketFrequency[static_cast<int>(position)]++;
+					t_bucketFrequency[position]++;
 
 					// Compute part of variance
 					t_var += (x - m_mean) * (x - m_mean);
@@ -159,7 +149,6 @@ namespace ppr::hist
 					bucket_density[i] = m_bucketFrequency[i] / diff / count;
 				}
 			}
-
 	};
 
 }

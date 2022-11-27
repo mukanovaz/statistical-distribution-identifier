@@ -80,6 +80,9 @@
     <ClInclude Include="..\src\opencl\gpu_solver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\histogram\histogram.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="statistics_kernel.cl">
