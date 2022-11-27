@@ -3,11 +3,13 @@
 
 namespace ppr
 {
-	const WCHAR* Char2Wchar(const char* c)
+	const WCHAR* Char2Wchar(char const* c)
 	{
-		const size_t cSize = strlen(c) + 1;
-		WCHAR* wc = new WCHAR[cSize];
-		mbstowcs(wc, c, cSize);
+		size_t size = strlen(c) + 1;
+		WCHAR* wc = new WCHAR[size];
+
+		size_t outSize;
+		mbstowcs_s(&outSize, wc, size, c, size - 1);
 
 		return wc;
 	}

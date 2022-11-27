@@ -163,7 +163,7 @@ namespace ppr::executor
 		
 		// Agregate results on CPU
 		double var = ppr::executor::SumVectorOnCPU(arena, out_var);
-		data_stat.variance = var;
+		data_stat.variance += var;
 	}
 	
 }

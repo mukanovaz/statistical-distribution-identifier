@@ -23,9 +23,10 @@ namespace ppr
             HANDLE m_file;
             HANDLE m_mapping;
             double* m_data;
-            const char* m_filename;
+            const WCHAR* m_filename;
             unsigned int m_fileLen;
             unsigned int m_size;
+            DWORD m_allocationGranularity;
 
             bool CreateFile_n();
 
@@ -34,7 +35,7 @@ namespace ppr
             void view();
 
         public:
-            FileMapping(const char* filename);
+            FileMapping(const WCHAR* filename);
 
             double* GetData() const;
 

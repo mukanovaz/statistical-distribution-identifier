@@ -13,6 +13,7 @@ namespace ppr
     const constexpr char* STAT_KERNEL_NAME = "Get_Data_Statistics";
     const constexpr char* HIST_KERNEL = "D:/Study/ZCU/5.semestr/PPR/kiv-ppr/msvc/histogram_kernel.cl";
     const constexpr char* HIST_KERNEL_NAME = "Get_Data_Histogram";
+    const constexpr DWORD MAX_FILE_SIZE_MEM = 499974144;
 
     enum class ERun_mode {
         SMP = 0,
@@ -44,6 +45,17 @@ namespace ppr
         unsigned long data_count_for_gpu = 0;
         unsigned long data_count_for_cpu = 0;
         unsigned long wg_count = 0;
+    };
+
+    struct SParam
+    {
+        SConfig& configuration;
+        SOpenCLConfig& opencl;
+        SDataStat& stat;
+        tbb::task_arena& arena;
+        unsigned int data_count;
+        double* data;
+        std::vector<double>& histogram;
     };
 
     bool parse_args(int argc, char** argv, SConfig& config);

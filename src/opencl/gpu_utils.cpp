@@ -58,8 +58,8 @@ namespace ppr::gpu
         const char* t_src = src.c_str();
         cl::Program::Sources source(1, std::make_pair(t_src, src.length() + 1));
 
-        cl::Context context(opencl.device);
-        auto test = opencl.device.getInfo< CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
+        cl::Context context(opencl.device, nullptr, nullptr, nullptr, &err);
+        auto test = opencl.device.getInfo<CL_DEVICE_NAME>();
         cl::Program program(context, source);
 
         // Build our program
