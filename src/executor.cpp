@@ -81,24 +81,24 @@ namespace ppr::executor
 
 		cl::Buffer buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
 		cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
-		cl::Buffer out_sumAbs_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
+		cl::Buffer out_negative_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(int), nullptr, &err);
 		cl::Buffer out_min_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
 		cl::Buffer out_max_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
 
 		// Set method arguments
 		err = opencl.kernel.setArg(0, buf);
 		err = opencl.kernel.setArg(1, opencl.wg_size * sizeof(double), nullptr);
-		err = opencl.kernel.setArg(2, opencl.wg_size * sizeof(double), nullptr);
+		err = opencl.kernel.setArg(2, opencl.wg_size * sizeof(int), nullptr);
 		err = opencl.kernel.setArg(3, opencl.wg_size * sizeof(double), nullptr);
 		err = opencl.kernel.setArg(4, opencl.wg_size * sizeof(double), nullptr);
 		err = opencl.kernel.setArg(5, out_sum_buf);
-		err = opencl.kernel.setArg(6, out_sumAbs_buf);
+		err = opencl.kernel.setArg(6, out_negative_buf);
 		err = opencl.kernel.setArg(7, out_min_buf);
 		err = opencl.kernel.setArg(8, out_max_buf);
 		
 		// Result data
 		std::vector<double> out_sum(opencl.wg_count);
-		std::vector<double> out_sumAbs(opencl.wg_count);
+		std::vector<int> out_negative(opencl.wg_count);
 		std::vector<double> out_min(opencl.wg_count);
 		std::vector<double> out_max(opencl.wg_count);
 
@@ -107,15 +107,16 @@ namespace ppr::executor
 		// Pass all data to GPU
 		err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(opencl.data_count_for_gpu), cl::NDRange(opencl.wg_size));
 		err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_sum.data());
-		err = cmd_queue.enqueueReadBuffer(out_sumAbs_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_sumAbs.data());
+		err = cmd_queue.enqueueReadBuffer(out_negative_buf, CL_TRUE, 0, opencl.wg_count * sizeof(int), out_negative.data());
 		err = cmd_queue.enqueueReadBuffer(out_min_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_min.data());
 		err = cmd_queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_max.data());
 
 		cl::finish();
 		
 		// Agregate results on CPU
+		bool isNegative = std::find(std::begin(out_negative), std::end(out_negative), 1) != std::end(out_negative);
 		double sum = ppr::executor::SumVectorOnCPU(arena, out_sum);
-		double sumAbs = ppr::executor::SumVectorOnCPU(arena, out_sumAbs);
+		//double negative = ppr::executor::SumVectorOnCPU(arena, out_negative);
 		MinParallel minp(out_min);
 		ppr::executor::RunOnCPU<MinParallel>(arena, minp, 0, opencl.wg_count);
 		MaxParallel maxp(out_max);
@@ -124,11 +125,11 @@ namespace ppr::executor
 		return { 
 			opencl.data_count_for_gpu,	// n
 			sum,						// sum
-			sumAbs,						// sumAbs
 			maxp.value_of_max,			// max
 			minp.value_of_min,			// min
 			0.0,						// mean
-			0.0							// variance
+			0.0,						// variance
+			isNegative
 		};
 	}
 

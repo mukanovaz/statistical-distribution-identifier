@@ -35,11 +35,11 @@ struct SDataStat
 {
     unsigned long n = 0;
     double sum = 0.0;
-    double sumAbs = 0.0;
     double max = 0.0;
     double min = 0.0;
     double mean = 0.0;
     double variance = 0.0;
+    bool isNegative = 0;
 };
 
 struct SResult
@@ -57,7 +57,7 @@ struct SResult
     double exp_rss = 0.0;
     double poisson_rss = 0.0;
     double uniform_rss = 0.0;
-    bool isNegative = 0.0;
+    bool isNegative = 0;
     bool isInteger = 0.0;
 
     static SResult error_res(int exit_status)

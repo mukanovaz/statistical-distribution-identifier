@@ -80,7 +80,7 @@ namespace ppr::gpu
 		ComputePropabilityDensityOfHistogram(hist, histogramFreq, histogramDensity, stat.n);
 
 		//	================ [Fit params]
-		res.isNegative = !(std::floor(stat.sum) == std::floor(stat.sumAbs));
+		res.isNegative = stat.isNegative;
 		res.isInteger = std::floor(stat.sum) == stat.sum;
 
 		// Gauss maximum likelihood estimators
@@ -124,7 +124,8 @@ namespace ppr::gpu
 			stat.min = std::min({ stat_gpu.min, stat_cpu.Get_Min() });
 			stat.max = std::max({ stat_gpu.max, stat_cpu.Get_Max() });
 			stat.sum += stat_gpu.sum + stat_cpu.Sum();
-			stat.sumAbs += stat_gpu.sumAbs + stat_cpu.SumAbs();
+			// TODO: change CPU
+			//stat.isNegative = stat_gpu.isNegative + stat_cpu.SumAbs();
 		}
 		else
 		{
@@ -136,7 +137,7 @@ namespace ppr::gpu
 			stat.min = stat_gpu.min;
 			stat.max = stat_gpu.max;
 			stat.sum += stat_gpu.sum;
-			stat.sumAbs += stat_gpu.sumAbs;
+			stat.isNegative = stat.isNegative || stat_gpu.isNegative;
 		}
 	}
 
@@ -221,98 +222,4 @@ namespace ppr::gpu
 		delete exp;
 		delete uniform;
 	}
-
-	//SResult run2(SConfig& configuration)
-	//{
-	//	tbb::task_arena arena(configuration.thread_count == 0 ? tbb::task_arena::automatic : static_cast<int>(configuration.thread_count));
-
-	//	//  ================ [Init OpenCL]
-
-	//	SOpenCLConfig opencl = ppr::gpu::Init(configuration, STAT_KERNEL, STAT_KERNEL_NAME);
-
-	//	//  ================ [Map input file]
-	//	FileMapping mapping(configuration.input_fn);
-
-	//	double* data = mapping.GetData();
-
-	//	if (!data)
-	//	{
-	//		return SResult::error_res(EExitStatus::STAT);
-	//	}
-
-	//	//  ================ [Allocations]
-	//	SHistogram hist;
-	//	SResult res;
-	//	SDataStat stat;
-	//	std::vector<double> tmp(0);
-	//	unsigned int data_count = mapping.GetCount();
-
-	//	// Get number of data, which we want to process on GPU
-	//	opencl.wg_count = data_count / opencl.wg_size;
-	//	opencl.data_count_for_gpu = data_count - (data_count % opencl.wg_size);
-
-	//	// The rest of the data we will process on CPU
-	//	opencl.data_count_for_cpu = opencl.data_count_for_gpu + 1;
-
-	//	//  ================ [Get statistics]
-	//	tbb::tick_count t0 = tbb::tick_count::now();
-	//	GetStatistics(hist, configuration, opencl, stat, arena, data_count, data, tmp);
-	//	tbb::tick_count t1 = tbb::tick_count::now();
-	//	std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
-
-	//	// Find mean
-	//	stat.mean = stat.sum / stat.n;
-
-	//	//  ================ [Create frequency histogram]
-	//	// Update kernel program
-	//	ppr::gpu::UpdateProgram(opencl, HIST_KERNEL, HIST_KERNEL_NAME);
-
-	//	// Find histogram limits
-	//	hist.binCount = log2(stat.n) + 1;
-	//	hist.binSize = (stat.max - stat.min) / (hist.binCount - 1);
-	//	hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
-	//	
-	//	// Allocate memmory
-	//	std::vector<double> histogramDensity(static_cast<int>(hist.binCount));
-
-	//	// Create histogram
-	//	t0 = tbb::tick_count::now();
-	//	CreateFrequencyHistogram(hist, configuration, opencl, stat, arena, data_count, data, histogramDensity);
-	//	t1 = tbb::tick_count::now();
-	//	std::cout << "Histogram:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
-
-	//	// Find variance
-	//	stat.variance = stat.variance / stat.n;
-
-	//	//	================ [Unmap file]
-	//	mapping.UnmapFile();
-
-	//	//	================ [Fit params]
-	//	res.isNegative = !(std::floor(stat.sum) == std::floor(stat.sumAbs));
-	//	res.isInteger = std::floor(stat.sum) == stat.sum;
-
-	//	// Gauss maximum likelihood estimators
-	//	res.gauss_mean = stat.mean;
-	//	res.gauss_variance = stat.variance;
-	//	res.gauss_stdev = sqrt(stat.variance);
-
-	//	// Exponential maximum likelihood estimators
-	//	res.exp_lambda = stat.n / stat.sum;
-
-	//	// Poisson likelihood estimators
-	//	res.poisson_lambda = stat.sum / stat.n;
-
-	//	// Uniform likelihood estimators
-	//	res.uniform_a = stat.min;
-	//	res.uniform_b = stat.max;
-
-	//	//	================ [Calculate RSS]
-	//	CalculateHistogramRSS(res, arena, histogramDensity, hist);
-
-	//	//	================ [Analyze]
-	//	AnalyzeResults(res);
-
-	//	std::cout << "Finish." << std::endl;
-	//	return res;
-	//}
 }
