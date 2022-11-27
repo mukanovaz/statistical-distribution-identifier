@@ -1,5 +1,7 @@
 #include "executor.h"
 #include <algorithm>
+#define _CRTDBG_MAP_ALLOC
+#include<crtdbg.h>
 
 namespace ppr::executor
 {
@@ -93,7 +95,7 @@ namespace ppr::executor
 		err = opencl.kernel.setArg(6, out_sumAbs_buf);
 		err = opencl.kernel.setArg(7, out_min_buf);
 		err = opencl.kernel.setArg(8, out_max_buf);
-
+		
 		// Result data
 		std::vector<double> out_sum(opencl.wg_count);
 		std::vector<double> out_sumAbs(opencl.wg_count);
@@ -110,7 +112,7 @@ namespace ppr::executor
 		err = cmd_queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_max.data());
 
 		cl::finish();
-
+		
 		// Agregate results on CPU
 		double sum = ppr::executor::SumVectorOnCPU(arena, out_sum);
 		double sumAbs = ppr::executor::SumVectorOnCPU(arena, out_sumAbs);
@@ -168,6 +170,8 @@ namespace ppr::executor
 			const size_t value = static_cast<size_t>(out_histogram.at(2 * i)) + static_cast<size_t>(out_histogram.at(2 * i + 1)) * sizeof(cl_uint);
 			freq_buckets[i] += value;
 		}
+
+		_CrtDumpMemoryLeaks();
 
 		// Agregate results on CPU
 		double var = ppr::executor::SumVectorOnCPU(arena, out_var);

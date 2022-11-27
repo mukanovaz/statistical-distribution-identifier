@@ -214,6 +214,12 @@ namespace ppr::gpu
 		res.poisson_rss = poisson->Get_RSS();
 		res.exp_rss = exp->Get_RSS();
 		res.uniform_rss = uniform->Get_RSS();
+
+		// Free allocations
+		delete gauss;
+		delete poisson;
+		delete exp;
+		delete uniform;
 	}
 
 	//SResult run2(SConfig& configuration)

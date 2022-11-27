@@ -24,6 +24,7 @@ namespace ppr::gpu
         ppr::gpu::FindDevices(platforms, devices, configuration.cl_devices_name);
         opencl.device = devices.front();
 
+        platforms.reserve(0);
         // Create program
         CreateProgram(opencl, file);
 
@@ -46,9 +47,8 @@ namespace ppr::gpu
     {
         cl_int err = 0;
 
-        cl::Kernel kernel(opencl.program, kernel_name, &err);
-        opencl.kernel = kernel;
-        opencl.wg_size = kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(opencl.device);
+        opencl.kernel = cl::Kernel(opencl.program, kernel_name, &err);
+        opencl.wg_size = opencl.kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(opencl.device);
     }
 
     void CreateProgram(SOpenCLConfig& opencl, const std::string& file)
@@ -56,27 +56,23 @@ namespace ppr::gpu
         cl_int err = 0;
 
         std::ifstream kernel_file(file);
-
         std::string src((std::istreambuf_iterator<char>(kernel_file)), (std::istreambuf_iterator<char>()));
         const char* t_src = src.c_str();
         cl::Program::Sources source(1, std::make_pair(t_src, src.length() + 1));
+        kernel_file.close();
 
-        cl::Context context(opencl.device, nullptr, nullptr, nullptr, &err);
-        auto test = opencl.device.getInfo<CL_DEVICE_NAME>();
-        cl::Program program(context, source);
+        opencl.context = cl::Context(opencl.device, nullptr, nullptr, nullptr, &err);
+        opencl.program = cl::Program(opencl.context, source);
 
         // Build our program
-        err = program.build("-cl-std=CL2.0");
+        err = opencl.program.build("-cl-std=CL2.0");
 
         if (err == CL_BUILD_PROGRAM_FAILURE)
         {
             // Get the build log for the first device
-            std::string log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(opencl.device);
+            std::string log = opencl.program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(opencl.device);
             std::cerr << log << std::endl;
         }
-
-        opencl.program = program;
-        opencl.context = context;
     }
 
     void FindDevices(std::vector<cl::Platform>& platforms, std::vector<cl::Device>& all_devices, std::vector<std::string>& user_devices)
