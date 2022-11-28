@@ -1,111 +1,112 @@
 #include "smp_solver.h"
-#include "../file_mapping.h"
-#include "../executor.h"
 
 namespace ppr::parallel
 {
-
 	SResult run(SConfig& configuration)
 	{
+		//  ================ [Init TBB]
 		tbb::task_arena arena(configuration.thread_count == 0 ? tbb::task_arena::automatic : static_cast<int>(configuration.thread_count));
 
 		//  ================ [Map input file]
 		FileMapping mapping(configuration.input_fn);
 
-		double* data = mapping.GetData();
-
-		if (!data)
-		{
-			return SResult::error_res(EExitStatus::STAT);
-		}
+		//  ================ [Allocations]
+		SOpenCLConfig opencl; // Not using here
+		SHistogram hist;
+		SResult res;
+		SDataStat stat;
+		std::vector<int> tmp(0);
+		unsigned int data_count = mapping.GetCount();
 
 		//  ================ [Get statistics]
-		RunningStatParallel stat(data, 0);
+		tbb::tick_count t0 = tbb::tick_count::now();
+		mapping.ReadInChunks(hist, configuration, opencl, stat, arena, tmp, &GetStatisticsCPU);
+		tbb::tick_count t1 = tbb::tick_count::now();
+		std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 
-		double t1 = ppr::executor::RunOnCPU<RunningStatParallel>(arena, stat, 1, mapping.GetCount());
-		std::cout << "Get statistics: " << t1 << "sec." << std::endl;
+		// Find mean
+		stat.mean = stat.sum / stat.n;
 
 		//  ================ [Create frequency histogram]
-		const double bin_count = log2(mapping.GetCount()) + 1;
-		double bin_size = (stat.Get_Max() - stat.Get_Min()) / (bin_count - 1);
-		std::vector<int> histogramFreq(static_cast<int>(bin_count));
-		std::vector<double> histogramDensity(static_cast<int>(bin_count));
+		// Update kernel program
+		ppr::gpu::UpdateProgram(opencl, HIST_KERNEL, HIST_KERNEL_NAME);
 
-		ppr::hist::HistogramParallel hist(static_cast<int>(bin_count), bin_size, stat.Get_Min(), stat.Get_Max(), data, 0.0);
+		// Find histogram limits
+		hist.binCount = log2(stat.n) + 1;
+		hist.binSize = (stat.max - stat.min) / (hist.binCount - 1);
+		hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
 
-		t1 = ppr::executor::RunOnCPU<ppr::hist::HistogramParallel>(arena, hist, 0, mapping.GetCount());
-		std::cout << "Histogram: " << t1 << "sec." << std::endl;
+		// Allocate memmory
+		std::vector<int> histogramFreq(static_cast<int>(hist.binCount));
+		std::vector<double> histogramDensity(static_cast<int>(hist.binCount));
+		cl_int err = 0;
 
-		//================ [Unmap file]
-		mapping.UnmapFile();
+		// Run
+		t0 = tbb::tick_count::now();
+		mapping.ReadInChunks(hist, configuration, opencl, stat, arena, histogramFreq, &CreateFrequencyHistogramCPU);
+		t1 = tbb::tick_count::now();
+		std::cout << "Histogram:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 
-		//  ================ [Get propability density of histogram]
-		hist.ComputePropabilityDensityOfHistogram(histogramDensity, mapping.GetCount());
+		// Find variance
+		stat.variance = stat.variance / stat.n;
 
+		//  ================ [Create density histogram]
+		ppr::executor::ComputePropabilityDensityOfHistogram(hist, histogramFreq, histogramDensity, stat.n);
 
 		//  ================ [Fit params]
+		res.isNegative = stat.isNegative;
+		res.isInteger = std::floor(stat.sum) == stat.sum;
+
 		// Gauss maximum likelihood estimators
-		double gauss_mean = stat.Mean();
-		double gauss_variance = stat.Variance();
-		double gauss_sd = stat.StandardDeviation();
+		res.gauss_mean = stat.mean;
+		res.gauss_variance = stat.variance;
+		res.gauss_stdev = sqrt(stat.variance);
 
 		// Exponential maximum likelihood estimators
-		double exp_lambda = static_cast<double>(stat.NumDataValues()) / stat.Sum();
+		res.exp_lambda = stat.n / stat.sum;
 
 		// Poisson likelihood estimators
-		double poisson_lambda = stat.Mean();
+		res.poisson_lambda = stat.sum / stat.n;
 
 		// Uniform likelihood estimators
-		double a = stat.Get_Min();
-		double b = stat.Get_Max();
+		res.uniform_a = stat.min;
+		res.uniform_b = stat.max;
 
-		// ================ [Calculate RSS]
-		ppr::rss::Distribution* gauss = new ppr::rss::NormalDistribution(gauss_mean, gauss_sd, gauss_variance);
-		ppr::rss::Distribution* poisson = new ppr::rss::PoissonDistribution(poisson_lambda);
-		ppr::rss::Distribution* exp = new ppr::rss::ExponentialDistribution(exp_lambda);
-		ppr::rss::Distribution* uniform = new ppr::rss::UniformDistribution(a, b);
+		//	================ [Calculate RSS]
+		ppr::executor::CalculateHistogramRSSOnCPU(res, arena, histogramDensity, hist);
 
-		ppr::rss::RSSParallel gauss_rss(gauss, histogramDensity, bin_size);
-		ppr::rss::RSSParallel poisson_rss(poisson, histogramDensity, bin_size);
-		ppr::rss::RSSParallel exp_rss(exp, histogramDensity, bin_size);
-		ppr::rss::RSSParallel uniform_rss(uniform, histogramDensity, bin_size);
+		//	================ [Analyze]
+		ppr::executor::AnalyzeResults(res);
 
-		t1 = ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, gauss_rss, 0, static_cast<int>(bin_count));
-		std::cout << "Gauss RSS: " << t1 << "sec." << std::endl;
-
-		t1 = ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, poisson_rss, 0, static_cast<int>(bin_count));
-		std::cout << "Poisson RSS: " << t1 << "sec." << std::endl;
-
-		t1 = ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, exp_rss, 0, static_cast<int>(bin_count));
-		std::cout << "Exponential RSS: " << t1 << "sec." << std::endl;
-
-		t1 = ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, uniform_rss, 0, static_cast<int>(bin_count));
-		std::cout << "Uniform RSS: " << t1 << "sec." << std::endl;
-
-		double g_rss = gauss->Get_RSS();
-		double p_rss = poisson->Get_RSS();
-		double e_rss = exp->Get_RSS();
-		double u_rss = uniform->Get_RSS();
-
-		double t_min = std::min({ g_rss, e_rss, p_rss, u_rss });
-
-		if (g_rss == t_min)
-		{
-			std::cout << "This is Gauss" << std::endl;
-		}
-		else if (e_rss == t_min)
-		{
-			std::cout << "This is Exponential" << std::endl;
-		}
-		else if (p_rss == t_min)
-		{
-			std::cout << "This is Poisson" << std::endl;
-		}
-		else if (u_rss == t_min)
-		{
-			std::cout << "This is Uniform" << std::endl;
-		}
-		return SResult::error_res(EExitStatus::STAT);
+		std::cout << "Finish." << std::endl;
+		return res;
 	}
+
+	void GetStatisticsCPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
+	{
+			// Find rest of a statistics on CPU
+			RunningStatParallel stat_cpu(data, opencl.data_count_for_cpu);
+			ppr::executor::RunOnCPU<RunningStatParallel>(arena, stat_cpu, opencl.data_count_for_cpu, data_count);
+
+			// Agregate results results
+			stat.n += stat_cpu.NumDataValues();
+			stat.min = std::min({ stat.min, std::min({ stat.min, stat_cpu.Get_Min() }) });
+			stat.max = std::max({ stat.max, std::max({ stat.max, stat_cpu.Get_Max() }) });
+			stat.sum += stat_cpu.Sum();
+			stat.isNegative = stat.isNegative || stat_cpu.IsNegative();
+	}
+
+	void CreateFrequencyHistogramCPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
+	{
+		// Run on CPU
+		ppr::hist::HistogramParallel hist_cpu(hist.binCount, hist.binSize, stat.min, stat.max, data, stat.mean);
+		ppr::executor::RunOnCPU<ppr::hist::HistogramParallel>(arena, hist_cpu, opencl.data_count_for_cpu, data_count);
+
+		// Transform vector
+		std::transform(histogram.begin(), histogram.end(), hist_cpu.m_bucketFrequency.begin(), histogram.begin(), std::plus<int>());
+
+		stat.variance += hist_cpu.m_var; // GPU + CPU "half" variance
+	}
+
 
 }

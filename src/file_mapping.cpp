@@ -136,13 +136,19 @@ namespace ppr
                         //ProcessChunk(pView, cbView);
                         unsigned int data_in_chunk = m_allocationGranularity / sizeof(double);
 
-                        // Get number of data, which we want to process on GPU
-                        opencl.wg_count = data_in_chunk / opencl.wg_size;
-                        opencl.data_count_for_gpu = data_in_chunk - (data_in_chunk % opencl.wg_size);
+                        if (opencl.wg_size != 0)
+                        {
+                            // Get number of data, which we want to process on GPU
+                            opencl.wg_count = data_in_chunk / opencl.wg_size;
+                            opencl.data_count_for_gpu = data_in_chunk - (data_in_chunk % opencl.wg_size);
 
-                        // The rest of the data we will process on CPU
-                        opencl.data_count_for_cpu = opencl.data_count_for_gpu + 1;
-
+                            // The rest of the data we will process on CPU
+                            opencl.data_count_for_cpu = opencl.data_count_for_gpu + 1;
+                        }
+                        else
+                        {
+                            opencl.data_count_for_cpu = 0;
+                        }
                         // Run
                         ProcessChunk(hist, config, opencl, stat, arena, data_in_chunk, pView, histogram);
 

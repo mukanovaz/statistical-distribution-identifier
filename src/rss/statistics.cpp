@@ -7,6 +7,7 @@
 #include <tbb/parallel_for.h>
 #include "../data.h"
 #include <iostream>
+#include <numeric>
 
 namespace ppr
 {
@@ -38,7 +39,8 @@ namespace ppr
                 m_newM = m_oldM + (x - m_oldM) / m_n;
                 m_newS = m_oldS + (x - m_oldM) * (x - m_newM);
                 m_sum += x;
-                m_sumAbs += fabs(x);
+                // TODO: isNegative
+                //m_sumAbs += fabs(x);
 
                 m_min = x < m_min ? x : m_min;
                 m_max = x > m_max ? x : m_max;
@@ -92,7 +94,7 @@ namespace ppr
     class RunningStatParallel
     {       
         private:
-            SStat m_stat;
+            SDataStat m_stat;
             const double* m_data;
             const int m_first_index;
 
@@ -100,54 +102,37 @@ namespace ppr
             RunningStatParallel(double* data, int first_index) : m_data(data), m_first_index(first_index)
             {
                 m_stat.n = 1;
-                m_stat.oldM = data[m_first_index];
-                m_stat.newM = data[m_first_index];
-                m_stat.oldS = 0.0;
-                m_stat.newS = 0.0;
                 m_stat.sum = data[m_first_index];
-                m_stat.sumAbs = data[m_first_index];
                 m_stat.min = 88888.0; // TODO: min
                 m_stat.max = 0.0;
+                m_stat.isNegative = true;
             }
 
             RunningStatParallel(RunningStatParallel& x, tbb::split) : m_data(x.m_data), m_first_index(x.m_first_index)
             {
                 m_stat.n = 1;
-                m_stat.oldM = x.m_data[m_first_index];
-                m_stat.newM = x.m_data[m_first_index];
-                m_stat.oldS = 0.0;
-                m_stat.newS = 0.0;
-                m_stat.sum = 0.0;
-                m_stat.sumAbs = 0.0;
+                m_stat.sum = x.m_data[m_first_index];
                 m_stat.min = 88888.0; // TODO: min
                 m_stat.max = 0.0;
+                m_stat.isNegative = true;
             }
 
             void operator()(const tbb::blocked_range<size_t>& r)
             {
                 // Parameters 
                 const double* t_data = m_data;
-                SStat t_stat = m_stat;
+                SDataStat t_stat = m_stat;
 
-                for (size_t i = r.begin(); i != r.end(); i++)
+                for (size_t i = r.begin() + 1; i != r.end(); i++)
                 {
-                    //std::cout << i << std::endl;
                     double x = (double)t_data[i];
 
-                    t_stat.n++;
-
-                    // See Knuth TAOCP vol 2, 3rd edition, page 232
-                    t_stat.newM = t_stat.oldM + (x - t_stat.oldM) / t_stat.n;
-                    t_stat.newS = t_stat.oldS + (x - t_stat.oldM) * (x - t_stat.newM);
+                    t_stat.n += 1;
                     t_stat.sum += x;
-                    t_stat.sumAbs += fabs(x);
+                    t_stat.isNegative = t_stat.isNegative || std::signbit(x);
 
                     t_stat.min = x < t_stat.min ? x : t_stat.min;
                     t_stat.max = x > t_stat.max ? x : t_stat.max;
-
-                    // set up for next iteration
-                    t_stat.oldM = t_stat.newM;
-                    t_stat.oldS = t_stat.newS;
                 }
                 m_stat = t_stat;
             }
@@ -155,15 +140,13 @@ namespace ppr
             void join(const RunningStatParallel& y)
             {
                 m_stat.n += y.m_stat.n;
-                m_stat.newM += y.m_stat.newM;
-                m_stat.newS += y.m_stat.newS;
                 m_stat.sum += y.m_stat.sum; 
-                m_stat.sumAbs += y.m_stat.sumAbs;
                 m_stat.min = m_stat.min < y.m_stat.min ? m_stat.min : y.m_stat.min;
                 m_stat.max = m_stat.max > y.m_stat.max ? m_stat.max : y.m_stat.max;
+                m_stat.isNegative = m_stat.isNegative || y.m_stat.isNegative;
             }
 
-            int NumDataValues() const
+            unsigned int NumDataValues() const
             {
                 return m_stat.n;
             }
@@ -173,9 +156,9 @@ namespace ppr
                 return m_stat.sum;
             }
 
-            double SumAbs() const
+            bool IsNegative() const
             {
-                return m_stat.sumAbs;
+                return m_stat.isNegative;
             }
 
             double Get_Max() const
@@ -186,21 +169,6 @@ namespace ppr
             double Get_Min() const
             {
                 return m_stat.min;
-            }
-
-            double Mean() const
-            {
-                return (m_stat.n > 0.0) ? m_stat.newM : 0.0;
-            }
-
-            double Variance() const
-            {
-                return ((m_stat.n > 1.0) ? m_stat.newS / (m_stat.n - 1.0) : 0.0);
-            }
-
-            double StandardDeviation() const
-            {
-                return sqrt(Variance());
             }
     };
 }

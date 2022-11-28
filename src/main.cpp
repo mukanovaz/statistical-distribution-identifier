@@ -6,7 +6,6 @@
 #include "./opencl/gpu_solver.h"
 
 #include <iostream>
-#include <cmath>
 
 namespace ppr
 {
@@ -45,9 +44,6 @@ void GetDistString(SResult result)
 }
 
 int main(int argc, char** argv) {
-	double t = -0.190583;
-	int res = std::signbit(t);
-
 	ppr::SConfig conf;
 	bool parse_result = parse_args(argc, argv, conf);
 	if (!parse_result)

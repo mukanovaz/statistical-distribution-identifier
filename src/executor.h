@@ -11,6 +11,9 @@
 #include "opencl/gpu_utils.h"
 #include <numeric>
 #include <vector>
+#include <algorithm>
+#include <functional>
+#include <array>
 
 namespace ppr::executor
 {
@@ -26,9 +29,15 @@ namespace ppr::executor
 		return (t1 - t0).seconds();
 	}
 
+	void CalculateHistogramRSSOnCPU(SResult& res, tbb::task_arena& arena, std::vector<double>& histogramDensity, SHistogram& hist);
+
 	double SumVectorOnCPU(tbb::task_arena& arena, std::vector<double> data);
 
 	SDataStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, tbb::task_arena& arena, double* data);
 
 	void RunHistogramOnGPU(SOpenCLConfig& opencl, SDataStat& data_stat, SHistogram& histogram, tbb::task_arena& arena, double* data, std::vector<int>& freq_buckets);
+
+	void AnalyzeResults(SResult& res);
+
+	void ComputePropabilityDensityOfHistogram(SHistogram& hist, std::vector<int>& bucket_frequency, std::vector<double>& bucket_density, double count);
 }

@@ -62,7 +62,7 @@ namespace ppr
 		}
 
 		// Find number available of threads
-		config.thread_count = THREAD_PER_CORE * std::thread::hardware_concurrency();
+		config.thread_count = std::thread::hardware_concurrency();
 
 		return true;
 	}

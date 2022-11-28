@@ -20,7 +20,7 @@ struct SHistogram
 
 struct SStat
 {
-    unsigned long n = 0;
+    unsigned int n = 0;
     double oldM = 0.0;
     double newM = 0.0;
     double oldS = 0.0;
@@ -29,11 +29,12 @@ struct SStat
     double sumAbs = 0.0;
     double max = 0.0;
     double min = 0.0;
+    bool isNegative = 0;
 };
 
 struct SDataStat
 {
-    unsigned long n = 0;
+    unsigned int n = 0;
     double sum = 0.0;
     double max = 0.0;
     double min = 0.0;
