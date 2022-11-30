@@ -101,6 +101,11 @@ namespace ppr
         CloseHandle(m_file);
     }
 
+    const DWORD FileMapping::GetGranularity() const
+    {
+        return m_allocationGranularity;
+    }
+
     void FileMapping::ReadInChunksHist(
         SHistogram& hist,
         SConfig& config,
@@ -160,7 +165,7 @@ namespace ppr
                         for (int i = 0; i < config.thread_count; i++)
                         {
                             ppr::parallel::CHistProcessingUnit unit(hist, config, opencl, stat);
-                            workers[i] = std::async(std::launch::async, &ppr::parallel::CHistProcessingUnit::Run, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                            workers[i] = std::async(std::launch::async | std::launch::deferred, &ppr::parallel::CHistProcessingUnit::Run, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
                         }
 
                         // Agregate results results
@@ -231,12 +236,12 @@ namespace ppr
                         {
                             opencl.data_count_for_cpu = data_in_chunk / config.thread_count;
                         }
-
+                        std::vector<std::future<SDataStat>> workers(config.thread_count);
                         // Process chunk with multuply threads
                         for (int i = 0; i < config.thread_count; i++)
                         {
                             ppr::parallel::CStatProcessingUnit unit(config, opencl);
-                            workers[i] = std::async(std::launch::async, &ppr::parallel::CStatProcessingUnit::Run, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                            workers[i] = std::async(std::launch::async | std::launch::deferred, &ppr::parallel::CStatProcessingUnit::Run, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
                         }
 
                         // Agregate results results

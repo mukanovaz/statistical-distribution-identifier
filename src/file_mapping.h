@@ -15,6 +15,10 @@
 #include "data.h"
 
 
+#include<future>
+#include<vector>
+
+
 namespace ppr
 {
     class FileMapping
@@ -38,6 +42,8 @@ namespace ppr
             FileMapping(const WCHAR* filename);
 
             double* GetData() const;
+
+            const DWORD GetGranularity() const;
 
             const unsigned int GetFileLen() const;
 

@@ -18,7 +18,8 @@ namespace ppr::parallel
 		SResult res;
 		SDataStat stat;
 		unsigned int data_count = mapping.GetCount();
-		std::vector<std::future<SDataStat>> workers(configuration.thread_count);
+		size_t chunks_count = mapping.GetFileLen() / mapping.GetGranularity();
+		std::vector<std::future<SDataStat>> workersStat((configuration.thread_count * chunks_count) + 1);
 
 		//  ================ [Get statistics]
 		tbb::tick_count t0 = tbb::tick_count::now();
@@ -26,6 +27,7 @@ namespace ppr::parallel
 		tbb::tick_count t1 = tbb::tick_count::now();
 		std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 
+		
 		// Find mean
 		stat.mean = stat.sum / stat.n;
 
