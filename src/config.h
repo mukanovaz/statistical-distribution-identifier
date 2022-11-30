@@ -14,6 +14,8 @@ namespace ppr
     const constexpr char* HIST_KERNEL = "D:/Study/ZCU/5.semestr/PPR/kiv-ppr/msvc/histogram_kernel.cl";
     const constexpr char* HIST_KERNEL_NAME = "Get_Data_Histogram";
     const constexpr DWORD MAX_FILE_SIZE_MEM = 499974144;
+    //const constexpr DWORD MAX_FILE_SIZE_MEM = 999948288;
+    const constexpr bool USE_VECTORIZATION = true;
 
     enum class ERun_mode {
         SMP = 0,

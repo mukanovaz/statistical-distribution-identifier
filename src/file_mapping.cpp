@@ -1,6 +1,7 @@
 #include "file_mapping.h"
+#include "smp/smp_utils.h"
 
-#define _CRTDBG_MAP_ALLOC
+#include<future>
 
 #define BUFFER_SIZE 100 // TODO: change
 
@@ -15,6 +16,14 @@ namespace ppr
         {
             return;
         }
+
+
+        // Offsets must be a multiple of the system's allocation granularity.  We
+        // guarantee this by making our view size equal to the allocation granularity.
+        SYSTEM_INFO sysinfo = { 0 };
+        ::GetSystemInfo(&sysinfo);
+        double scale = static_cast<double>(MAX_FILE_SIZE_MEM) / sysinfo.dwAllocationGranularity;
+        m_allocationGranularity = sysinfo.dwAllocationGranularity * scale;
 
         m_fileLen = GetFileSize(m_file, 0);
         m_size = m_fileLen / sizeof(double);
@@ -92,6 +101,164 @@ namespace ppr
         CloseHandle(m_file);
     }
 
+    void FileMapping::ReadInChunksHist(
+        SHistogram& hist,
+        SConfig& config,
+        SOpenCLConfig& opencl,
+        SDataStat& stat,
+        std::vector<int>& histogram)
+    {
+
+        DWORD granulatity = m_allocationGranularity;
+
+        HANDLE hfile = ::CreateFileW(m_filename, GENERIC_READ, FILE_SHARE_READ,
+            NULL, OPEN_EXISTING, 0, NULL);
+        if (hfile != INVALID_HANDLE_VALUE) {
+            LARGE_INTEGER file_size = { 0 };
+            ::GetFileSizeEx(hfile, &file_size);
+            const unsigned long long cbFile =
+                static_cast<unsigned long long>(file_size.QuadPart);
+
+            HANDLE hmap = ::CreateFileMappingW(hfile, NULL, PAGE_READONLY, 0, 0, NULL);
+            if (hmap != NULL) {
+                for (unsigned long long offset = 0; offset < cbFile; offset += granulatity) {
+
+                    // Get chunk limits
+                    DWORD high = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFFul);
+                    DWORD low = static_cast<DWORD>(offset & 0xFFFFFFFFul);
+
+                    // The last view may be shorter.
+                    if (offset + granulatity > cbFile) {
+                        granulatity = static_cast<int>(cbFile - offset);
+                    }
+
+                    // Create a chunk
+                    double* pView = static_cast<double*>(
+                        ::MapViewOfFile(hmap, FILE_MAP_READ, high, low, granulatity));
+
+                    if (pView != NULL) {
+                        unsigned int data_in_chunk = granulatity / sizeof(double);
+
+                        // Compute data count
+                        if (opencl.wg_size != 0)
+                        {
+                            // Get number of data, which we want to process on GPU
+                            opencl.wg_count = data_in_chunk / opencl.wg_size;
+                            opencl.data_count_for_gpu = data_in_chunk - (data_in_chunk % opencl.wg_size);
+
+                            // The rest of the data we will process on CPU
+                            opencl.data_count_for_cpu = opencl.data_count_for_gpu + 1;
+                        }
+                        else
+                        {
+                            opencl.data_count_for_cpu = data_in_chunk / config.thread_count;
+                        }
+
+                        std::vector<std::future<std::tuple<std::vector<int>, double>>> workers(config.thread_count);
+
+                        // Process chunk with multuply threads
+                        for (int i = 0; i < config.thread_count; i++)
+                        {
+                            ppr::parallel::CHistProcessingUnit unit(hist, config, opencl, stat);
+                            workers[i] = std::async(std::launch::async, &ppr::parallel::CHistProcessingUnit::Run, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                        }
+
+                        // Agregate results results
+                        for (auto& worker : workers)
+                        {
+                            auto [vector, variance] = worker.get();
+                            stat.variance += variance;
+                            std::transform(histogram.begin(), histogram.end(), vector.begin(), histogram.begin(), std::plus<int>());
+                        }
+
+                        UnmapViewOfFile(pView);
+                    }
+                }
+                ::CloseHandle(hmap);
+            }
+            ::CloseHandle(hfile);
+        }
+    }
+
+    // Calls ProcessChunk with each chunk of the file.
+    // https://stackoverflow.com/questions/9889557/mapping-large-files-using-mapviewoffile
+    void FileMapping::ReadInChunksStat(
+        SConfig& config,
+        SOpenCLConfig& opencl,
+        SDataStat& stat)
+    {
+        DWORD granulatity = m_allocationGranularity;
+                                
+        HANDLE hfile = ::CreateFileW(m_filename, GENERIC_READ, FILE_SHARE_READ,
+            NULL, OPEN_EXISTING, 0, NULL);
+        if (hfile != INVALID_HANDLE_VALUE) {
+            LARGE_INTEGER file_size = { 0 };
+            ::GetFileSizeEx(hfile, &file_size);
+            const unsigned long long cbFile =
+                static_cast<unsigned long long>(file_size.QuadPart);
+
+            HANDLE hmap = ::CreateFileMappingW(hfile, NULL, PAGE_READONLY, 0, 0, NULL);
+            if (hmap != NULL) {
+                for (unsigned long long offset = 0; offset < cbFile; offset += granulatity) {
+
+                    // Get chunk limits
+                    DWORD high = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFFul);
+                    DWORD low = static_cast<DWORD>(offset & 0xFFFFFFFFul);
+
+                    // The last view may be shorter.
+                    if (offset + granulatity > cbFile) {
+                        granulatity = static_cast<int>(cbFile - offset);
+                    }
+
+                    // Create a chunk
+                    double* pView = static_cast<double*>(
+                        ::MapViewOfFile(hmap, FILE_MAP_READ, high, low, granulatity));
+
+                    if (pView != NULL) {
+                        unsigned int data_in_chunk = granulatity / sizeof(double);
+
+                        // Compute data count
+                        if (opencl.wg_size != 0)
+                        {
+                            // Get number of data, which we want to process on GPU
+                            opencl.wg_count = data_in_chunk / opencl.wg_size;
+                            opencl.data_count_for_gpu = data_in_chunk - (data_in_chunk % opencl.wg_size);
+
+                            // The rest of the data we will process on CPU
+                            opencl.data_count_for_cpu = opencl.data_count_for_gpu + 1;
+                        }
+                        else
+                        {
+                            opencl.data_count_for_cpu = data_in_chunk / config.thread_count;
+                        }
+
+                        // Process chunk with multuply threads
+                        for (int i = 0; i < config.thread_count; i++)
+                        {
+                            ppr::parallel::CStatProcessingUnit unit(config, opencl);
+                            workers[i] = std::async(std::launch::async, &ppr::parallel::CStatProcessingUnit::Run, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                        }
+
+                        // Agregate results results
+                        for (auto& worker : workers)
+                        {
+                            SDataStat local_stat = worker.get();
+                            stat.sum += local_stat.sum;
+                            stat.n += local_stat.n;
+                            stat.min = std::min({stat.min, std::min({stat.min, local_stat.min})});
+                            stat.max = std::max({ stat.max, std::max({ stat.max, local_stat.max }) });
+                        }
+
+                        UnmapViewOfFile(pView);
+                    }
+                }
+                ::CloseHandle(hmap);
+            }
+            ::CloseHandle(hfile);
+        }
+    }
+
+
     // Calls ProcessChunk with each chunk of the file.
     // https://stackoverflow.com/questions/9889557/mapping-large-files-using-mapviewoffile
     void FileMapping::ReadInChunks(
@@ -149,6 +316,7 @@ namespace ppr
                         {
                             opencl.data_count_for_cpu = 0;
                         }
+
                         // Run
                         ProcessChunk(hist, config, opencl, stat, arena, data_in_chunk, pView, histogram);
 

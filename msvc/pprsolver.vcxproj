@@ -31,6 +31,7 @@
     <ClCompile Include="..\src\rss\statistics.cpp" />
     <ClCompile Include="..\src\sequential\seq_solver.cpp" />
     <ClCompile Include="..\src\smp\smp_solver.cpp" />
+    <ClCompile Include="..\src\smp\smp_utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\data.h" />
@@ -43,6 +44,7 @@
     <ClInclude Include="..\src\opencl\gpu_utils.h" />
     <ClInclude Include="..\src\sequential\seq_solver.h" />
     <ClInclude Include="..\src\smp\smp_solver.h" />
+    <ClInclude Include="..\src\smp\smp_utils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="histogram_kernel.cl" />
@@ -135,6 +137,7 @@
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <AdditionalOptions>/Qvec-report:2 %(AdditionalOptions)</AdditionalOptions>
+      <AssemblerOutput>AssemblyAndMachineCode</AssemblerOutput>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>

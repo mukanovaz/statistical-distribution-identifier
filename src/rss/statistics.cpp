@@ -122,8 +122,10 @@ namespace ppr
                 // Parameters 
                 const double* t_data = m_data;
                 SDataStat t_stat = m_stat;
+                size_t begin = r.begin();
+                size_t end = r.end();
 
-                for (size_t i = r.begin() + 1; i != r.end(); i++)
+                for (size_t i = begin; i != end; i++)
                 {
                     double x = (double)t_data[i];
 

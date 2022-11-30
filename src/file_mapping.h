@@ -54,6 +54,18 @@ namespace ppr
                 std::vector<int>& histogram,
                 void (*ProcessChunk) (SHistogram& hist, SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned int, double*, std::vector<int>&));
 
+            void ReadInChunksStat(
+                SConfig& config,
+                SOpenCLConfig& opencl,
+                SDataStat& stat);
+
+            void ReadInChunksHist(
+                SHistogram& hist,
+                SConfig& config,
+                SOpenCLConfig& opencl,
+                SDataStat& stat,
+                std::vector<int>& histogram);
+
     };
 }
 #endif
