@@ -117,8 +117,10 @@ namespace ppr::hist
 				const double* t_data = m_data;
 				SHistogram t_histogram = m_histogram;						// to not discard earlier accumulations
 				std::vector<int>& t_bucketFrequency = m_bucketFrequency;
+				size_t begin = r.begin();
+				size_t end = r.end();
 
-				for (size_t i = r.begin(); i != r.end(); ++i)
+				for (size_t i = begin; i != end; i++)
 				{
 					double x = (double)t_data[i];
 					int position = static_cast<int>((x - t_histogram.min) * t_histogram.scaleFactor);
@@ -127,7 +129,8 @@ namespace ppr::hist
 					t_bucketFrequency[position]++;
 
 					// Compute part of variance
-					t_var += (x - m_mean) * (x - m_mean);
+					double tmp = x - m_mean;
+					t_var += tmp * tmp;
 				}
 				m_var = t_var;
 				m_bucketFrequency = t_bucketFrequency;

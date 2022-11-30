@@ -27,65 +27,65 @@ namespace ppr::gpu
 		// The rest of the data we will process on CPU
 		opencl.data_count_for_cpu = opencl.data_count_for_gpu + 1;
 
-		////  ================ [Get statistics]
-		//tbb::tick_count t0 = tbb::tick_count::now();
-		//mapping.ReadInChunks(hist, configuration, opencl, stat, arena, tmp, &GetStatistics);
-		//tbb::tick_count t1 = tbb::tick_count::now();
-		//std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
+		//  ================ [Get statistics]
+		tbb::tick_count t0 = tbb::tick_count::now();
+		mapping.ReadInChunks(hist, configuration, opencl, stat, arena, tmp, &GetStatistics);
+		tbb::tick_count t1 = tbb::tick_count::now();
+		std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 
-		//// Find mean
-		//stat.mean = stat.sum / stat.n;
+		// Find mean
+		stat.mean = stat.sum / stat.n;
 
-		////  ================ [Create frequency histogram]
-		//// Update kernel program
-		//ppr::gpu::UpdateProgram(opencl, HIST_KERNEL, HIST_KERNEL_NAME);
+		//  ================ [Create frequency histogram]
+		// Update kernel program
+		ppr::gpu::UpdateProgram(opencl, HIST_KERNEL, HIST_KERNEL_NAME);
 
-		//// Find histogram limits
-		//hist.binCount = log2(stat.n) + 1;
-		//hist.binSize = (stat.max - stat.min) / (hist.binCount - 1);
-		//hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
+		// Find histogram limits
+		hist.binCount = log2(stat.n) + 1;
+		hist.binSize = (stat.max - stat.min) / (hist.binCount - 1);
+		hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
 
-		//// Allocate memmory
-		//std::vector<int> histogramFreq(static_cast<int>(hist.binCount));
-		//std::vector<double> histogramDensity(static_cast<int>(hist.binCount));
-		//cl_int err = 0;
+		// Allocate memmory
+		std::vector<int> histogramFreq(static_cast<int>(hist.binCount));
+		std::vector<double> histogramDensity(static_cast<int>(hist.binCount));
+		cl_int err = 0;
 
-		//// Run
-		//t0 = tbb::tick_count::now();
-		//mapping.ReadInChunks(hist, configuration, opencl, stat, arena, histogramFreq, &CreateFrequencyHistogram);
-		//t1 = tbb::tick_count::now();
-		//std::cout << "Histogram:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
+		// Run
+		t0 = tbb::tick_count::now();
+		mapping.ReadInChunks(hist, configuration, opencl, stat, arena, histogramFreq, &CreateFrequencyHistogram);
+		t1 = tbb::tick_count::now();
+		std::cout << "Histogram:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 	
-		//// Find variance
-		//stat.variance = stat.variance / stat.n;
+		// Find variance
+		stat.variance = stat.variance / stat.n;
 
-		////  ================ [Create density histogram]
-		//ppr::executor::ComputePropabilityDensityOfHistogram(hist, histogramFreq, histogramDensity, stat.n);
+		//  ================ [Create density histogram]
+		ppr::executor::ComputePropabilityDensityOfHistogram(hist, histogramFreq, histogramDensity, stat.n);
 
-		////	================ [Fit params]
-		//res.isNegative = stat.isNegative;
-		//res.isInteger = std::floor(stat.sum) == stat.sum;
+		//	================ [Fit params]
+		res.isNegative = stat.isNegative;
+		res.isInteger = std::floor(stat.sum) == stat.sum;
 
-		//// Gauss maximum likelihood estimators
-		//res.gauss_mean = stat.mean;
-		//res.gauss_variance = stat.variance;
-		//res.gauss_stdev = sqrt(stat.variance);
+		// Gauss maximum likelihood estimators
+		res.gauss_mean = stat.mean;
+		res.gauss_variance = stat.variance;
+		res.gauss_stdev = sqrt(stat.variance);
 
-		//// Exponential maximum likelihood estimators
-		//res.exp_lambda = stat.n / stat.sum;
+		// Exponential maximum likelihood estimators
+		res.exp_lambda = stat.n / stat.sum;
 
-		//// Poisson likelihood estimators
-		//res.poisson_lambda = stat.sum / stat.n;
+		// Poisson likelihood estimators
+		res.poisson_lambda = stat.sum / stat.n;
 
-		//// Uniform likelihood estimators
-		//res.uniform_a = stat.min;
-		//res.uniform_b = stat.max;
+		// Uniform likelihood estimators
+		res.uniform_a = stat.min;
+		res.uniform_b = stat.max;
 
-		////	================ [Calculate RSS]
-		//ppr::executor::CalculateHistogramRSSOnCPU(res, arena, histogramDensity, hist);
+		//	================ [Calculate RSS]
+		ppr::executor::CalculateHistogramRSSOnCPU(res, arena, histogramDensity, hist);
 
-		////	================ [Analyze]
-		//ppr::executor::AnalyzeResults(res);
+		//	================ [Analyze]
+		ppr::executor::AnalyzeResults(res);
 
 		std::cout << "Finish." << std::endl;
 		return res;

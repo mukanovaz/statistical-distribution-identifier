@@ -15,7 +15,7 @@ namespace ppr
     const constexpr char* HIST_KERNEL_NAME = "Get_Data_Histogram";
     const constexpr DWORD MAX_FILE_SIZE_MEM = 1999962112;
     //const constexpr DWORD MAX_FILE_SIZE_MEM = 999948288;
-    const constexpr bool USE_VECTORIZATION = true;
+    const constexpr bool USE_OPTIMIZATION = true;
 
     enum class ERun_mode {
         SMP = 0,

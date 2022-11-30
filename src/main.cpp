@@ -56,7 +56,6 @@ int main(int argc, char** argv) {
 	GetDistString(result);
 	std::cout << "RSS [g/n:" << result.gauss_rss << " p:" << result.poisson_rss << " e:" << result.exp_rss << " u:" << result.uniform_rss << "]" << std::endl;
 
-	
 	delete conf.input_fn;
 
 	getchar();
