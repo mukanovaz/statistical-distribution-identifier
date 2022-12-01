@@ -53,6 +53,13 @@ namespace ppr
 
             void UnmapFile();
 
+            void ReadInChunksStatGPU(
+                SConfig& config,
+                SOpenCLConfig& opencl,
+                std::vector<double>& out_sum,
+                std::vector<double>& out_min,
+                std::vector<double>& out_max);
+
             void ReadInChunks(
                 SHistogram& hist,
                 SConfig& config,

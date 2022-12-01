@@ -1,15 +1,48 @@
 #include "gpu_utils.h"
 #include <fstream>
 #include <string>
-#include <unordered_set>
 #include <algorithm>
 #include <iostream>
 
-#define _CRTDBG_MAP_ALLOC
-#include<crtdbg.h>
-
 namespace ppr::gpu
 {
+    void RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, double* data,
+        std::vector<double>& out_sum,
+        std::vector<double>& out_min,
+        std::vector<double>& out_max)
+    {
+        cl_int err = 0;
+
+        // Data buffers
+        cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
+        cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
+        cl::Buffer out_min_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
+        cl::Buffer out_max_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
+
+        // Set method arguments
+        err = opencl.kernel.setArg(0, in_data_buf);
+        err = opencl.kernel.setArg(1, opencl.wg_size * sizeof(double), nullptr);
+        err = opencl.kernel.setArg(2, opencl.wg_size * sizeof(double), nullptr);
+        err = opencl.kernel.setArg(3, opencl.wg_size * sizeof(double), nullptr);
+        err = opencl.kernel.setArg(4, out_sum_buf);
+        err = opencl.kernel.setArg(5, out_min_buf);
+        err = opencl.kernel.setArg(6, out_max_buf);
+
+        cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
+
+        // Run kernel on GPU
+        err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(opencl.data_count_for_gpu), cl::NDRange(opencl.wg_size));
+
+        // Take results
+        err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_sum.data());
+        err = cmd_queue.enqueueReadBuffer(out_min_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_min.data());
+        err = cmd_queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_max.data());
+
+        // Wait on GPU results
+        cl::finish();
+    }
+
+
     SOpenCLConfig Init(SConfig& configuration, const std::string& file, const char* kernel_name)
     {
         cl_int err = 0;
@@ -30,7 +63,6 @@ namespace ppr::gpu
 
         // Create kernel
         CreateKernel(opencl, kernel_name);
-        _CrtDumpMemoryLeaks();
         return opencl;
     }
 

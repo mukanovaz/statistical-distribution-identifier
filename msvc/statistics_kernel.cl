@@ -4,12 +4,10 @@ __kernel void Get_Data_Statistics(
 	__global double* data, 
 
 	__local double* local_sum,
-	__local int* local_negative,
 	__local double* local_min,
 	__local double* local_max,
 
 	__global double* out_sum,
-	__global int* out_negative,
 	__global double* out_min,
 	__global double* out_max
 	)
@@ -20,7 +18,6 @@ __kernel void Get_Data_Statistics(
 	uint groupId = get_group_id(0);
 
 	local_sum[localId] = data[globalId];
-	local_negative[localId] = data[globalId];
 	local_min[localId] = data[globalId];
 	local_max[localId] = data[globalId];
 
@@ -33,17 +30,15 @@ __kernel void Get_Data_Statistics(
 			local_sum[localId] += local_sum[localId + i];
 			local_min[localId] = min(local_min[localId], local_min[localId + i]);
 			local_max[localId] = max(local_max[localId], local_max[localId + i]);
-
-			local_negative[localId] = signbit(data[localId + i]);
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
 
+	// Save/Agregate values
 	if (localId == 0)
 	{
-		out_sum[groupId] = local_sum[0];
-		out_negative[groupId] = local_negative[0];
-		out_min[groupId] = local_min[0];
-		out_max[groupId] = local_max[0];
+		out_sum[groupId] += local_sum[0];
+		out_min[groupId] = min(out_min[groupId], local_min[0]);
+		out_max[groupId] = max(out_max[groupId], local_max[0]);
 	}
 }

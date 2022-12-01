@@ -19,7 +19,10 @@ namespace ppr::parallel
 
 		SDataStat RunCPU(double* data, int data_count);
 
-		SDataStat RunGPU(double* data, int data_count);
+		SDataStat RunGPU(double* data, 
+			std::vector<double>& out_sum,
+			std::vector<double>& out_min,
+			std::vector<double>& out_max);
 	};
 
 	class CHistProcessingUnit

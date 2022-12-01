@@ -118,6 +118,70 @@ namespace ppr
         return m_allocationGranularity;
     }
 
+    void FileMapping::ReadInChunksStatGPU(
+        SConfig& config,
+        SOpenCLConfig& opencl,
+        std::vector<double>& out_sum,
+        std::vector<double>& out_min,
+        std::vector<double>& out_max)
+    {
+        DWORD granulatity = m_allocationGranularity;
+
+        HANDLE hfile = ::CreateFileW(m_filename, GENERIC_READ, FILE_SHARE_READ,
+            NULL, OPEN_EXISTING, 0, NULL);
+        if (hfile != INVALID_HANDLE_VALUE) {
+            LARGE_INTEGER file_size = { 0 };
+            ::GetFileSizeEx(hfile, &file_size);
+            const unsigned long long cbFile =
+                static_cast<unsigned long long>(file_size.QuadPart);
+
+            HANDLE hmap = ::CreateFileMappingW(hfile, NULL, PAGE_READONLY, 0, 0, NULL);
+            if (hmap != NULL) {
+                for (unsigned long long offset = 0; offset < cbFile; offset += granulatity) {
+
+                    // Get chunk limits
+                    DWORD high = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFFul);
+                    DWORD low = static_cast<DWORD>(offset & 0xFFFFFFFFul);
+
+                    // The last view may be shorter.
+                    if (offset + granulatity > cbFile) {
+                        granulatity = static_cast<int>(cbFile - offset);
+                    }
+
+                    // Create a chunk
+                    double* pView = static_cast<double*>(
+                        ::MapViewOfFile(hmap, FILE_MAP_READ, high, low, granulatity));
+
+                    if (pView != NULL) {
+                        unsigned int data_in_chunk = granulatity / sizeof(double);
+
+                        // Compute data count
+                        if (opencl.wg_size != 0)
+                        {
+                            // Get number of data, which we want to process on GPU
+                            opencl.wg_count = data_in_chunk / opencl.wg_size;
+                            opencl.data_count_for_gpu = data_in_chunk - (data_in_chunk % opencl.wg_size);
+
+                            // The rest of the data we will process on CPU
+                            opencl.data_count_for_cpu = opencl.data_count_for_gpu + 1;
+                        }
+                        else
+                        {
+                            opencl.data_count_for_cpu = data_in_chunk / config.thread_count;
+                        }
+                       
+                        ppr::parallel::CStatProcessingUnit unit(config, opencl);
+                        unit.RunGPU(pView, out_sum, out_min, out_max);
+
+                        UnmapViewOfFile(pView);
+                    }
+                }
+                ::CloseHandle(hmap);
+            }
+            ::CloseHandle(hfile);
+        }
+    }
+
     void FileMapping::ReadInChunksHist(
         SHistogram& hist,
         SConfig& config,

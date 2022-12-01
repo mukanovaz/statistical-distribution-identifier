@@ -1,4 +1,5 @@
 #include "smp_utils.h"
+#include "../opencl/gpu_utils.h"
 
 namespace ppr::parallel
 {
@@ -11,11 +12,16 @@ namespace ppr::parallel
 		return local_stat;
 	}
 
-	SDataStat CStatProcessingUnit::RunGPU(double* data, int data_count)
+	SDataStat CStatProcessingUnit::RunGPU(double* data,
+		std::vector<double>& out_sum,
+		std::vector<double>& out_min,
+		std::vector<double>& out_max)
 	{
 		SDataStat local_stat;
 
-		GetStatisticsVectorized(local_stat, data_count, data);
+		ppr::gpu::RunStatisticsOnGPU(m_ocl_config, m_configuration, data, out_sum, out_min, out_max);
+
+		//GetStatisticsVectorized(local_stat, data_count, data); // TODO: offset and data_count
 
 		return local_stat;
 	}
