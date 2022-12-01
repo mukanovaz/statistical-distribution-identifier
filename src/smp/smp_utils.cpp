@@ -2,7 +2,7 @@
 
 namespace ppr::parallel
 {
-	SDataStat CStatProcessingUnit::Run(double* data, int data_count)
+	SDataStat CStatProcessingUnit::RunCPU(double* data, int data_count)
 	{
 		SDataStat local_stat;
 
@@ -11,15 +11,31 @@ namespace ppr::parallel
 		return local_stat;
 	}
 
-	std::tuple<std::vector<int>, double> CHistProcessingUnit::Run(double* data, int data_count)
+	SDataStat CStatProcessingUnit::RunGPU(double* data, int data_count)
+	{
+		SDataStat local_stat;
+
+		GetStatisticsVectorized(local_stat, data_count, data);
+
+		return local_stat;
+	}
+
+	std::tuple<std::vector<int>, double> CHistProcessingUnit::RunCPU(double* data, int data_count)
 	{
 		std::vector<int> local_vector(m_hist.binCount + 1);
 		double variance = 0.0;
 
+		GetHistogramVectorized(local_vector, variance, data_count, data, m_hist, m_stat);
+		
+		return std::make_tuple(local_vector, variance);
+	}
+
+	void GetHistogramVectorized(std::vector<int>& local_vector, double& variance, int data_count, double* data, SHistogram& hist, SDataStat& stat)
+	{
 		// Fill vector with mean/min and scale value
-		const __m256d mean = _mm256_set1_pd(m_stat.mean);
-		const __m256d min = _mm256_set1_pd(m_stat.min);
-		const __m256d scale = _mm256_set1_pd(m_hist.scaleFactor);
+		const __m256d mean = _mm256_set1_pd(stat.mean);
+		const __m256d min = _mm256_set1_pd(stat.min);
+		const __m256d scale = _mm256_set1_pd(hist.scaleFactor);
 
 		for (int block = 0; block < data_count; block += 4)
 		{
@@ -35,8 +51,6 @@ namespace ppr::parallel
 			local_vector[pos[2]] += 1;
 			local_vector[pos[3]] += 1;
 		}
-		
-		return std::make_tuple(local_vector, variance);
 	}
 
 	void GetStatisticsVectorized(SDataStat& stat, unsigned int data_count, double* data)

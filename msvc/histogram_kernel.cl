@@ -33,10 +33,9 @@ __kernel void Get_Data_Histogram(
         value /= 2;
     }
 
-    int position = (int)((value - min) / bin_size);
+    int position = (int)((value - min) * scale_factor);
     uint old_value = atomic_inc(&out_sum[2 * position]);
-    uint carry = old_value == 0xFFFFFFFF;
-    atomic_add(&out_sum[2 * position + 1], carry);
+    atomic_add(&out_sum[2 * position + 1], old_value == 0xFFFFFFFF);
 
 
     // Compute part of gauss variance

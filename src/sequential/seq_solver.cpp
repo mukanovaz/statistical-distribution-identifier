@@ -1,14 +1,12 @@
 #include "seq_solver.h"
-#include "../rss/statistics.cpp"
-#include "../file_mapping.h"
-#include "../histogram/histogram.cpp"
 
 namespace ppr::seq
 {
 	
 	SResult run(SConfig& configuration)
 	{
-		SResult result;
+		tbb::tick_count total0 = tbb::tick_count::now();
+		SResult res;
 		FileMapping mapping(configuration.input_fn);
 
 		const double* data = mapping.GetData();
@@ -21,75 +19,70 @@ namespace ppr::seq
 		RunningStat stat(data[0]);
 
 		// ================ [Get statistics]
+		tbb::tick_count t0 = tbb::tick_count::now();
 		for (unsigned int i = 1; i < mapping.GetCount(); i++)
 		{
 			double d = (double)data[i];
 			stat.Push(d);
 		}
+		tbb::tick_count t1 = tbb::tick_count::now();
+		std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 
 		// ================ [Create histogram]
+		t0 = tbb::tick_count::now();
+
 		const double bin_count = log2(mapping.GetCount()) + 1;
 		double bin_size = (stat.Get_Max() - stat.Get_Min()) / (bin_count - 1); // TODO
 
 		ppr::hist::Histogram hist(static_cast<int>(bin_count), bin_size, stat.Get_Min(), stat.Get_Max());
 
-		std::vector<int> histogramFrequency(static_cast<int>(bin_count));
-		std::vector<double> histogramDensity(static_cast<int>(bin_count));
+		std::vector<int> histogramFrequency(static_cast<int>(bin_count) + 1);
+		std::vector<double> histogramDensity(static_cast<int>(bin_count) + 1);
 
 		for (unsigned int i = 0; i < mapping.GetCount(); i++)
 		{
 			double d = (double)data[i];
 			hist.Push(histogramFrequency, d);
 		}
+
+		t1 = tbb::tick_count::now();
+		std::cout << "Histogram:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 		mapping.UnmapFile();
 
 		// ================ [Get propability density of histogram]
 		hist.ComputePropabilityDensityOfHistogram(histogramDensity, histogramFrequency, mapping.GetCount());
 
-		// ================ [Fit params]
+		//	================ [Fit params]
 		// Gauss maximum likelihood estimators
-		double gauss_mean = stat.Mean();
-		double gauss_variance = stat.Variance();
-		double gauss_sd = stat.StandardDeviation();
+		res.gauss_mean = stat.Mean();
+		res.gauss_variance = stat.Variance();
+		res.gauss_stdev = stat.StandardDeviation();
 
 		// Exponential maximum likelihood estimators
-		double exp_lambda = static_cast<double>(stat.NumDataValues()) / stat.Sum();
+		res.exp_lambda = static_cast<double>(stat.NumDataValues()) / stat.Sum();;
 
 		// Poisson likelihood estimators
-		double poisson_lambda = stat.Mean();
+		res.poisson_lambda = stat.Sum() / stat.NumDataValues();
 
-		// [Uniform likelihood estimators
-		double a = stat.Get_Min();
-		double b = stat.Get_Max();
-
+		// Uniform likelihood estimators
+		res.uniform_a = stat.Get_Min();
+		res.uniform_b = stat.Get_Max();
 
 		// ================ [Calculate RSS]
-		double g_rss = hist.ComputeRssOfHistogram(histogramDensity, 'n', gauss_variance, gauss_mean, gauss_sd);
-		double e_rss = hist.ComputeRssOfHistogram(histogramDensity, 'e', 0.0, 0.0, 0.0, exp_lambda);
-		double p_rss = hist.ComputeRssOfHistogram(histogramDensity, 'p', 0.0, 0.0, 0.0, 0.0, poisson_lambda);
-		double u_rss = hist.ComputeRssOfHistogram(histogramDensity, 'u', 0.0, 0.0, 0.0, 0.0, 0.0, a, b);
+		t0 = tbb::tick_count::now();
+		res.gauss_rss = hist.ComputeRssOfHistogram(histogramDensity, 'n', res);
+		res.exp_rss = hist.ComputeRssOfHistogram(histogramDensity, 'e', res);
+		res.poisson_rss = hist.ComputeRssOfHistogram(histogramDensity, 'p', res);
+		res.uniform_rss = hist.ComputeRssOfHistogram(histogramDensity, 'u', res);
+		t1 = tbb::tick_count::now();
+		std::cout << "Total RSS:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 
-		/*double min = std::min({ g_rss, e_rss, p_rss, u_rss });
+		//	================ [Analyze]
+		ppr::executor::AnalyzeResults(res);
 
-		if (gauss_rss == max)
-		{
-			std::cout << "This is Gauss" << std::endl;
-		}
-		else if (exp_rss == max)
-		{
-			std::cout << "This is Exponential" << std::endl;
-		}
-		else if (poisson_rss == max)
-		{
-			std::cout << "This is Poisson" << std::endl;
-		}
-		else if (uniform_rss == max)
-		{
-			std::cout << "This is Uniform" << std::endl;
-		}
-*/
+		tbb::tick_count total1 = tbb::tick_count::now();
+		std::cout << "Total:\t" << (total1 - total0).seconds() << "\tsec." << std::endl;
 
-
-		return SResult::error_res(EExitStatus::STAT);
+		return res;
 	}
 }

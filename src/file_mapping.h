@@ -28,7 +28,7 @@ namespace ppr
             HANDLE m_mapping;
             double* m_data;
             const WCHAR* m_filename;
-            unsigned int m_fileLen;
+            unsigned long long m_fileLen;
             unsigned int m_size;
             DWORD m_allocationGranularity;
 
@@ -40,6 +40,8 @@ namespace ppr
 
         public:
             FileMapping(const WCHAR* filename);
+
+            FileMapping(SConfig& config);
 
             double* GetData() const;
 

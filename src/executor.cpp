@@ -177,6 +177,8 @@ namespace ppr::executor
 
 	void CalculateHistogramRSSOnCPU(SResult& res, tbb::task_arena& arena, std::vector<double>& histogramDensity, SHistogram& hist)
 	{
+		tbb::tick_count total1 = tbb::tick_count::now();
+
 		ppr::rss::Distribution* gauss = new ppr::rss::NormalDistribution(res.gauss_mean, res.gauss_stdev, res.gauss_variance);
 		ppr::rss::Distribution* poisson = new ppr::rss::PoissonDistribution(res.poisson_lambda);
 		ppr::rss::Distribution* exp = new ppr::rss::ExponentialDistribution(res.exp_lambda);
@@ -209,6 +211,10 @@ namespace ppr::executor
 		delete poisson;
 		delete exp;
 		delete uniform;
+
+		tbb::tick_count total2 = tbb::tick_count::now();
+
+		std::cout << "Total RSS:\t" << (total2 - total1).seconds() << "\tsec." << std::endl;
 	}
 
 	void AnalyzeResults(SResult& res)

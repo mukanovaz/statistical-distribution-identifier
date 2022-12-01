@@ -17,7 +17,9 @@ namespace ppr::parallel
 	public:
 		CStatProcessingUnit(SConfig& config, SOpenCLConfig& ocl_config) : m_configuration(config), m_ocl_config(ocl_config) {}
 
-		SDataStat Run(double* data, int data_count);
+		SDataStat RunCPU(double* data, int data_count);
+
+		SDataStat RunGPU(double* data, int data_count);
 	};
 
 	class CHistProcessingUnit
@@ -32,7 +34,7 @@ namespace ppr::parallel
 		CHistProcessingUnit(SHistogram& hist, SConfig& config, SOpenCLConfig& ocl_config, SDataStat& stat) 
 			: m_configuration(config), m_ocl_config(ocl_config), m_hist(hist), m_stat(stat) {}
 
-		std::tuple<std::vector<int>, double> Run(double* data, int data_count);
+		std::tuple<std::vector<int>, double> RunCPU(double* data, int data_count);
 	};
 
 	inline __m256d position_double_avx(__m256d v, __m256d min, __m256d scale);
@@ -44,4 +46,6 @@ namespace ppr::parallel
 
 
 	void GetStatisticsVectorized(SDataStat& stat, unsigned int data_count, double* data);
+
+	void GetHistogramVectorized(std::vector<int>& local_vector, double& variance, int data_count, double* data, SHistogram& hist, SDataStat& stat);
 }

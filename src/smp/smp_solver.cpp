@@ -6,28 +6,41 @@ namespace ppr::parallel
 {
 	SResult run(SConfig& configuration)
 	{
+		tbb::tick_count total1;
+		total1 = tbb::tick_count::now();
 		//  ================ [Init TBB]
 		tbb::task_arena arena(configuration.thread_count == 0 ? tbb::task_arena::automatic : static_cast<int>(configuration.thread_count));
 
 		//  ================ [Map input file]
-		FileMapping mapping(configuration.input_fn);
+		FileMapping mapping(configuration);
 
 		//  ================ [Allocations]
+		tbb::tick_count total2;
+		tbb::tick_count t0;
+		tbb::tick_count t1;
 		SOpenCLConfig opencl; // Not using here
 		SHistogram hist;
 		SResult res;
 		SDataStat stat;
+		std::vector<int> tmp(0);
 		unsigned int data_count = mapping.GetCount();
 		size_t chunks_count = mapping.GetFileLen() / mapping.GetGranularity();
-		std::vector<std::future<SDataStat>> workersStat((configuration.thread_count * chunks_count) + 1);
-
+		
 		//  ================ [Get statistics]
-		tbb::tick_count t0 = tbb::tick_count::now();
-		mapping.ReadInChunksStat(configuration, opencl, stat);
-		tbb::tick_count t1 = tbb::tick_count::now();
+		if (USE_OPTIMIZATION)
+		{
+			t0 = tbb::tick_count::now();
+			mapping.ReadInChunksStat(configuration, opencl, stat);
+			t1 = tbb::tick_count::now();
+		}
+		else
+		{
+			t0 = tbb::tick_count::now();
+			mapping.ReadInChunks(hist, configuration, opencl, stat, arena, tmp, &GetStatisticsCPU);
+			t1 = tbb::tick_count::now();
+		}
 		std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 
-		
 		// Find mean
 		stat.mean = stat.sum / stat.n;
 
@@ -43,9 +56,18 @@ namespace ppr::parallel
 		cl_int err = 0;
 
 		// Run
-		t0 = tbb::tick_count::now();
-		mapping.ReadInChunksHist(hist, configuration, opencl, stat, histogramFreq);
-		t1 = tbb::tick_count::now();
+		if (USE_OPTIMIZATION)
+		{
+			t0 = tbb::tick_count::now();
+			mapping.ReadInChunksHist(hist, configuration, opencl, stat, histogramFreq);
+			t1 = tbb::tick_count::now();
+		}
+		else
+		{
+			t0 = tbb::tick_count::now();
+			mapping.ReadInChunks(hist, configuration, opencl, stat, arena, histogramFreq, &CreateFrequencyHistogramCPU);
+			t1 = tbb::tick_count::now();
+		}
 		std::cout << "Histogram:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 
 		// Find variance
@@ -78,6 +100,9 @@ namespace ppr::parallel
 
 		//	================ [Analyze]
 		ppr::executor::AnalyzeResults(res);
+
+		total2 = tbb::tick_count::now();
+		std::cout << "Total:\t" << (total2 - total1).seconds() << "\tsec." << std::endl;
 
 		std::cout << "Finish." << std::endl;
 		return res;

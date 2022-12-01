@@ -13,13 +13,14 @@ namespace ppr
     const constexpr char* STAT_KERNEL_NAME = "Get_Data_Statistics";
     const constexpr char* HIST_KERNEL = "D:/Study/ZCU/5.semestr/PPR/kiv-ppr/msvc/histogram_kernel.cl";
     const constexpr char* HIST_KERNEL_NAME = "Get_Data_Histogram";
-    const constexpr DWORD MAX_FILE_SIZE_MEM = 1999962112;
-    //const constexpr DWORD MAX_FILE_SIZE_MEM = 999948288;
-    const constexpr bool USE_OPTIMIZATION = true;
+    //const constexpr DWORD MAX_FILE_SIZE_MEM = 1999962112;
+    const constexpr DWORD MAX_FILE_SIZE_MEM = 999948288;
+    const constexpr bool USE_OPTIMIZATION = false;
 
     enum class ERun_mode {
         SMP = 0,
-        ALL = 1
+        ALL = 1,
+        SEQ = 2
     };
 
     enum EExitStatus : int {

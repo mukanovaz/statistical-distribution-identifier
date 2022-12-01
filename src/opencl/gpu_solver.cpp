@@ -4,6 +4,8 @@ namespace ppr::gpu
 {
 	SResult run(SConfig& configuration)
 	{
+		tbb::tick_count total1;
+		total1 = tbb::tick_count::now();
 		//  ================ [Init TBB]
 		tbb::task_arena arena(configuration.thread_count == 0 ? tbb::task_arena::automatic : static_cast<int>(configuration.thread_count));
 
@@ -11,9 +13,10 @@ namespace ppr::gpu
 		SOpenCLConfig opencl = ppr::gpu::Init(configuration, STAT_KERNEL, STAT_KERNEL_NAME);
 
 		//  ================ [Get file info]
-		FileMapping mapping(configuration.input_fn);
+		FileMapping mapping(configuration);
 
 		//  ================ [Allocations]
+		tbb::tick_count total2;
 		SHistogram hist;
 		SResult res;
 		SDataStat stat;
@@ -86,6 +89,9 @@ namespace ppr::gpu
 
 		//	================ [Analyze]
 		ppr::executor::AnalyzeResults(res);
+
+		total2 = tbb::tick_count::now();
+		std::cout << "Total:\t" << (total2 - total1).seconds() << "\tsec." << std::endl;
 
 		std::cout << "Finish." << std::endl;
 		return res;

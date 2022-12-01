@@ -3,8 +3,6 @@
 
 #include<future>
 
-#define BUFFER_SIZE 100 // TODO: change
-
 namespace ppr
 {
 
@@ -16,7 +14,27 @@ namespace ppr
         {
             return;
         }
+        LARGE_INTEGER file_size = { 0 };
+        ::GetFileSizeEx(m_file, &file_size);
+        m_fileLen = static_cast<unsigned long long>(file_size.QuadPart);
+        m_size = m_fileLen / sizeof(double);
 
+        bool res_mf = MapFile();
+        if (!res_mf)
+        {
+            return;
+        }
+        view();
+    }
+
+    FileMapping::FileMapping(SConfig& config)
+        : m_filename(config.input_fn), m_file(INVALID_HANDLE_VALUE), m_mapping(INVALID_HANDLE_VALUE), m_data(NULL)
+    {
+        bool res_cf = CreateFile_n();
+        if (!res_cf)
+        {
+            return;
+        }
 
         // Offsets must be a multiple of the system's allocation granularity.  We
         // guarantee this by making our view size equal to the allocation granularity.
@@ -25,27 +43,22 @@ namespace ppr
         double scale = static_cast<double>(MAX_FILE_SIZE_MEM) / sysinfo.dwAllocationGranularity;
         m_allocationGranularity = sysinfo.dwAllocationGranularity * scale;
 
-        m_fileLen = GetFileSize(m_file, 0);
+        LARGE_INTEGER file_size = { 0 };
+        ::GetFileSizeEx(m_file, &file_size);
+        m_fileLen = static_cast<unsigned long long>(file_size.QuadPart);
         m_size = m_fileLen / sizeof(double);
 
         CloseHandle(m_file);
-
-        /*bool res_mf = MapFile();
-        if (!res_mf)
-        {
-            return;
-        }
-        view();*/
     }
 
     bool FileMapping::CreateFile_n()
     {
         size_t i;
-        char* path = (char*)malloc(BUFFER_SIZE);
+        char* path = (char*)malloc(100);
 
         // Conversion
-        wcstombs_s(&i, path, (size_t)BUFFER_SIZE,
-            m_filename, (size_t)BUFFER_SIZE - 1); // -1 so the appended NULL doesn't fall outside the allocated buffer
+        wcstombs_s(&i, path, (size_t)100,
+            m_filename, (size_t)100 - 1); // -1 so the appended NULL doesn't fall outside the allocated buffer
 
         if (path)
         {
@@ -53,7 +66,6 @@ namespace ppr
             // Free multibyte character buffer 
             delete[] path;
         }
-
         if (m_file == INVALID_HANDLE_VALUE)
         {
             return false;
@@ -165,7 +177,7 @@ namespace ppr
                         for (int i = 0; i < config.thread_count; i++)
                         {
                             ppr::parallel::CHistProcessingUnit unit(hist, config, opencl, stat);
-                            workers[i] = std::async(std::launch::async | std::launch::deferred, &ppr::parallel::CHistProcessingUnit::Run, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                            workers[i] = std::async(std::launch::async | std::launch::deferred, &ppr::parallel::CHistProcessingUnit::RunCPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
                         }
 
                         // Agregate results results
@@ -241,7 +253,7 @@ namespace ppr
                         for (int i = 0; i < config.thread_count; i++)
                         {
                             ppr::parallel::CStatProcessingUnit unit(config, opencl);
-                            workers[i] = std::async(std::launch::async | std::launch::deferred, &ppr::parallel::CStatProcessingUnit::Run, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                            workers[i] = std::async(std::launch::async | std::launch::deferred, &ppr::parallel::CStatProcessingUnit::RunCPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
                         }
 
                         // Agregate results results

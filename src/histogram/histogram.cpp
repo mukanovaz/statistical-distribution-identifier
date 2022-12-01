@@ -29,36 +29,30 @@ namespace ppr::hist
 			{
 				for (unsigned int i = 0; i < Size; i++)
 				{
-					std::cout << bucket_frequency[i] << std::endl;
-				}
-
-				for (unsigned int i = 0; i < Size; i++)
-				{
 					double next_edge = Min + (BinSize * (static_cast<double>(i) + 1.0));
 					double curr_edge = Min + (BinSize * static_cast<double>(i));
 					double diff = next_edge - curr_edge;
 					bucket_density[i] = bucket_frequency[i] / diff / count;
-					/*std::cout << bucket_density[i] << std::endl;*/
 				}
 			}
 
-			double ComputeRssOfHistogram(std::vector<double>& bucket_density, char dist_val, double variance = 0.0, double mean = 0.0, double stddev = 0.0, double lambda = 0.0, double mu = 0.0, double a = 0.0, double b = 0.0)
+			double ComputeRssOfHistogram(std::vector<double>& bucket_density, char dist_val, SResult& res)
 			{
 				ppr::rss::Distribution* dist;
 
 				switch (dist_val)
 				{
 					case 'n':
-						dist = new ppr::rss::NormalDistribution(mean, stddev, variance);
+						dist = new ppr::rss::NormalDistribution(res.gauss_mean, res.gauss_stdev, res.gauss_variance);
 						break;
 					case 'e':
-						dist = new ppr::rss::ExponentialDistribution(lambda);
+						dist = new ppr::rss::ExponentialDistribution(res.exp_lambda);
 						break;
 					case 'p':
-						dist = new ppr::rss::PoissonDistribution(mu);
+						dist = new ppr::rss::PoissonDistribution(res.poisson_lambda);
 						break;
 					case 'u':
-						dist = new ppr::rss::UniformDistribution(a, b);
+						dist = new ppr::rss::UniformDistribution(res.uniform_a, res.uniform_b);
 						break;
 					default:
 						return 0.0;
@@ -70,9 +64,9 @@ namespace ppr::hist
 					dist->Push(d, (i * BinSize));
 				}
 				
-				double res = dist->Get_RSS();
+				double result = dist->Get_RSS();
 				delete dist;
-				return res;
+				return result;
 			}
 	};
 
@@ -91,11 +85,11 @@ namespace ppr::hist
 			HistogramParallel(int size, double bin_size, double min, double max, const double* data, double mean)
 				: m_data(data), m_mean(mean), m_var(0.0)
 			{
-				m_bucketFrequency.resize(size);
+				m_bucketFrequency.resize(size + 1);
 				m_histogram.binSize = bin_size;
 				m_histogram.min = min;
 				m_histogram.max = max;
-				m_histogram.binCount = size;
+				m_histogram.binCount = size + 1;
 				m_histogram.scaleFactor = (m_histogram.binCount) / (m_histogram.max - m_histogram.min);
 			}
 

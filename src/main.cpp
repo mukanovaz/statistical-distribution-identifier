@@ -16,7 +16,6 @@ namespace ppr
 			return parallel::run(configuration);
 		case ERun_mode::ALL:  
 			return gpu::run(configuration);
-
 		default:
 			return SResult::error_res(EExitStatus::UNKNOWN);
 		}
