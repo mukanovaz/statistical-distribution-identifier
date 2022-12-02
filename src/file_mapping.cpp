@@ -126,6 +126,14 @@ namespace ppr
         std::vector<double>& out_max)
     {
         DWORD granulatity = m_allocationGranularity;
+        cl_int err = 0;
+
+        // Data buffers
+        cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
+        cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
+        cl::Buffer out_min_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
+        cl::Buffer out_max_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
+
 
         HANDLE hfile = ::CreateFileW(m_filename, GENERIC_READ, FILE_SHARE_READ,
             NULL, OPEN_EXISTING, 0, NULL);
@@ -134,6 +142,11 @@ namespace ppr
             ::GetFileSizeEx(hfile, &file_size);
             const unsigned long long cbFile =
                 static_cast<unsigned long long>(file_size.QuadPart);
+
+            // Initialize workers
+            int worker_id = 0;
+            int workers_count = cbFile / m_allocationGranularity;
+            std::vector<std::thread> threads(workers_count);
 
             HANDLE hmap = ::CreateFileMappingW(hfile, NULL, PAGE_READONLY, 0, 0, NULL);
             if (hmap != NULL) {
@@ -170,8 +183,29 @@ namespace ppr
                             opencl.data_count_for_cpu = data_in_chunk / config.thread_count;
                         }
                        
-                        ppr::parallel::CStatProcessingUnit unit(config, opencl);
-                        unit.RunGPU(pView, out_sum, out_min, out_max);
+                        //cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), pView, &err);
+                        cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, opencl.data_count_for_gpu * sizeof(double));
+
+                        double* in_data_map = (double*)cmd_queue.enqueueMapBuffer(in_data_buf, CL_TRUE, CL_MAP_WRITE, 0, opencl.data_count_for_gpu * sizeof(double));
+                        memcpy(in_data_map, pView, sizeof(double) * opencl.data_count_for_gpu);
+                        cmd_queue.enqueueUnmapMemObject(in_data_buf, in_data_map);
+
+                        // Set method arguments
+                        err = opencl.kernel.setArg(0, in_data_buf);
+                        err = opencl.kernel.setArg(1, opencl.wg_size * sizeof(double), nullptr);
+                        err = opencl.kernel.setArg(2, opencl.wg_size * sizeof(double), nullptr);
+                        err = opencl.kernel.setArg(3, opencl.wg_size * sizeof(double), nullptr);
+                        err = opencl.kernel.setArg(4, out_sum_buf);
+                        err = opencl.kernel.setArg(5, out_min_buf);
+                        err = opencl.kernel.setArg(6, out_max_buf);
+
+                        // Run kernel on GPU
+                        err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(opencl.data_count_for_gpu), cl::NDRange(opencl.wg_size));
+
+                        err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_sum.data());
+                        err = cmd_queue.enqueueReadBuffer(out_min_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_min.data());
+                        err = cmd_queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_max.data());
+  
 
                         UnmapViewOfFile(pView);
                     }
@@ -180,6 +214,7 @@ namespace ppr
             }
             ::CloseHandle(hfile);
         }
+       
     }
 
     void FileMapping::ReadInChunksHist(
@@ -351,13 +386,7 @@ namespace ppr
         std::vector<int>& histogram,
         void (*ProcessChunk) (SHistogram& hist, SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned int, double*, std::vector<int>&))
     {
-        // Offsets must be a multiple of the system's allocation granularity.  We
-        // guarantee this by making our view size equal to the allocation granularity.
-        SYSTEM_INFO sysinfo = { 0 };
-        ::GetSystemInfo(&sysinfo);
-        double scale = static_cast<double>(MAX_FILE_SIZE_MEM) / sysinfo.dwAllocationGranularity;
-        m_allocationGranularity = sysinfo.dwAllocationGranularity * scale;
-
+        DWORD granulatity = m_allocationGranularity;
 
         HANDLE hfile = ::CreateFileW(m_filename, GENERIC_READ, FILE_SHARE_READ,
             NULL, OPEN_EXISTING, 0, NULL);
@@ -369,20 +398,20 @@ namespace ppr
 
             HANDLE hmap = ::CreateFileMappingW(hfile, NULL, PAGE_READONLY, 0, 0, NULL);
             if (hmap != NULL) {
-                for (unsigned long long offset = 0; offset < cbFile; offset += m_allocationGranularity) {
+                for (unsigned long long offset = 0; offset < cbFile; offset += granulatity) {
                     DWORD high = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFFul);
                     DWORD low = static_cast<DWORD>(offset & 0xFFFFFFFFul);
                     // The last view may be shorter.
-                    if (offset + m_allocationGranularity > cbFile) {
-                        m_allocationGranularity = static_cast<int>(cbFile - offset);
+                    if (offset + granulatity > cbFile) {
+                        granulatity = static_cast<int>(cbFile - offset);
                     }
 
                     double* pView = static_cast<double*>(
-                        ::MapViewOfFile(hmap, FILE_MAP_READ, high, low, m_allocationGranularity));
+                        ::MapViewOfFile(hmap, FILE_MAP_READ, high, low, granulatity));
 
                     if (pView != NULL) {
                         //ProcessChunk(pView, cbView);
-                        unsigned int data_in_chunk = m_allocationGranularity / sizeof(double);
+                        unsigned int data_in_chunk = granulatity / sizeof(double);
 
                         if (opencl.wg_size != 0)
                         {

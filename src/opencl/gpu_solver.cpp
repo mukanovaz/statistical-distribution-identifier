@@ -25,7 +25,7 @@ namespace ppr::gpu
 		unsigned int data_count = mapping.GetCount();
 
 		// Get number of data, which we want to process on GPU
-		opencl.wg_count = data_count / opencl.wg_size;
+		opencl.wg_count = (mapping.GetGranularity() / sizeof(double)) / opencl.wg_size;
 		opencl.data_count_for_gpu = data_count - (data_count % opencl.wg_size);
 
 		// The rest of the data we will process on CPU
