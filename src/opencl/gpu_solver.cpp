@@ -31,17 +31,13 @@ namespace ppr::gpu
 		// The rest of the data we will process on CPU
 		opencl.data_count_for_cpu = opencl.data_count_for_gpu + 1;
 
-		// GPU statistics result
-		std::vector<double> out_sum(opencl.wg_count);
-		std::vector<double> out_min(opencl.wg_count);
-		std::vector<double> out_max(opencl.wg_count);
 
 		//  ================ [Get statistics]
 		tbb::tick_count t0 = tbb::tick_count::now();
 		
 		if (USE_OPTIMIZATION)
 		{
-			mapping.ReadInChunksStatGPU(configuration, opencl, out_sum, out_min, out_max);
+			mapping.ReadInChunksStat(configuration, opencl, stat);
 		}
 		else
 		{
@@ -49,9 +45,6 @@ namespace ppr::gpu
 		}
 		tbb::tick_count t1 = tbb::tick_count::now();
 		std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
-
-		// Agregate out values
-		double sum = ppr::executor::SumVectorOnCPU(arena, out_sum);
 
 		// Find mean
 		stat.mean = stat.sum / stat.n;

@@ -19,10 +19,7 @@ namespace ppr::parallel
 
 		SDataStat RunCPU(double* data, int data_count);
 
-		SDataStat RunGPU(double* data, 
-			std::vector<double>& out_sum,
-			std::vector<double>& out_min,
-			std::vector<double>& out_max);
+		SDataStat RunGPU(double* data, int data_count);
 	};
 
 	class CHistProcessingUnit
@@ -39,6 +36,10 @@ namespace ppr::parallel
 
 		std::tuple<std::vector<int>, double> RunCPU(double* data, int data_count);
 	};
+
+	double min_of_vector_vectorized(std::vector<double> vector);
+	double max_of_vector_vectorized(std::vector<double> vector);
+	double sum_vector_elements_vectorized(std::vector<double> vector);
 
 	inline __m256d position_double_avx(__m256d v, __m256d min, __m256d scale);
 

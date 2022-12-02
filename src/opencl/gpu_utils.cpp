@@ -6,10 +6,7 @@
 
 namespace ppr::gpu
 {
-    void RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, double* data,
-        std::vector<double>& out_sum,
-        std::vector<double>& out_min,
-        std::vector<double>& out_max)
+    void RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, double* data)
     {
         cl_int err = 0;
 
@@ -27,6 +24,11 @@ namespace ppr::gpu
         err = opencl.kernel.setArg(4, out_sum_buf);
         err = opencl.kernel.setArg(5, out_min_buf);
         err = opencl.kernel.setArg(6, out_max_buf);
+
+        // Result data
+        std::vector<double> out_sum(opencl.wg_count);
+        std::vector<double> out_min(opencl.wg_count);
+        std::vector<double> out_max(opencl.wg_count);
 
         cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
 

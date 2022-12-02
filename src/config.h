@@ -15,7 +15,7 @@ namespace ppr
     const constexpr char* HIST_KERNEL_NAME = "Get_Data_Histogram";
     //const constexpr DWORD MAX_FILE_SIZE_MEM = 1999962112;
     const constexpr DWORD MAX_FILE_SIZE_MEM = 999948288;
-    const constexpr bool USE_OPTIMIZATION = true;
+    const constexpr bool USE_OPTIMIZATION = false;
 
     enum class ERun_mode {
         SMP = 0,
@@ -45,6 +45,7 @@ namespace ppr
         cl::Program program{};
         cl::Kernel kernel{};
         cl::Buffer out_sum_buf{};
+        cl::CommandQueue queue{};
         size_t wg_size = 0;
         unsigned long data_count_for_gpu = 0;
         unsigned long data_count_for_cpu = 0;

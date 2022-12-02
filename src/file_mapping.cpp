@@ -118,105 +118,6 @@ namespace ppr
         return m_allocationGranularity;
     }
 
-    void FileMapping::ReadInChunksStatGPU(
-        SConfig& config,
-        SOpenCLConfig& opencl,
-        std::vector<double>& out_sum,
-        std::vector<double>& out_min,
-        std::vector<double>& out_max)
-    {
-        DWORD granulatity = m_allocationGranularity;
-        cl_int err = 0;
-
-        // Data buffers
-        cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
-        cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
-        cl::Buffer out_min_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
-        cl::Buffer out_max_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
-
-
-        HANDLE hfile = ::CreateFileW(m_filename, GENERIC_READ, FILE_SHARE_READ,
-            NULL, OPEN_EXISTING, 0, NULL);
-        if (hfile != INVALID_HANDLE_VALUE) {
-            LARGE_INTEGER file_size = { 0 };
-            ::GetFileSizeEx(hfile, &file_size);
-            const unsigned long long cbFile =
-                static_cast<unsigned long long>(file_size.QuadPart);
-
-            // Initialize workers
-            int worker_id = 0;
-            int workers_count = cbFile / m_allocationGranularity;
-            std::vector<std::thread> threads(workers_count);
-
-            HANDLE hmap = ::CreateFileMappingW(hfile, NULL, PAGE_READONLY, 0, 0, NULL);
-            if (hmap != NULL) {
-                for (unsigned long long offset = 0; offset < cbFile; offset += granulatity) {
-
-                    // Get chunk limits
-                    DWORD high = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFFul);
-                    DWORD low = static_cast<DWORD>(offset & 0xFFFFFFFFul);
-
-                    // The last view may be shorter.
-                    if (offset + granulatity > cbFile) {
-                        granulatity = static_cast<int>(cbFile - offset);
-                    }
-
-                    // Create a chunk
-                    double* pView = static_cast<double*>(
-                        ::MapViewOfFile(hmap, FILE_MAP_READ, high, low, granulatity));
-
-                    if (pView != NULL) {
-                        unsigned int data_in_chunk = granulatity / sizeof(double);
-
-                        // Compute data count
-                        if (opencl.wg_size != 0)
-                        {
-                            // Get number of data, which we want to process on GPU
-                            opencl.wg_count = data_in_chunk / opencl.wg_size;
-                            opencl.data_count_for_gpu = data_in_chunk - (data_in_chunk % opencl.wg_size);
-
-                            // The rest of the data we will process on CPU
-                            opencl.data_count_for_cpu = opencl.data_count_for_gpu + 1;
-                        }
-                        else
-                        {
-                            opencl.data_count_for_cpu = data_in_chunk / config.thread_count;
-                        }
-                       
-                        //cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), pView, &err);
-                        cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, opencl.data_count_for_gpu * sizeof(double));
-
-                        double* in_data_map = (double*)cmd_queue.enqueueMapBuffer(in_data_buf, CL_TRUE, CL_MAP_WRITE, 0, opencl.data_count_for_gpu * sizeof(double));
-                        memcpy(in_data_map, pView, sizeof(double) * opencl.data_count_for_gpu);
-                        cmd_queue.enqueueUnmapMemObject(in_data_buf, in_data_map);
-
-                        // Set method arguments
-                        err = opencl.kernel.setArg(0, in_data_buf);
-                        err = opencl.kernel.setArg(1, opencl.wg_size * sizeof(double), nullptr);
-                        err = opencl.kernel.setArg(2, opencl.wg_size * sizeof(double), nullptr);
-                        err = opencl.kernel.setArg(3, opencl.wg_size * sizeof(double), nullptr);
-                        err = opencl.kernel.setArg(4, out_sum_buf);
-                        err = opencl.kernel.setArg(5, out_min_buf);
-                        err = opencl.kernel.setArg(6, out_max_buf);
-
-                        // Run kernel on GPU
-                        err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(opencl.data_count_for_gpu), cl::NDRange(opencl.wg_size));
-
-                        err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_sum.data());
-                        err = cmd_queue.enqueueReadBuffer(out_min_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_min.data());
-                        err = cmd_queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_max.data());
-  
-
-                        UnmapViewOfFile(pView);
-                    }
-                }
-                ::CloseHandle(hmap);
-            }
-            ::CloseHandle(hfile);
-        }
-       
-    }
-
     void FileMapping::ReadInChunksHist(
         SHistogram& hist,
         SConfig& config,
@@ -349,10 +250,23 @@ namespace ppr
                         }
                         std::vector<std::future<SDataStat>> workers(config.thread_count);
                         // Process chunk with multuply threads
-                        for (int i = 0; i < config.thread_count; i++)
+
+                        if (config.mode == ERun_mode::SMP)
                         {
-                            ppr::parallel::CStatProcessingUnit unit(config, opencl);
-                            workers[i] = std::async(std::launch::async | std::launch::deferred, &ppr::parallel::CStatProcessingUnit::RunCPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                            for (int i = 0; i < config.thread_count; i++)
+                            {
+                                ppr::parallel::CStatProcessingUnit unit(config, opencl);
+                                workers[i] = std::async(std::launch::async | std::launch::deferred, &ppr::parallel::CStatProcessingUnit::RunCPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                            }
+                        }
+                        else
+                        {
+                            unsigned long count = opencl.data_count_for_gpu / config.thread_count;
+                            for (int i = 0; i < config.thread_count; i++)
+                            {
+                                ppr::parallel::CStatProcessingUnit unit(config, opencl);
+                                workers[i] = std::async(std::launch::async | std::launch::deferred, &ppr::parallel::CStatProcessingUnit::RunGPU, unit, pView + (count * i), count);
+                            }
                         }
 
                         // Agregate results results
@@ -361,9 +275,10 @@ namespace ppr
                             SDataStat local_stat = worker.get();
                             stat.sum += local_stat.sum;
                             stat.n += local_stat.n;
-                            stat.min = std::min({stat.min, std::min({stat.min, local_stat.min})});
+                            stat.min = std::min({ stat.min, std::min({stat.min, local_stat.min}) });
                             stat.max = std::max({ stat.max, std::max({ stat.max, local_stat.max }) });
                         }
+                       
 
                         UnmapViewOfFile(pView);
                     }

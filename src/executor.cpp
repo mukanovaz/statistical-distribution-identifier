@@ -1,4 +1,5 @@
 #include "executor.h"
+#include "smp/smp_utils.h"
 #include <algorithm>
 
 namespace ppr::executor
@@ -77,13 +78,22 @@ namespace ppr::executor
 	{
 		cl_int err = 0;
 
-		cl::Buffer buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
+		cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
+
+		//cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
+		cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, opencl.data_count_for_gpu * sizeof(double));
+
+		// copy data
+		double* in_data_map = (double*)cmd_queue.enqueueMapBuffer(in_data_buf, CL_TRUE, CL_MAP_WRITE, 0, opencl.data_count_for_gpu * sizeof(double));
+		memcpy(in_data_map, data, sizeof(double) * opencl.data_count_for_gpu);
+		cmd_queue.enqueueUnmapMemObject(in_data_buf, in_data_map); 
+		
 		cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
 		cl::Buffer out_min_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
 		cl::Buffer out_max_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
 
 		// Set method arguments
-		err = opencl.kernel.setArg(0, buf);
+		err = opencl.kernel.setArg(0, in_data_buf);
 		err = opencl.kernel.setArg(1, opencl.wg_size * sizeof(double), nullptr);
 		err = opencl.kernel.setArg(2, opencl.wg_size * sizeof(double), nullptr);
 		err = opencl.kernel.setArg(3, opencl.wg_size * sizeof(double), nullptr);
@@ -93,11 +103,9 @@ namespace ppr::executor
 		
 		// Result data
 		std::vector<double> out_sum(opencl.wg_count);
-		std::vector<int> out_negative(opencl.wg_count);
 		std::vector<double> out_min(opencl.wg_count);
 		std::vector<double> out_max(opencl.wg_count);
 
-		cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
 
 		// Pass all data to GPU
 		err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(opencl.data_count_for_gpu), cl::NDRange(opencl.wg_size));
@@ -108,21 +116,18 @@ namespace ppr::executor
 		cl::finish();
 		
 		// Agregate results on CPU
-		double sum = ppr::executor::SumVectorOnCPU(arena, out_sum);
-		//double negative = ppr::executor::SumVectorOnCPU(arena, out_negative);
-		MinParallel minp(out_min);
-		ppr::executor::RunOnCPU<MinParallel>(arena, minp, 0, opencl.wg_count);
-		MaxParallel maxp(out_max);
-		ppr::executor::RunOnCPU<MaxParallel>(arena, maxp, 0, opencl.wg_count);
+		double sum = ppr::parallel::sum_vector_elements_vectorized(out_sum);
+		double max = ppr::parallel::max_of_vector_vectorized(out_max);
+		double min = ppr::parallel::min_of_vector_vectorized(out_min);
 
-		return { 
+		return {
 			opencl.data_count_for_gpu,	// n
-			sum,						// sum
-			maxp.value_of_max,			// max
-			minp.value_of_min,			// min
-			0.0,						// mean
-			0.0,						// variance
-			minp.value_of_min < 0
+			sum,					// sum
+			max,					// max
+			min,					// min
+			0.0,					// mean
+			0.0,					// variance
+			min < 0
 		};
 	}
 
