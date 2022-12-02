@@ -15,56 +15,7 @@ namespace ppr::parallel
 
 	SDataStat CStatProcessingUnit::RunGPU(double* data, int data_count)
 	{
-		SDataStat local_stat;
-		cl_int err = 0;
-		const unsigned long long work_group_number = data_count / m_ocl_config.wg_size;
-		const unsigned int count = data_count - (data_count % m_ocl_config.wg_size);
-		cl::CommandQueue cmd_queue(m_ocl_config.context, m_ocl_config.device, 0, &err);
-
-		cl::Buffer in_data_buf(m_ocl_config.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, count * sizeof(double), data, &err);
-		cl::Buffer out_sum_buf(m_ocl_config.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, work_group_number * sizeof(double), nullptr, &err);
-		cl::Buffer out_min_buf(m_ocl_config.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, work_group_number * sizeof(double), nullptr, &err);
-		cl::Buffer out_max_buf(m_ocl_config.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, work_group_number * sizeof(double), nullptr, &err);
-
-		// Set method arguments
-		err = m_ocl_config.kernel.setArg(0, in_data_buf);
-		err = m_ocl_config.kernel.setArg(1, m_ocl_config.wg_size * sizeof(double), nullptr);
-		err = m_ocl_config.kernel.setArg(2, m_ocl_config.wg_size * sizeof(double), nullptr);
-		err = m_ocl_config.kernel.setArg(3, m_ocl_config.wg_size * sizeof(double), nullptr);
-		err = m_ocl_config.kernel.setArg(4, out_sum_buf);
-		err = m_ocl_config.kernel.setArg(5, out_min_buf);
-		err = m_ocl_config.kernel.setArg(6, out_max_buf);
-
-		// Result data
-		std::vector<double> out_sum(work_group_number);
-		std::vector<double> out_min(work_group_number);
-		std::vector<double> out_max(work_group_number);
-
-
-		// Pass all data to GPU
-		err = m_ocl_config.queue.enqueueNDRangeKernel(m_ocl_config.kernel, cl::NullRange, cl::NDRange(count), cl::NDRange(m_ocl_config.wg_size));
-		err = m_ocl_config.queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_sum.data());
-		err = m_ocl_config.queue.enqueueReadBuffer(out_min_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_min.data());
-		err = m_ocl_config.queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_max.data());
-
-		cl::finish();
-
-		// Agregate results on CPU
-		double sum = ppr::parallel::sum_vector_elements_vectorized(out_sum);
-		double max = ppr::parallel::max_of_vector_vectorized(out_max);
-		double min = ppr::parallel::min_of_vector_vectorized(out_min);
-
-		return {
-			count,					// n
-			sum,					// sum
-			max,					// max
-			min,					// min
-			0.0,					// mean
-			0.0,					// variance
-			true
-		};
-
-		return local_stat;
+		return ppr::gpu::RunStatisticsOnGPU(m_ocl_config, m_configuration, data, data_count);
 	}
 
 	std::tuple<std::vector<int>, double> CHistProcessingUnit::RunCPU(double* data, int data_count)
@@ -73,7 +24,17 @@ namespace ppr::parallel
 		double variance = 0.0;
 
 		GetHistogramVectorized(local_vector, variance, data_count, data, m_hist, m_stat);
-		
+
+		return std::make_tuple(local_vector, variance);
+	}
+
+	std::tuple<std::vector<int>, double> CHistProcessingUnit::RunGPU(double* data, int data_count)
+	{
+		std::vector<int> local_vector(m_hist.binCount + 1);
+		double variance = 0.0;
+
+		ppr::gpu::RunHistogramOnGPU(m_ocl_config, m_configuration, m_hist, m_stat, data, data_count, local_vector, variance);
+
 		return std::make_tuple(local_vector, variance);
 	}
 
@@ -118,8 +79,22 @@ namespace ppr::parallel
 			max = _mm256_max_pd(max, vec);
 		}
 
+		// Find min on the rest of the vector
 		double* max_d = (double*)&max;
-		return std::max({ max_d[0], max_d[1], max_d[2], max_d[3] });
+		if (vector.size() - size != 0)
+		{
+			double max_l = std::numeric_limits<double>::min();
+			int size2 = vector.size() - size;
+			for (int i = 0; i < size2; i++)
+			{
+				max_l = std::max({ max_l, vector[size + i] });
+			}
+			return std::max({ max_d[0], max_d[1], max_d[2], max_d[3], max_l });
+		}
+		else
+		{
+			return std::max({ max_d[0], max_d[1], max_d[2], max_d[3] });
+		}
 	}
 
 	double min_of_vector_vectorized(std::vector<double> vector)
@@ -140,8 +115,23 @@ namespace ppr::parallel
 			min = _mm256_min_pd(min, vec);
 		}
 
+		// Find min on the rest of the vector
 		double* min_d = (double*)&min;
-		return std::min({ min_d[0], min_d[1], min_d[2], min_d[3] });
+		if (vector.size() - size != 0)
+		{
+			double min_l = std::numeric_limits<double>::max();
+			int size2 = vector.size() - size;
+			for (int i = 0; i < size2; i++)
+			{
+				min_l = std::min({min_l, vector[size + i] });
+			}
+			return std::min({ min_d[0], min_d[1], min_d[2], min_d[3], min_l });
+		}
+		else
+		{
+			return std::min({ min_d[0], min_d[1], min_d[2], min_d[3] });
+		}
+		
 	}
 
 	double sum_vector_elements_vectorized(std::vector<double> vector)
@@ -157,6 +147,16 @@ namespace ppr::parallel
 				vector[block + 3]
 			);
 			sum += hsum_double_avx(vec);
+		}
+
+		// Sum the rest if exist
+		if (vector.size() - size != 0)
+		{
+			int size2 = vector.size() - size;
+			for (int i = 0; i < size2; i++)
+			{
+				sum += vector[size + i];
+			}
 		}
 
 		return sum;

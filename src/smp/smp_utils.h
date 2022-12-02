@@ -34,6 +34,8 @@ namespace ppr::parallel
 		CHistProcessingUnit(SHistogram& hist, SConfig& config, SOpenCLConfig& ocl_config, SDataStat& stat) 
 			: m_configuration(config), m_ocl_config(ocl_config), m_hist(hist), m_stat(stat) {}
 
+		std::tuple<std::vector<int>, double> RunGPU(double* data, int data_count);
+
 		std::tuple<std::vector<int>, double> RunCPU(double* data, int data_count);
 	};
 

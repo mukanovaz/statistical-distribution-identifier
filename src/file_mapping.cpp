@@ -177,9 +177,9 @@ namespace ppr
                         for (int i = 0; i < config.thread_count; i++)
                         {
                             ppr::parallel::CHistProcessingUnit unit(hist, config, opencl, stat);
-                            workers[i] = std::async(std::launch::async | std::launch::deferred, &ppr::parallel::CHistProcessingUnit::RunCPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                            workers[i] = std::async(std::launch::deferred | std::launch::async, &ppr::parallel::CHistProcessingUnit::RunCPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
                         }
-
+                       
                         // Agregate results results
                         for (auto& worker : workers)
                         {
@@ -250,23 +250,10 @@ namespace ppr
                         }
                         std::vector<std::future<SDataStat>> workers(config.thread_count);
                         // Process chunk with multuply threads
-
-                        if (config.mode == ERun_mode::SMP)
+                        for (int i = 0; i < config.thread_count; i++)
                         {
-                            for (int i = 0; i < config.thread_count; i++)
-                            {
-                                ppr::parallel::CStatProcessingUnit unit(config, opencl);
-                                workers[i] = std::async(std::launch::async | std::launch::deferred, &ppr::parallel::CStatProcessingUnit::RunCPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
-                            }
-                        }
-                        else
-                        {
-                            unsigned long count = opencl.data_count_for_gpu / config.thread_count;
-                            for (int i = 0; i < config.thread_count; i++)
-                            {
-                                ppr::parallel::CStatProcessingUnit unit(config, opencl);
-                                workers[i] = std::async(std::launch::async | std::launch::deferred, &ppr::parallel::CStatProcessingUnit::RunGPU, unit, pView + (count * i), count);
-                            }
+                            ppr::parallel::CStatProcessingUnit unit(config, opencl);
+                            workers[i] = std::async(std::launch::deferred | std::launch::async, &ppr::parallel::CStatProcessingUnit::RunCPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
                         }
 
                         // Agregate results results
@@ -275,11 +262,10 @@ namespace ppr
                             SDataStat local_stat = worker.get();
                             stat.sum += local_stat.sum;
                             stat.n += local_stat.n;
-                            stat.min = std::min({ stat.min, std::min({stat.min, local_stat.min}) });
-                            stat.max = std::max({ stat.max, std::max({ stat.max, local_stat.max }) });
+                            stat.max = std::max({ stat.max, local_stat.max });
+                            stat.min = std::min({ stat.min, local_stat.min });
                         }
                        
-
                         UnmapViewOfFile(pView);
                     }
                 }

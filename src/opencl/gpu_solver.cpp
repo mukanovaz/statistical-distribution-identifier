@@ -31,18 +31,9 @@ namespace ppr::gpu
 		// The rest of the data we will process on CPU
 		opencl.data_count_for_cpu = opencl.data_count_for_gpu + 1;
 
-
 		//  ================ [Get statistics]
 		tbb::tick_count t0 = tbb::tick_count::now();
-		
-		if (USE_OPTIMIZATION)
-		{
-			mapping.ReadInChunksStat(configuration, opencl, stat);
-		}
-		else
-		{
-			mapping.ReadInChunks(hist, configuration, opencl, stat, arena, tmp, &GetStatistics);
-		}
+		mapping.ReadInChunks(hist, configuration, opencl, stat, arena, tmp, &GetStatistics);
 		tbb::tick_count t1 = tbb::tick_count::now();
 		std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 
@@ -116,7 +107,7 @@ namespace ppr::gpu
 			ppr::executor::RunOnCPU<RunningStatParallel>(arena, stat_cpu, opencl.data_count_for_cpu + 1, data_count);
 
 			// Find statistics on GPU
-			SDataStat stat_gpu = ppr::executor::RunStatisticsOnGPU(opencl, configuration, arena, data);
+			SDataStat stat_gpu = ppr::executor::RunStatisticsOnGPU(opencl, configuration, data);
 
 			// Agregate results results
 			stat.n += stat_gpu.n + stat_cpu.NumDataValues();
@@ -128,12 +119,12 @@ namespace ppr::gpu
 		else
 		{
 			// Find statistics on GPU
-			SDataStat stat_gpu = ppr::executor::RunStatisticsOnGPU(opencl, configuration, arena, data);
+			SDataStat stat_gpu = ppr::executor::RunStatisticsOnGPU(opencl, configuration, data);
 
 			// Agregate results results
 			stat.n += stat_gpu.n;
-			stat.min = stat_gpu.min;
-			stat.max = stat_gpu.max;
+			stat.min = std::min({ stat_gpu.min, stat.min});
+			stat.max = std::max({ stat_gpu.max, stat.max });
 			stat.sum += stat_gpu.sum;
 			stat.isNegative = stat.isNegative || stat_gpu.isNegative;
 		}
@@ -154,6 +145,6 @@ namespace ppr::gpu
 		}
 
 		// Run on GPU
-		ppr::executor::RunHistogramOnGPU(opencl, stat, hist, arena, data, histogram);
+		ppr::executor::RunHistogramOnGPU(opencl, stat, hist, data, histogram);
 	}
 }

@@ -3,45 +3,118 @@
 #include <string>
 #include <algorithm>
 #include <iostream>
+#include "../smp/smp_utils.h"
 
 namespace ppr::gpu
 {
-    void RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, double* data)
+    void RunHistogramOnGPU(SOpenCLConfig& opencl, SConfig& configuration, SHistogram& hist, SDataStat& data_stat,
+        double* data, int data_count, std::vector<int>& freq_buckets, double& var)
     {
         cl_int err = 0;
+        const unsigned long long work_group_number = data_count / opencl.wg_size;
+        const unsigned int count = data_count - (data_count % opencl.wg_size);
 
-        // Data buffers
-        cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
-        cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
-        cl::Buffer out_min_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
-        cl::Buffer out_max_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
+        // Result data
+        std::vector<double> out_var(work_group_number);
+        std::vector<cl_uint> out_histogram(2 * hist.binCount, 0);
+
+        // Buffers
+        cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, count * sizeof(double), data, &err); 
+        cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, out_histogram.size() * sizeof(cl_uint), out_histogram.data(), &err);
+        cl::Buffer out_var_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, work_group_number * sizeof(double), nullptr, &err);
 
         // Set method arguments
         err = opencl.kernel.setArg(0, in_data_buf);
         err = opencl.kernel.setArg(1, opencl.wg_size * sizeof(double), nullptr);
-        err = opencl.kernel.setArg(2, opencl.wg_size * sizeof(double), nullptr);
-        err = opencl.kernel.setArg(3, opencl.wg_size * sizeof(double), nullptr);
-        err = opencl.kernel.setArg(4, out_sum_buf);
-        err = opencl.kernel.setArg(5, out_min_buf);
-        err = opencl.kernel.setArg(6, out_max_buf);
+        err = opencl.kernel.setArg(2, out_sum_buf);
+        err = opencl.kernel.setArg(3, out_var_buf);
+        err = opencl.kernel.setArg(4, sizeof(double), &data_stat.mean);
+        err = opencl.kernel.setArg(5, sizeof(double), &data_stat.min);
+        err = opencl.kernel.setArg(6, sizeof(double), &hist.scaleFactor);
+        err = opencl.kernel.setArg(7, sizeof(double), &hist.binSize);
+        err = opencl.kernel.setArg(8, sizeof(double), &hist.binCount);
+
+        // Pass all data to GPU
+        err = opencl.queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(count), cl::NDRange(opencl.wg_size));
+        err = opencl.queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, out_histogram.size() * sizeof(cl_uint), out_histogram.data());
+        err = opencl.queue.enqueueReadBuffer(out_var_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_var.data());
+
+        cl::finish();
+
+        for (int i = 0; i < hist.binCount; i++)
+        {
+            const size_t value = static_cast<size_t>(out_histogram.at(2 * i)) + static_cast<size_t>(out_histogram.at(2 * i + 1)) * sizeof(cl_uint);
+            freq_buckets[i] += value;
+        }
+
+        // Agregate results on CPU
+        var = ppr::parallel::sum_vector_elements_vectorized(out_var);
+    }
+
+    SDataStat RunStatisticsOnGPU(SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, int data_count)
+    {
+        SDataStat local_stat;
+        cl_int err = 0;
+        const unsigned long long work_group_number = data_count / m_ocl_config.wg_size;
+        const unsigned int count = data_count - (data_count % m_ocl_config.wg_size);
+        cl::Kernel local_kernel = m_ocl_config.kernel;
+
+        cl::Buffer in_data_buf(m_ocl_config.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, count * sizeof(double), data, &err);
+        cl::Buffer out_sum_buf(m_ocl_config.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, work_group_number * sizeof(double), nullptr, &err);
+        cl::Buffer out_min_buf(m_ocl_config.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, work_group_number * sizeof(double), nullptr, &err);
+        cl::Buffer out_max_buf(m_ocl_config.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, work_group_number * sizeof(double), nullptr, &err);
+        if (err != CL_SUCCESS)
+        {
+            std::cout << "Error in buffer" << std::endl;
+        }
+
+        // Set method arguments
+        err = local_kernel.setArg(0, in_data_buf);
+        err = local_kernel.setArg(1, m_ocl_config.wg_size * sizeof(double), nullptr);
+        err = local_kernel.setArg(2, m_ocl_config.wg_size * sizeof(double), nullptr);
+        err = local_kernel.setArg(3, m_ocl_config.wg_size * sizeof(double), nullptr);
+        err = local_kernel.setArg(4, out_sum_buf);
+        err = local_kernel.setArg(5, out_min_buf);
+        err = local_kernel.setArg(6, out_max_buf);
+
+        if (err != CL_SUCCESS)
+        {
+            std::cout << "Error in args" << std::endl;
+        }
 
         // Result data
-        std::vector<double> out_sum(opencl.wg_count);
-        std::vector<double> out_min(opencl.wg_count);
-        std::vector<double> out_max(opencl.wg_count);
+        std::vector<double> out_sum(work_group_number);
+        std::vector<double> out_min(work_group_number);
+        std::vector<double> out_max(work_group_number);
 
-        cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
 
-        // Run kernel on GPU
-        err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(opencl.data_count_for_gpu), cl::NDRange(opencl.wg_size));
+        // Pass all data to GPU
+        err = m_ocl_config.queue.enqueueNDRangeKernel(local_kernel, cl::NullRange, cl::NDRange(count), cl::NDRange(m_ocl_config.wg_size));
+        err = m_ocl_config.queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_sum.data());
+        err = m_ocl_config.queue.enqueueReadBuffer(out_min_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_min.data());
+        err = m_ocl_config.queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_max.data());
 
-        // Take results
-        err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_sum.data());
-        err = cmd_queue.enqueueReadBuffer(out_min_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_min.data());
-        err = cmd_queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_max.data());
+        if (err != CL_SUCCESS)
+        {
+            std::cout << "Error in queue" << std::endl;
+        }
 
-        // Wait on GPU results
         cl::finish();
+
+        // Agregate results on CPU
+        double sum = ppr::parallel::sum_vector_elements_vectorized(out_sum);
+        double max = ppr::parallel::max_of_vector_vectorized(out_max);
+        double min = ppr::parallel::min_of_vector_vectorized(out_min);
+
+        return {
+            sum != 0 ? count : 0,					// n
+            sum,					// sum
+            max,					// max
+            min,					// min
+            0.0,					// mean
+            0.0,					// variance
+            min < 0
+        };
     }
 
 

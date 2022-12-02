@@ -2,13 +2,13 @@
 #include <CL/cl.hpp>
 #include <string>
 #include "../config.h"
+#include "../data.h"
 
 namespace ppr::gpu
 {
-	void RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, double* data,
-		std::vector<double>& out_sum,
-		std::vector<double>& out_min,
-		std::vector<double>& out_max);
+	void RunHistogramOnGPU(SOpenCLConfig& opencl, SConfig& configuration, SHistogram& hist, SDataStat& data_stat,
+		double* data, int data_count, std::vector<int>& freq_buckets, double& var);
+	SDataStat RunStatisticsOnGPU(SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, int data_count);
 
 	SOpenCLConfig Init(SConfig& configuration, const std::string& file, const char* kernel_name);
 	void UpdateProgram(SOpenCLConfig& opencl, const std::string& file, const char* kernel_name);

@@ -74,20 +74,14 @@ namespace ppr::executor
 		return sum;
 	}
 
-	SDataStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, tbb::task_arena& arena, double* data)
+	SDataStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, double* data)
 	{
 		cl_int err = 0;
 
 		cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
 
 		//cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
-		cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, opencl.data_count_for_gpu * sizeof(double));
-
-		// copy data
-		double* in_data_map = (double*)cmd_queue.enqueueMapBuffer(in_data_buf, CL_TRUE, CL_MAP_WRITE, 0, opencl.data_count_for_gpu * sizeof(double));
-		memcpy(in_data_map, data, sizeof(double) * opencl.data_count_for_gpu);
-		cmd_queue.enqueueUnmapMemObject(in_data_buf, in_data_map); 
-		
+		cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
 		cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
 		cl::Buffer out_min_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
 		cl::Buffer out_max_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
@@ -131,18 +125,18 @@ namespace ppr::executor
 		};
 	}
 
-	void RunHistogramOnGPU(SOpenCLConfig& opencl, SDataStat& data_stat, SHistogram& histogram, tbb::task_arena& arena, double* data, std::vector<int>& freq_buckets)
+	void RunHistogramOnGPU(SOpenCLConfig& opencl, SDataStat& data_stat, SHistogram& histogram, double* data, std::vector<int>& freq_buckets)
 	{
 		cl_int err = 0;
 
 		std::vector<cl_uint> out_histogram(2 * histogram.binCount, 0);
 
-		cl::Buffer buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
+		cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
 		cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, out_histogram.size() * sizeof(cl_uint), out_histogram.data(), &err);
 		cl::Buffer out_var_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
 
 		// Set method arguments
- 		err = opencl.kernel.setArg(0, buf);
+ 		err = opencl.kernel.setArg(0, in_data_buf);
 		err = opencl.kernel.setArg(1, opencl.wg_size * sizeof(double), nullptr);
 		err = opencl.kernel.setArg(2, out_sum_buf);
 		err = opencl.kernel.setArg(3, out_var_buf);
@@ -171,8 +165,7 @@ namespace ppr::executor
 		}
 
 		// Agregate results on CPU
-		double var = ppr::executor::SumVectorOnCPU(arena, out_var);
-		data_stat.variance += var;
+		data_stat.variance += ppr::parallel::sum_vector_elements_vectorized(out_var);
 	}
 
 	void CalculateHistogramRSSOnCPU(SResult& res, tbb::task_arena& arena, std::vector<double>& histogramDensity, SHistogram& hist)

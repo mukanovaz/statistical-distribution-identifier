@@ -33,9 +33,9 @@ namespace ppr::executor
 
 	double SumVectorOnCPU(tbb::task_arena& arena, std::vector<double> data);
 
-	SDataStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, tbb::task_arena& arena, double* data);
+	SDataStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, double* data);
 
-	void RunHistogramOnGPU(SOpenCLConfig& opencl, SDataStat& data_stat, SHistogram& histogram, tbb::task_arena& arena, double* data, std::vector<int>& freq_buckets);
+	void RunHistogramOnGPU(SOpenCLConfig& opencl, SDataStat& data_stat, SHistogram& histogram, double* data, std::vector<int>& freq_buckets);
 
 	void AnalyzeResults(SResult& res);
 
