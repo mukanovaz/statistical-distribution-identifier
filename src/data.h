@@ -58,6 +58,10 @@ struct SResult
     double exp_rss = 0.0;
     double poisson_rss = 0.0;
     double uniform_rss = 0.0;
+    double total_stat_time = 0.0;
+    double total_hist_time = 0.0;
+    double total_rss_time = 0.0;
+    double total_time = 0.0;
     bool isNegative = 0;
     bool isInteger = 0.0;
 
