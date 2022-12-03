@@ -160,7 +160,7 @@ namespace ppr::executor
 
 		for (int i = 0; i < histogram.binCount; i++)
 		{
-			const size_t value = static_cast<size_t>(out_histogram.at(2 * i)) + static_cast<size_t>(out_histogram.at(2 * i + 1)) * sizeof(cl_uint);
+			const size_t value = static_cast<size_t>(out_histogram[2 * i]) + static_cast<size_t>(out_histogram[2 * i + 1]) * sizeof(cl_uint);
 			freq_buckets[i] += value;
 		}
 

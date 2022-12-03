@@ -14,7 +14,6 @@
 #include "config.h"
 #include "data.h"
 
-
 #include<future>
 #include<vector>
 
@@ -26,6 +25,7 @@ namespace ppr
         private:
             HANDLE m_file;
             HANDLE m_mapping;
+            double m_scale;
             double* m_data;
             const WCHAR* m_filename;
             unsigned long long m_fileLen;
@@ -52,7 +52,6 @@ namespace ppr
             const unsigned int GetCount() const;
 
             void UnmapFile();
-
 
             void ReadInChunks(
                 SHistogram& hist,

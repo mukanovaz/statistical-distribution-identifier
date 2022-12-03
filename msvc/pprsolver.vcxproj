@@ -32,6 +32,7 @@
     <ClCompile Include="..\src\sequential\seq_solver.cpp" />
     <ClCompile Include="..\src\smp\smp_solver.cpp" />
     <ClCompile Include="..\src\smp\smp_utils.cpp" />
+    <ClCompile Include="..\src\watchdog.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\data.h" />
@@ -45,6 +46,7 @@
     <ClInclude Include="..\src\sequential\seq_solver.h" />
     <ClInclude Include="..\src\smp\smp_solver.h" />
     <ClInclude Include="..\src\smp\smp_utils.h" />
+    <ClInclude Include="..\src\watchdog.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="histogram_kernel.cl" />

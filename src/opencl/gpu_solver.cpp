@@ -1,5 +1,6 @@
 #include "gpu_solver.h"
 #include "../executor.h"
+#include "../watchdog.h"
 
 namespace ppr::gpu
 {
@@ -13,29 +14,29 @@ namespace ppr::gpu
 		//  ================ [Init OpenCL]
 		SOpenCLConfig opencl = ppr::gpu::Init(configuration, STAT_KERNEL, STAT_KERNEL_NAME);
 
-		//  ================ [Get file info]
+		//  ================ [Get file mapping]
 		FileMapping mapping(configuration);
 
 		//  ================ [Allocations]
 		tbb::tick_count total2;
+		int stage = 0;
 		SHistogram hist;
 		SResult res;
 		SDataStat stat;
 		std::vector<int> tmp(0);
+		std::vector<int> histogramFreq(0);
+		std::vector<double> histogramDensity(0);
 		unsigned int data_count = mapping.GetCount();
 
-		// Get number of data, which we want to process on GPU
-		opencl.wg_count = (mapping.GetGranularity() / sizeof(double)) / opencl.wg_size;
-		opencl.data_count_for_gpu = data_count - (data_count % opencl.wg_size);
-
-		// The rest of the data we will process on CPU
-		opencl.data_count_for_cpu = opencl.data_count_for_gpu + 1;
+		//  ================ [Start Watchdog]
+		ppr::watchdog::start_watchdog(stat, hist, stage, histogramFreq, histogramDensity, data_count);
 
 		//  ================ [Get statistics]
 		tbb::tick_count t0 = tbb::tick_count::now();
 		mapping.ReadInChunks(hist, configuration, opencl, stat, arena, tmp, &GetStatistics);
 		tbb::tick_count t1 = tbb::tick_count::now();
-		std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
+		
+		res.total_stat_time = (t1 - t0).seconds();
 
 		// Find mean
 		stat.mean = stat.sum / stat.n;
@@ -50,23 +51,26 @@ namespace ppr::gpu
 		hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
 
 		// Allocate memmory
-		std::vector<int> histogramFreq(static_cast<int>(hist.binCount));
-		std::vector<double> histogramDensity(static_cast<int>(hist.binCount));
+		histogramFreq.resize(static_cast<int>(hist.binCount + 1));
+		histogramDensity.resize(static_cast<int>(hist.binCount + 1));
 		cl_int err = 0;
 
 		// Run
+		stage = 1;
 		t0 = tbb::tick_count::now();
 		mapping.ReadInChunks(hist, configuration, opencl, stat, arena, histogramFreq, &CreateFrequencyHistogram);
 		t1 = tbb::tick_count::now();
-		std::cout << "Histogram:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
-	
+		
+		res.total_hist_time = (t1 - t0).seconds();
+
 		// Find variance
 		stat.variance = stat.variance / stat.n;
 
 		//  ================ [Create density histogram]
+		stage = 2;
 		ppr::executor::ComputePropabilityDensityOfHistogram(hist, histogramFreq, histogramDensity, stat.n);
 
-		//	================ [Fit params]
+		//	================ [Fit params using Maximum likelihood estimation]
 		res.isNegative = stat.isNegative;
 		res.isInteger = std::floor(stat.sum) == stat.sum;
 
@@ -86,15 +90,17 @@ namespace ppr::gpu
 		res.uniform_b = stat.max;
 
 		//	================ [Calculate RSS]
+		stage = 3;
 		ppr::executor::CalculateHistogramRSSOnCPU(res, arena, histogramDensity, hist);
 
-		//	================ [Analyze]
+		//	================ [Analyze Results]
 		ppr::executor::AnalyzeResults(res);
 
 		total2 = tbb::tick_count::now();
-		std::cout << "Total:\t" << (total2 - total1).seconds() << "\tsec." << std::endl;
 
-		std::cout << "Finish." << std::endl;
+		res.total_time = (total2 - total1).seconds();
+		stage = 4;
+
 		return res;
 	}
 

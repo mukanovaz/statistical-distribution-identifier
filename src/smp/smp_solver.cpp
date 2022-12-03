@@ -1,6 +1,7 @@
 #include "smp_solver.h"
 #include <vector>
 #include <future>
+#include "../watchdog.h"
 
 namespace ppr::parallel
 {
@@ -18,13 +19,18 @@ namespace ppr::parallel
 		tbb::tick_count total2;
 		tbb::tick_count t0;
 		tbb::tick_count t1;
-		SOpenCLConfig opencl; // Not using here
+		int stage = 0;
+		SOpenCLConfig opencl;
 		SHistogram hist;
 		SResult res;
 		SDataStat stat;
 		std::vector<int> tmp(0);
+		std::vector<int> histogramFreq(0);
+		std::vector<double> histogramDensity(0);
 		unsigned int data_count = mapping.GetCount();
-		size_t chunks_count = mapping.GetFileLen() / mapping.GetGranularity();
+
+		//  ================ [Start Watchdog]
+		ppr::watchdog::start_watchdog(stat, hist, stage, histogramFreq, histogramDensity, data_count);
 		
 		//  ================ [Get statistics]
 		if (USE_OPTIMIZATION)
@@ -39,7 +45,8 @@ namespace ppr::parallel
 			mapping.ReadInChunks(hist, configuration, opencl, stat, arena, tmp, &GetStatisticsCPU);
 			t1 = tbb::tick_count::now();
 		}
-		std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
+
+		res.total_stat_time = (t1 - t0).seconds();
 
 		// Find mean
 		stat.mean = stat.sum / stat.n;
@@ -51,10 +58,10 @@ namespace ppr::parallel
 		hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
 
 		// Allocate memmory
-		std::vector<int> histogramFreq(static_cast<int>(hist.binCount + 1));
-		std::vector<double> histogramDensity(static_cast<int>(hist.binCount));
-		cl_int err = 0;
+		histogramFreq.resize(static_cast<int>(hist.binCount + 1));
+		histogramDensity.resize(static_cast<int>(hist.binCount + 1));
 
+		stage = 1;
 		// Run
 		if (USE_OPTIMIZATION)
 		{
@@ -68,15 +75,16 @@ namespace ppr::parallel
 			mapping.ReadInChunks(hist, configuration, opencl, stat, arena, histogramFreq, &CreateFrequencyHistogramCPU);
 			t1 = tbb::tick_count::now();
 		}
-		std::cout << "Histogram:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
+		res.total_hist_time = (t1 - t0).seconds();
 
 		// Find variance
 		stat.variance = stat.variance / stat.n;
 
 		//  ================ [Create density histogram]
+		stage = 2;
 		ppr::executor::ComputePropabilityDensityOfHistogram(hist, histogramFreq, histogramDensity, stat.n);
 
-		//  ================ [Fit params]
+		//  ================ [Fit params using Maximum likelihood estimation]
 		res.isNegative = stat.min < 0;
 		res.isInteger = std::floor(stat.sum) == stat.sum;
 
@@ -96,15 +104,16 @@ namespace ppr::parallel
 		res.uniform_b = stat.max;
 
 		//	================ [Calculate RSS]
+		stage = 3;
 		ppr::executor::CalculateHistogramRSSOnCPU(res, arena, histogramDensity, hist);
 
-		//	================ [Analyze]
+		//	================ [Analyze Results]
 		ppr::executor::AnalyzeResults(res);
 
 		total2 = tbb::tick_count::now();
-		std::cout << "Total:\t" << (total2 - total1).seconds() << "\tsec." << std::endl;
-
-		std::cout << "Finish." << std::endl;
+		
+		res.total_time = (total2 - total1).seconds();
+		stage = 4;
 		return res;
 	}
 

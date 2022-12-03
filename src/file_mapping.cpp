@@ -40,8 +40,8 @@ namespace ppr
         // guarantee this by making our view size equal to the allocation granularity.
         SYSTEM_INFO sysinfo = { 0 };
         ::GetSystemInfo(&sysinfo);
-        double scale = static_cast<double>(MAX_FILE_SIZE_MEM) / sysinfo.dwAllocationGranularity;
-        m_allocationGranularity = sysinfo.dwAllocationGranularity * scale;
+        m_scale = static_cast<double>(MAX_FILE_SIZE_MEM) / sysinfo.dwAllocationGranularity;
+        m_allocationGranularity = sysinfo.dwAllocationGranularity;
 
         LARGE_INTEGER file_size = { 0 };
         ::GetFileSizeEx(m_file, &file_size);
@@ -126,7 +126,7 @@ namespace ppr
         std::vector<int>& histogram)
     {
 
-        DWORD granulatity = m_allocationGranularity;
+        DWORD granulatity = m_allocationGranularity * m_scale;
 
         HANDLE hfile = ::CreateFileW(m_filename, GENERIC_READ, FILE_SHARE_READ,
             NULL, OPEN_EXISTING, 0, NULL);
@@ -177,7 +177,7 @@ namespace ppr
                         for (int i = 0; i < config.thread_count; i++)
                         {
                             ppr::parallel::CHistProcessingUnit unit(hist, config, opencl, stat);
-                            workers[i] = std::async(std::launch::deferred | std::launch::async, &ppr::parallel::CHistProcessingUnit::RunCPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                            workers[i] = std::async(std::launch::async, &ppr::parallel::CHistProcessingUnit::RunCPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
                         }
                        
                         // Agregate results results
@@ -204,7 +204,7 @@ namespace ppr
         SOpenCLConfig& opencl,
         SDataStat& stat)
     {
-        DWORD granulatity = m_allocationGranularity;
+        DWORD granulatity = m_allocationGranularity * m_scale;
                                 
         HANDLE hfile = ::CreateFileW(m_filename, GENERIC_READ, FILE_SHARE_READ,
             NULL, OPEN_EXISTING, 0, NULL);
@@ -249,11 +249,13 @@ namespace ppr
                             opencl.data_count_for_cpu = data_in_chunk / config.thread_count;
                         }
                         std::vector<std::future<SDataStat>> workers(config.thread_count);
+
+                        tbb::tick_count t_stat_start = tbb::tick_count::now();
                         // Process chunk with multuply threads
                         for (int i = 0; i < config.thread_count; i++)
                         {
                             ppr::parallel::CStatProcessingUnit unit(config, opencl);
-                            workers[i] = std::async(std::launch::deferred | std::launch::async, &ppr::parallel::CStatProcessingUnit::RunCPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                            workers[i] = std::async(std::launch::async, &ppr::parallel::CStatProcessingUnit::RunCPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
                         }
 
                         // Agregate results results
@@ -264,6 +266,16 @@ namespace ppr
                             stat.n += local_stat.n;
                             stat.max = std::max({ stat.max, local_stat.max });
                             stat.min = std::min({ stat.min, local_stat.min });
+                        }
+
+                        tbb::tick_count t_stat_end = tbb::tick_count::now();
+                        // Check if we need to change granularity
+                        if (USE_OPTIMIZATION &&(t_stat_end - t_stat_start).seconds() >= WATCHDOG_STAT_TIMEOUT_SEC)
+                        {
+                            std::cerr << "> [WARNING] Watchdog changed allocation granulatity, because mapped file is probably not on RAM" << std::endl;
+                            // File is probably not in RAM, so we need to use smaller pages
+                            // 2 - is a constant (found it faster and better in experements)
+                            granulatity = m_allocationGranularity * 2; 
                         }
                        
                         UnmapViewOfFile(pView);
@@ -287,7 +299,7 @@ namespace ppr
         std::vector<int>& histogram,
         void (*ProcessChunk) (SHistogram& hist, SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned int, double*, std::vector<int>&))
     {
-        DWORD granulatity = m_allocationGranularity;
+        DWORD granulatity = m_allocationGranularity * m_scale;
 
         HANDLE hfile = ::CreateFileW(m_filename, GENERIC_READ, FILE_SHARE_READ,
             NULL, OPEN_EXISTING, 0, NULL);

@@ -70,7 +70,6 @@ namespace ppr::hist
 			}
 	};
 
-	//template<std::size_t N>
 	class HistogramParallel
 	{
 		private:

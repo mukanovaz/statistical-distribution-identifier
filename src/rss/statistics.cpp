@@ -39,8 +39,6 @@ namespace ppr
                 m_newM = m_oldM + (x - m_oldM) / m_n;
                 m_newS = m_oldS + (x - m_oldM) * (x - m_newM);
                 m_sum += x;
-                // TODO: isNegative
-                //m_sumAbs += fabs(x);
 
                 m_min = x < m_min ? x : m_min;
                 m_max = x > m_max ? x : m_max;

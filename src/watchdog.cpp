@@ -6,14 +6,12 @@
 
 namespace ppr::watchdog
 {
-	void start_watchdog(SDataStat& stat, SHistogram& hist, int& stage, bool& isInRam,
+	void start_watchdog(SDataStat& stat, SHistogram& hist, int& stage,
 		std::vector<int>& histogram, std::vector<double>& histogramDesity, int data_count)
 	{
         std::thread watchdog([&]() {
 			EExitStatus status = EExitStatus::SUCCESS;
 			unsigned int n_last = 0;
-			tbb::tick_count t_stat_start = tbb::tick_count::now();
-			tbb::tick_count t_stat_end;
 			bool once = false;
 
 			while (true)
@@ -30,13 +28,6 @@ namespace ppr::watchdog
 					if (stat.min > stat.max)					// Min is bigger that max
 					{
 						status = EExitStatus::WD_STAT_MIN_MAX;
-					}
-					t_stat_end = tbb::tick_count::now();
-					if ((t_stat_end - t_stat_start).seconds() >= WATCHDOG_STAT_TIMEOUT_SEC && !once)
-					{
-						std::cerr << "> [WARNING] Watchdog changed allocation granulatity, because mapped file is probably not on RAM" << std::endl;
-						isInRam = false;
-						once = true;
 					}
 					break;
 				//	===== [Frequency histogram] =====
