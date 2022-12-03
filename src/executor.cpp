@@ -182,17 +182,10 @@ namespace ppr::executor
 		ppr::rss::RSSParallel exp_rss(exp, histogramDensity, hist.binSize);
 		ppr::rss::RSSParallel uniform_rss(uniform, histogramDensity, hist.binSize);
 
-		double t = ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, gauss_rss, 0, static_cast<int>(hist.binCount));
-		std::cout << "Gauss RSS:\t" << t << "\tsec." << std::endl;
-
-		t = ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, poisson_rss, 0, static_cast<int>(hist.binCount));
-		std::cout << "Poisson RSS:\t" << t << "\tsec." << std::endl;
-
-		t = ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, exp_rss, 0, static_cast<int>(hist.binCount));
-		std::cout << "Expon RSS:\t" << t << "\tsec." << std::endl;
-
-		t = ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, uniform_rss, 0, static_cast<int>(hist.binCount));
-		std::cout << "Uniform RSS:\t" << t << "\tsec." << std::endl;
+		ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, gauss_rss, 0, static_cast<int>(hist.binCount));
+		ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, poisson_rss, 0, static_cast<int>(hist.binCount));
+		ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, exp_rss, 0, static_cast<int>(hist.binCount));
+		ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, uniform_rss, 0, static_cast<int>(hist.binCount));
 
 		res.gauss_rss = gauss->Get_RSS();
 		res.poisson_rss = poisson->Get_RSS();
@@ -206,8 +199,7 @@ namespace ppr::executor
 		delete uniform;
 
 		tbb::tick_count total2 = tbb::tick_count::now();
-
-		std::cout << "Total RSS:\t" << (total2 - total1).seconds() << "\tsec." << std::endl;
+		res.total_rss_time = (total2 - total1).seconds();
 	}
 
 	void AnalyzeResults(SResult& res)
