@@ -17,6 +17,8 @@ namespace ppr
     //const constexpr DWORD MAX_FILE_SIZE_MEM = 999948288;
     const constexpr DWORD MAX_FILE_SIZE_MEM = 499974144;
     const constexpr bool USE_OPTIMIZATION = true;
+    const constexpr long long WATCHDOG_INTERVAL_SEC = 2;
+    const constexpr long long WATCHDOG_STAT_TIMEOUT_SEC = 5;
 
     enum class ERun_mode {
         SMP = 0,
@@ -30,7 +32,14 @@ namespace ppr
         UNKNOWN = 2,
         FILE = 3,
         MAPPING = 4,
-        STAT = 5
+        STAT = 5,
+        HIST = 6,
+        WD_STAT_WRONG_N = 7,
+        WD_STAT_MIN_MAX = 8,
+        WD_HIST_BIN_COUNT = 9,
+        WD_HIST_SIZE = 10,
+        WD_HIST_ALL_ZERO = 11,
+        WD_DHIST_ALL_ZERO = 12
     };
 
     struct SConfig {
