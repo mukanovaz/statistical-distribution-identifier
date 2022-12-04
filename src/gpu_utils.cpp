@@ -79,7 +79,7 @@ namespace ppr::gpu
         }
 
         // Agregate results on CPU
-        var = ppr::parallel::sum_vector_elements_vectorized(out_var);
+        data_stat.variance += ppr::parallel::sum_vector_elements_vectorized(out_var);
     }
 
     SDataStat run_statistics_on_GPU(SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, int data_count)

@@ -118,6 +118,15 @@ namespace ppr::parallel
 		
 		res.total_time = (total2 - total1).seconds();
 		stage = 4;
+
+		std::cout << "\t\t\t[Statistics]" << std::endl;
+		std::cout << "---------------------------------------------------------------------" << std::endl;
+		std::cout << "> n:\t\t\t" << stat.n << std::endl;
+		std::cout << "> sum:\t\t\t" << stat.sum << std::endl;
+		std::cout << "> mean:\t\t\t" << stat.mean << std::endl;
+		std::cout << "> variance:\t\t" << stat.variance << std::endl;
+		std::cout << std::endl;
+
 		return res;
 	}
 

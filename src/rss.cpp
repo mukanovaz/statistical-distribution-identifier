@@ -22,19 +22,19 @@ namespace ppr::rss
 
 			virtual double Pdf(double) { return 0.0; }
 
-			virtual void Push(double y_obs, double bin)
+			void Push(double y_obs, double bin)
 			{
 				double val = y_obs - Pdf(bin);
 				double tmp = m_rss + (val * val);
 				m_rss = tmp;
 			}
 
-			virtual double Get_RSS() const
+			double Get_RSS() const
 			{
 				return m_rss;
 			}
 			
-			virtual void Add_RSS(double rss)
+			void Add_RSS(double rss)
 			{
 				m_rss += rss;
 			}
@@ -51,7 +51,7 @@ namespace ppr::rss
 				: Mean(mean), Stddev(stddev), Variance(variance)
 			{}
 
-			virtual double Pdf(double x) override
+			double Pdf(double x) override
 			{
 				return 1.0 / sqrt(DOUBLE_PI) * exp( -0.5 * x * x);
 				//return 1.0 / sqrt(DOUBLE_PI * Variance) * exp( -0.5 * pow((x - Mean)/ Stddev, 2));
@@ -89,7 +89,7 @@ namespace ppr::rss
 				: A(a), B(b)
 			{}
 
-			virtual double Pdf(double) override
+			double Pdf(double) override
 			{
 				// TODO: a <= x <= b
 				return 1.0 / (B - A);
@@ -115,7 +115,7 @@ namespace ppr::rss
 				: Mu(mu)
 			{}
 
-			virtual double Pdf(double x) override
+			double Pdf(double x) override
 			{
 				// TODO: x >= 0; Mu >= 0; If Mu == 0 -> PDF = 1.0
 				double t1 = exp(-Mu);
@@ -147,8 +147,8 @@ namespace ppr::rss
 		void operator()(const tbb::blocked_range<size_t>& r)
 		{
 			ppr::rss::Distribution* t_dist = m_dist;    // to not discard earlier accumulations
-		
-			for (size_t i = r.begin(); i != r.end(); ++i)
+			size_t end = r.end();
+			for (size_t i = r.begin(); i != end; ++i)
 			{
 				double d = (double)m_bucketDensity[i];
 				m_dist->Push(d, (static_cast<double>(i) * m_bin_size));
