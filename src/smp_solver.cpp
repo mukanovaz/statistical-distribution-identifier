@@ -37,7 +37,7 @@ namespace ppr::parallel
 		{
 			// Optimized run
 			t0 = tbb::tick_count::now();
-			mapping.read_in_chunks_stat(configuration, opencl, stat);
+			mapping.read_in_chunks_cpu(hist, configuration, opencl, stat, EIteration::STAT, tmp);
 			t1 = tbb::tick_count::now();
 		}
 		else
@@ -69,7 +69,7 @@ namespace ppr::parallel
 		{
 			// Optimized run
 			t0 = tbb::tick_count::now();
-			mapping.read_in_chunks_hist(hist, configuration, opencl, stat, histogramFreq);
+			mapping.read_in_chunks_cpu(hist, configuration, opencl, stat, EIteration::HIST, histogramFreq);
 			t1 = tbb::tick_count::now();
 		}
 		else

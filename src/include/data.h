@@ -2,6 +2,14 @@
 #include<vector>
 
 /// <summary>
+/// Enum with iterations
+/// </summary>
+enum class EIteration {
+    STAT = 0,
+    HIST = 1
+};
+
+/// <summary>
 /// Enum with all existing distributions
 /// </summary>
 enum class EDistribution {

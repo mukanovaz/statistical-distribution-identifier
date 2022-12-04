@@ -119,14 +119,14 @@ namespace ppr
             /// (Not optimized solution)
             /// https://stackoverflow.com/questions/9889557/mapping-large-files-using-mapviewoffile
             /// </summary>
-            /// <param name="hist">histogram configuration structure</param>
-            /// <param name="config">program configuration structure</param>
-            /// <param name="opencl">opencl configuration structure</param>
-            /// <param name="stat">statistics structure</param>
-            /// <param name="arena">arena object. using for TBB algorithm</param>
-            /// <param name="histogram">vector reference for frequency histogram</param>
-            /// <param name="process_chunk">method is using for process one data chunk</param>
-            void read_in_chunks(
+            /// <param name="hist">- histogram configuration structure</param>
+            /// <param name="config">- program configuration structure</param>
+            /// <param name="opencl">- opencl configuration structure</param>
+            /// <param name="stat">- statistics structure</param>
+            /// <param name="arena">- arena object. using for TBB algorithm</param>
+            /// <param name="histogram">- vector reference for frequency histogram</param>
+            /// <param name="process_chunk">- method is using for process one data chunk</param>
+            void read_in_chunks_gpu(
                 SHistogram& hist,
                 SConfig& config,
                 SOpenCLConfig& opencl, 
@@ -136,29 +136,20 @@ namespace ppr
                 void (*process_chunk) (SHistogram& hist, SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned int, double*, std::vector<int>&));
 
             /// <summary>
-            /// Mapping data bloks (chunks) and collecting statistics of these data using multiply threads
+            /// Mapping data as one block and [collecting data statistics / creating frequency histogram] of these data using multiply threads
             /// </summary>
-            /// <param name="config">program configuration structure</param>
-            /// <param name="opencl">opencl configuration structure</param>
-            /// <param name="stat">statistics structure</param>
-            void read_in_chunks_stat(
-                SConfig& config,
-                SOpenCLConfig& opencl,
-                SDataStat& stat);
-
-            /// <summary>
-            /// Mapping data bloks (chunks) and creating frequency histogram of these data using multiply threads
-            /// </summary>
-            /// <param name="hist">histogram configuration structure</param>
-            /// <param name="config">program configuration structure</param>
-            /// <param name="opencl">opencl configuration structure</param>
-            /// <param name="stat">statistics structure</param>
-            /// <param name="histogram">vector reference for frequency histogram</param>
-            void read_in_chunks_hist(
+            /// <param name="hist">- histogram configuration structure</param>
+            /// <param name="config">- program configuration structure</param>
+            /// <param name="opencl">- opencl configuration structure</param>
+            /// <param name="stat">- statistics structure</param>
+            /// <param name="iteration">- current iteration affect, what will threads compute</param>
+            /// <param name="histogram">- vector reference for frequency histogram</param>
+            void read_in_one_chunk_cpu(
                 SHistogram& hist,
                 SConfig& config,
                 SOpenCLConfig& opencl,
                 SDataStat& stat,
+                EIteration iteration,
                 std::vector<int>& histogram);
 
     };
