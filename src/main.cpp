@@ -20,7 +20,6 @@ namespace ppr
 			return SResult::error_res(EExitStatus::UNKNOWN);
 		}
 	}
-
 }
 
 void GetDistString(SResult result)
@@ -51,11 +50,11 @@ int main(int argc, char** argv) {
 	}
 	SYSTEM_INFO sysInfo;
 
-	GetSystemInfo(&sysInfo);
+	//GetSystemInfo(&sysInfo);
+	//printf("%s %d\n\n", "PageSize[Bytes] :", sysInfo.dwPageSize);
 
-	printf("%s %d\n\n", "PageSize[Bytes] :", sysInfo.dwPageSize);
 	std::string mode = conf.mode == ppr::ERun_mode::SMP ? "smp" : "all";
-	std::string opt = ppr::USE_OPTIMIZATION ? "TRUE" : "FALSEs";
+	std::string opt = ppr::USE_OPTIMIZATION ? "TRUE" : "FALSE";
 
 	std::cout << "\t\t\t[Initial parameters]" << std::endl;
 	std::cout << "---------------------------------------------------------------------" << std::endl;
@@ -88,9 +87,9 @@ int main(int argc, char** argv) {
 	std::cout << "> Poisson RSS:\t\t\t" << result.poisson_rss << std::endl;
 	std::cout << "> Exponential RSS:\t\t" << result.exp_rss << std::endl;
 	std::cout << "> Uniform RSS:\t\t\t" << result.uniform_rss << std::endl;
+	std::cout << std::endl;
 	std::cout << "> Contains negative:\t\t" << result.isNegative << std::endl;
 	std::cout << "> All integers:\t\t\t" << result.isInteger << std::endl;
-	
 	std::cout << std::endl;
 	GetDistString(result);
 

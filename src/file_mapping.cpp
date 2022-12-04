@@ -40,15 +40,30 @@ namespace ppr
         // guarantee this by making our view size equal to the allocation granularity.
         SYSTEM_INFO sysinfo = { 0 };
         ::GetSystemInfo(&sysinfo);
-        m_scale = static_cast<double>(MAX_FILE_SIZE_MEM) / sysinfo.dwAllocationGranularity;
+
         m_allocationGranularity = sysinfo.dwAllocationGranularity;
 
+        // Get file size and number of doubles inside
         LARGE_INTEGER file_size = { 0 };
         ::GetFileSizeEx(m_file, &file_size);
         m_fileLen = static_cast<unsigned long long>(file_size.QuadPart);
         m_size = m_fileLen / sizeof(double);
-
         CloseHandle(m_file);
+
+        // For OpecCl devices we are choosing smaller parts
+        if (config.mode == ERun_mode::ALL || m_fileLen < MAX_FILE_SIZE_MEM_500mb)
+        {
+            m_scale = static_cast<double>(MAX_FILE_SIZE_MEM_500mb) / sysinfo.dwAllocationGranularity;
+        }
+        // For big files we are choosing bigger parts
+        else if (m_fileLen > MAX_FILE_SIZE_MEM_2gb)
+        {
+            m_scale = static_cast<double>(MAX_FILE_SIZE_MEM_2gb) / sysinfo.dwAllocationGranularity;
+        }
+        else
+        {
+            m_scale = static_cast<double>(MAX_FILE_SIZE_MEM_1gb) / sysinfo.dwAllocationGranularity;
+        }
     }
 
     bool FileMapping::CreateFile_n()
