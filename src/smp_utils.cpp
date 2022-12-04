@@ -61,10 +61,11 @@ namespace ppr::parallel
 			// Find position for 4 elements
 			__m256d position = position_double_avx(vec, min, scale);
 			double* pos = (double*)&position;
-			local_vector[pos[0]] += 1;
-			local_vector[pos[1]] += 1;
-			local_vector[pos[2]] += 1;
-			local_vector[pos[3]] += 1;
+
+			local_vector[static_cast<size_t>(pos[0])] += 1;
+			local_vector[static_cast<size_t>(pos[1])] += 1;
+			local_vector[static_cast<size_t>(pos[2])] += 1;
+			local_vector[static_cast<size_t>(pos[3])] += 1;
 		}
 	}
 
@@ -74,10 +75,11 @@ namespace ppr::parallel
 			std::numeric_limits<double>::min()
 		);
 
-		int size = vector.size() - (vector.size() % 4);
+		int vec_size = static_cast<int>(vector.size());
+		int size = vec_size - (vec_size % 4);
 
 		// Find maximum value in all vector elements in blocks of 4
-		for (int block = 0; block < size; block += 4)
+		for (size_t block = 0; block < static_cast<size_t>(size); block += 4)
 		{
 			__m256d vec = _mm256_set_pd(
 				vector[block],
@@ -90,11 +92,11 @@ namespace ppr::parallel
 
 		// Find min on the rest of the vector (if last block is not full of 4 elements)
 		double* max_d = (double*)&max;
-		if (vector.size() - size != 0)
+		if (vec_size - size != 0)
 		{
 			double max_l = std::numeric_limits<double>::min();
-			int size2 = vector.size() - size;
-			for (int i = 0; i < size2; i++)
+			int size2 = vec_size - size;
+			for (size_t i = 0; i < static_cast<size_t>(size2); i++)
 			{
 				max_l = std::max({ max_l, vector[size + i] });
 			}
@@ -111,11 +113,11 @@ namespace ppr::parallel
 		__m256d min = _mm256_set1_pd(
 			std::numeric_limits<double>::max()
 		);
-
-		int size = vector.size() - (vector.size() % 4);
+		int vec_size = static_cast<int>(vector.size());
+		int size = vec_size - (vec_size % 4);
 
 		// Find minimum value in all vector elements in blocks of 4
-		for (int block = 0; block < size; block += 4)
+		for (size_t block = 0; block < static_cast<size_t>(size); block += 4)
 		{
 			__m256d vec = _mm256_set_pd(
 				vector[block],
@@ -128,11 +130,11 @@ namespace ppr::parallel
 
 		// Find min on the rest of the vector (if last block is not full of 4 elements)
 		double* min_d = (double*)&min;
-		if (vector.size() - size != 0)
+		if (vec_size - size != 0)
 		{
 			double min_l = std::numeric_limits<double>::max();
-			int size2 = vector.size() - size;
-			for (int i = 0; i < size2; i++)
+			int size2 = vec_size - size;
+			for (size_t i = 0; i < static_cast<size_t>(size2); i++)
 			{
 				min_l = std::min({min_l, vector[size + i] });
 			}
@@ -148,10 +150,11 @@ namespace ppr::parallel
 	double sum_vector_elements_vectorized(std::vector<double> vector)
 	{
 		double sum = 0.0;
-		int size = vector.size() - (vector.size() % 4);
+		int vec_size = static_cast<int>(vector.size());
+		int size = vec_size - (vec_size % 4);
 
 		// Sum all vector elements in blocks of 4
-		for (int block = 0; block < size; block += 4)
+		for (size_t block = 0; block < static_cast<size_t>(size); block += 4)
 		{
 			__m256d vec = _mm256_set_pd(
 				vector[block],
@@ -163,19 +166,19 @@ namespace ppr::parallel
 		}
 
 		// Sum the rest if exist (if last block is not full of 4 elements)
-		if (vector.size() - size != 0)
+		if (vec_size - size != 0)
 		{
-			int size2 = vector.size() - size;
+			int size2 = vec_size - size;
 			for (int i = 0; i < size2; i++)
 			{
-				sum += vector[size + i];
+				sum += vector[static_cast<size_t>(size) + i];
 			}
 		}
 
 		return sum;
 	}
 
-	void get_statistics_vectorized(SDataStat& stat, unsigned int data_count, double* data)
+	void get_statistics_vectorized(SDataStat& stat, int data_count, double* data)
 	{
 		__m256d min = _mm256_set1_pd(
 			std::numeric_limits<double>::max()

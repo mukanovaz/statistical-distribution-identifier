@@ -304,7 +304,7 @@ namespace ppr
         SDataStat& stat,
         tbb::task_arena& arena,
         std::vector<int>& histogram,
-        void (*ProcessChunk) (SHistogram& hist, SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned int, double*, std::vector<int>&))
+        void (*process_chunk) (SHistogram& hist, SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned int, double*, std::vector<int>&))
     {
         DWORD granulatity = m_allocationGranularity * m_scale;
 
@@ -352,7 +352,7 @@ namespace ppr
                         }
 
                         // Run
-                        ProcessChunk(hist, config, opencl, stat, arena, data_in_chunk, pView, histogram);
+                        process_chunk(hist, config, opencl, stat, arena, data_in_chunk, pView, histogram);
 
                         UnmapViewOfFile(pView);
                     }

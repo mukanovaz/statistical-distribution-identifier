@@ -16,7 +16,14 @@ namespace ppr
     {
         protected:
             int m_n;
-            double m_oldM, m_newM, m_oldS, m_newS, m_sum, m_sumAbs, m_max, m_min;
+            double m_oldM;
+            double m_newM;
+            double  m_oldS;
+            double m_newS;
+            double m_sum;
+            double m_sumAbs;
+            double m_max;
+            double m_min;
 
         public:
 
@@ -92,8 +99,8 @@ namespace ppr
     class RunningStatParallel
     {       
         private:
-            SDataStat m_stat;
             const double* m_data;
+            SDataStat m_stat;
             const int m_first_index;
 
         public:

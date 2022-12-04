@@ -135,7 +135,7 @@ namespace ppr::parallel
 		stat.isNegative = stat.isNegative || stat_cpu.IsNegative();
 	}
 
-	void create_frequency_histogram_CPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
+	void create_frequency_histogram_CPU(SHistogram& hist, SConfig&, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
 	{
 		// Run on CPU
 		ppr::hist::Histogram_parallel hist_cpu(hist.binCount, hist.binSize, stat.min, stat.max, data, stat.mean);

@@ -73,7 +73,7 @@ namespace ppr::parallel
 	/// <param name="stat">- Statistics structure</param>
 	/// <param name="data_count">- Data count</param>
 	/// <param name="data">- Data pointer</param>
-	void get_statistics_vectorized(SDataStat& stat, unsigned int data_count, double* data);
+	void get_statistics_vectorized(SDataStat& stat, int data_count, double* data);
 
 	/// <summary>
 	/// Main function to start creating frequency histogram from input data using AVX2 instructions. (Not using)
