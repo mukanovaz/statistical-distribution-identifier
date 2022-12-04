@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
 
 	std::cout << "\t\t\t[Initial parameters]" << std::endl;
 	std::cout << "---------------------------------------------------------------------" << std::endl;
-	std::cout << "> Min chunk size:\t\t" << ppr::MAX_FILE_SIZE_MEM << " bytes" << std::endl;
+	//std::cout << "> Min chunk size:\t\t" << ppr::MAX_FILE_SIZE_MEM << " bytes" << std::endl;
 	std::cout << "> Optimalization:\t\t" << opt << std::endl;
 	std::cout << "> Number of threads:\t\t" << conf.thread_count << std::endl;
 	std::cout << "> Mode:\t\t\t\t" << mode << std::endl;

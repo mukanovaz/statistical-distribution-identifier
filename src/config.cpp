@@ -80,6 +80,6 @@ namespace ppr
 
 	void print_error(const char* message)
 	{
-		std::cerr << "[ERROR]: " << message << std::endl;
+		std::cerr << "> [ERROR]: " << message << std::endl;
 	}
 }

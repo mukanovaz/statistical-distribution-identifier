@@ -13,7 +13,7 @@ namespace ppr::parallel
 		tbb::task_arena arena(configuration.thread_count == 0 ? tbb::task_arena::automatic : static_cast<int>(configuration.thread_count));
 
 		//  ================ [Map input file]
-		FileMapping mapping(configuration);
+		File_mapping mapping(configuration);
 
 		//  ================ [Allocations]
 		tbb::tick_count total2;
@@ -27,7 +27,7 @@ namespace ppr::parallel
 		std::vector<int> tmp(0);
 		std::vector<int> histogramFreq(0);
 		std::vector<double> histogramDensity(0);
-		unsigned int data_count = mapping.GetCount();
+		unsigned int data_count = mapping.get_count();
 
 		//  ================ [Start Watchdog]
 		ppr::watchdog::start_watchdog(stat, hist, stage, histogramFreq, histogramDensity, data_count);
@@ -36,13 +36,13 @@ namespace ppr::parallel
 		if (USE_OPTIMIZATION)
 		{
 			t0 = tbb::tick_count::now();
-			mapping.ReadInChunksStat(configuration, opencl, stat);
+			mapping.read_in_chunks_stat(configuration, opencl, stat);
 			t1 = tbb::tick_count::now();
 		}
 		else
 		{
 			t0 = tbb::tick_count::now();
-			mapping.ReadInChunks(hist, configuration, opencl, stat, arena, tmp, &GetStatisticsCPU);
+			mapping.read_in_chunks(hist, configuration, opencl, stat, arena, tmp, &GetStatisticsCPU);
 			t1 = tbb::tick_count::now();
 		}
 
@@ -66,13 +66,13 @@ namespace ppr::parallel
 		if (USE_OPTIMIZATION)
 		{
 			t0 = tbb::tick_count::now();
-			mapping.ReadInChunksHist(hist, configuration, opencl, stat, histogramFreq);
+			mapping.read_in_chunks_hist(hist, configuration, opencl, stat, histogramFreq);
 			t1 = tbb::tick_count::now();
 		}
 		else
 		{
 			t0 = tbb::tick_count::now();
-			mapping.ReadInChunks(hist, configuration, opencl, stat, arena, histogramFreq, &CreateFrequencyHistogramCPU);
+			mapping.read_in_chunks(hist, configuration, opencl, stat, arena, histogramFreq, &CreateFrequencyHistogramCPU);
 			t1 = tbb::tick_count::now();
 		}
 		res.total_hist_time = (t1 - t0).seconds();

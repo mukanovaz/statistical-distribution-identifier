@@ -15,7 +15,7 @@ namespace ppr::gpu
 		SOpenCLConfig opencl = ppr::gpu::Init(configuration, STAT_KERNEL, STAT_KERNEL_NAME);
 
 		//  ================ [Get file mapping]
-		FileMapping mapping(configuration);
+		File_mapping mapping(configuration);
 
 		//  ================ [Allocations]
 		tbb::tick_count total2;
@@ -26,14 +26,14 @@ namespace ppr::gpu
 		std::vector<int> tmp(0);
 		std::vector<int> histogramFreq(0);
 		std::vector<double> histogramDensity(0);
-		unsigned int data_count = mapping.GetCount();
+		unsigned int data_count = mapping.get_count();
 
 		//  ================ [Start Watchdog]
 		ppr::watchdog::start_watchdog(stat, hist, stage, histogramFreq, histogramDensity, data_count);
 
 		//  ================ [Get statistics]
 		tbb::tick_count t0 = tbb::tick_count::now();
-		mapping.ReadInChunks(hist, configuration, opencl, stat, arena, tmp, &GetStatistics);
+		mapping.read_in_chunks(hist, configuration, opencl, stat, arena, tmp, &GetStatistics);
 		tbb::tick_count t1 = tbb::tick_count::now();
 		
 		res.total_stat_time = (t1 - t0).seconds();
@@ -58,7 +58,7 @@ namespace ppr::gpu
 		// Run
 		stage = 1;
 		t0 = tbb::tick_count::now();
-		mapping.ReadInChunks(hist, configuration, opencl, stat, arena, histogramFreq, &CreateFrequencyHistogram);
+		mapping.read_in_chunks(hist, configuration, opencl, stat, arena, histogramFreq, &CreateFrequencyHistogram);
 		t1 = tbb::tick_count::now();
 		
 		res.total_hist_time = (t1 - t0).seconds();

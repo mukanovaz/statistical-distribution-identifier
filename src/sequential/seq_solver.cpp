@@ -7,9 +7,9 @@ namespace ppr::seq
 	{
 		tbb::tick_count total0 = tbb::tick_count::now();
 		SResult res;
-		FileMapping mapping(configuration.input_fn);
+		File_mapping mapping(configuration.input_fn);
 
-		const double* data = mapping.GetData();
+		const double* data = mapping.get_data();
 
 		if (!data)
 		{
@@ -20,7 +20,7 @@ namespace ppr::seq
 
 		// ================ [Get statistics]
 		tbb::tick_count t0 = tbb::tick_count::now();
-		for (unsigned int i = 1; i < mapping.GetCount(); i++)
+		for (unsigned int i = 1; i < mapping.get_count(); i++)
 		{
 			double d = (double)data[i];
 			stat.Push(d);
@@ -31,7 +31,7 @@ namespace ppr::seq
 		// ================ [Create histogram]
 		t0 = tbb::tick_count::now();
 
-		const double bin_count = log2(mapping.GetCount()) + 1;
+		const double bin_count = log2(mapping.get_count()) + 1;
 		double bin_size = (stat.Get_Max() - stat.Get_Min()) / (bin_count - 1); // TODO
 
 		ppr::hist::Histogram hist(static_cast<int>(bin_count), bin_size, stat.Get_Min(), stat.Get_Max());
@@ -39,7 +39,7 @@ namespace ppr::seq
 		std::vector<int> histogramFrequency(static_cast<int>(bin_count) + 1);
 		std::vector<double> histogramDensity(static_cast<int>(bin_count) + 1);
 
-		for (unsigned int i = 0; i < mapping.GetCount(); i++)
+		for (unsigned int i = 0; i < mapping.get_count(); i++)
 		{
 			double d = (double)data[i];
 			hist.Push(histogramFrequency, d);
@@ -47,10 +47,10 @@ namespace ppr::seq
 
 		t1 = tbb::tick_count::now();
 		std::cout << "Histogram:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
-		mapping.UnmapFile();
+		mapping.unmap_file();
 
 		// ================ [Get propability density of histogram]
-		hist.ComputePropabilityDensityOfHistogram(histogramDensity, histogramFrequency, mapping.GetCount());
+		hist.ComputePropabilityDensityOfHistogram(histogramDensity, histogramFrequency, mapping.get_count());
 
 		//	================ [Fit params]
 		// Gauss maximum likelihood estimators
