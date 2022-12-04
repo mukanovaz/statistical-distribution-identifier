@@ -28,10 +28,13 @@ namespace ppr
 			return false;
 		}
 
+		int man_argc = 0;
+
 		// Check if file exist
 		config.input_fn = Char2Wchar(argv[1]);
 
 		std::string file_name = argv[1];
+		man_argc++;
 		std::ifstream file(file_name, std::ios::binary);
 
 		bool isGood = file.good();
@@ -47,22 +50,101 @@ namespace ppr
 		// Get Mode type
 		if (std::strncmp("smp", argv[2], 3) == 0)
 		{
+			man_argc++;
 			config.mode = ERun_mode::SMP;
 		}
 		else if (std::strncmp("all", argv[2], 3) == 0)
 		{
 			config.mode = ERun_mode::ALL;
-			// TODO: add more devices
-			//config.cl_devices_name = argv[3];
+			man_argc += 2;
+
+			// Save devices
+			while (man_argc < argc && argv[man_argc][0] != '-')
+			{
+				config.cl_devices_name.push_back(argv[man_argc]);
+				man_argc++;
+			}
 		}
 		else
 		{
 			print_error("unknown mode!");
+			print_usage();
 			return false;
 		}
 
+		// Get optional
+		for (size_t i = man_argc; i < argc; i += 2)
+		{
+			if (i + 1 >= argc)
+			{
+				print_error("wrong number of arguments!");
+			}
+
+			// use optimalization
+			if (std::strncmp("-o", argv[i], 2) == 0)
+			{
+				int opt = 0;
+				if (sscanf_s(argv[i + 1], "%d", &opt) != 1)
+				{
+					print_error("wrong argument type!");
+					print_usage();
+					return false;
+				}
+				if (opt != 0 && opt != 1)
+				{
+					print_error("Wrong argument type! Should be '1' or '0'");
+					print_usage();
+					return false;
+				}
+
+				config.use_optimalization = opt;
+			}
+
+			// thread per code
+			if (std::strncmp("-t", argv[i], 2) == 0)
+			{
+				int tc = 0;
+				if (sscanf_s(argv[i + 1], "%d", &tc) != 1)
+				{
+					print_error("wrong argument type!");
+					print_usage();
+					return false;
+				}
+
+				config.thread_count = tc;
+			}
+
+			// watchdog interval
+			if (std::strncmp("-w", argv[i], 2) == 0)
+			{
+				int wi = 0;
+				if (sscanf_s(argv[i + 1], "%d", &wi) != 1)
+				{
+					print_error("wrong argument type!");
+					print_usage();
+					return false;
+				}
+
+				config.watchdog_interval = wi;
+			}
+
+			// statistics timeout
+			if (std::strncmp("-st", argv[i], 3) == 0)
+			{
+				int st = 0;
+				if (sscanf_s(argv[i + 1], "%d", &st) != 1)
+				{
+					print_error("wrong argument type!");
+					print_usage();
+					return false;
+				}
+
+				config.stat_timeout = st;
+			}
+		}
+
 		// Find number available of threads
-		config.thread_count = std::thread::hardware_concurrency();
+		config.thread_count = std::thread::hardware_concurrency() * config.thread_per_core;
 
 		return true;
 	}
@@ -72,9 +154,14 @@ namespace ppr
 		std::cout << "+-------------------------------------------------------+" << std::endl;
 		std::cout << "|\t\tPROBABILITY DISTRIBUTION FITTING\t|" << std::endl;
 		std::cout << "+-------------------------------------------------------+" << std::endl;
-		std::cout << "|\t* path for input file\t\t\t\t|" << std::endl;
-		std::cout << "|\t* processor type [all (SMP and OpenCL) / SMP]\t|" << std::endl;
-		std::cout << "|\t* opencl devices name\t\t\t\t|" << std::endl;
+		std::cout << "| * path for input file\t\t\t\t\t|" << std::endl;
+		std::cout << "| * run mode [all (SMP and OpenCL) / SMP]\t\t|" << std::endl;
+		std::cout << "| * opencl devices name\t\t\t\t\t|" << std::endl;
+		std::cout << "| \t\t=== [optional] ===\t\t\t|" << std::endl;
+		std::cout << "| * -o\t\tuse optimalization [1/0] ('1' default)\t|" << std::endl;
+		std::cout << "| * -t\t\tthread per code [int] ('1' default)\t|" << std::endl;
+		std::cout << "| * -w\t\twatchdog interval [sec] ('2' default)\t|" << std::endl;
+		std::cout << "| * -st\t\tstatistics timeout [sec] ('5' default)\t|" << std::endl;
 		std::cout << "+-------------------------------------------------------+" << std::endl;
 	}
 

@@ -15,7 +15,7 @@ namespace ppr
     /// <summary>
     /// File path for opencl statistics kernel
     /// </summary>
-    const constexpr char* STAT_KERNEL = "D:/Study/ZCU/5.semestr/PPR/kiv-ppr/msvc/statistics_kernel.cl"; // TODO: relative
+    const constexpr char* STAT_KERNEL = "cl\\statistics_kernel.cl"; 
     /// <summary>
     /// Name of opencl statistics kernel
     /// </summary>
@@ -23,7 +23,7 @@ namespace ppr
     /// <summary>
     /// File path for opencl histogram kernel
     /// </summary>
-    const constexpr char* HIST_KERNEL = "D:/Study/ZCU/5.semestr/PPR/kiv-ppr/msvc/histogram_kernel.cl";
+    const constexpr char* HIST_KERNEL = "cl\\histogram_kernel.cl";
     /// <summary>
     /// Name of opencl histogram kernel
     /// </summary>
@@ -89,6 +89,10 @@ namespace ppr
         ERun_mode mode{};                               // Program running mode
         std::vector<std::string> cl_devices_name{};     // OpenCl Devices from user input
         int thread_count = 0;                           // System max thread count
+        long long watchdog_interval = WATCHDOG_INTERVAL_SEC;
+        long long stat_timeout = STAT_TIMEOUT_SEC;
+        bool use_optimalization = USE_OPTIMIZATION;
+        int thread_per_core = THREAD_PER_CORE;
     };
 
     /// <summary>

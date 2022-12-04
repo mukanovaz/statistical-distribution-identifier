@@ -19,12 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <None Include="histogram_kernel.cl" />
-    <None Include="statistics_kernel.cl">
-      <FileType>Document</FileType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="..\src\config.cpp" />
     <ClCompile Include="..\src\executor.cpp" />
     <ClCompile Include="..\src\file_mapping.cpp" />
@@ -52,6 +46,10 @@
     <ClInclude Include="..\src\include\smp_solver.h" />
     <ClInclude Include="..\src\include\smp_utils.h" />
     <ClInclude Include="..\src\include\watchdog.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\cl\histogram_kernel.cl" />
+    <None Include="..\src\cl\statistics_kernel.cl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

@@ -15,14 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="statistics_kernel.cl">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="histogram_kernel.cl">
-      <Filter>Resource Files</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="..\src\config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -100,5 +92,13 @@
     <ClInclude Include="..\src\include\watchdog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\cl\histogram_kernel.cl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\src\cl\statistics_kernel.cl">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

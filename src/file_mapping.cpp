@@ -280,7 +280,7 @@ namespace ppr
 
                         tbb::tick_count t_stat_end = tbb::tick_count::now();
                         // Check if we need to change granularity
-                        if (USE_OPTIMIZATION &&(t_stat_end - t_stat_start).seconds() >= STAT_TIMEOUT_SEC)
+                        if (config.use_optimalization &&(t_stat_end - t_stat_start).seconds() >= config.stat_timeout)
                         {
                             std::cerr << "> [WARNING] Watchdog changed allocation granulatity, because mapped file is probably not on RAM" << std::endl;
                             // File is probably not in RAM, so we need to use smaller pages

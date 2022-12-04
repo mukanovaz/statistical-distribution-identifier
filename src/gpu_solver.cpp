@@ -30,7 +30,7 @@ namespace ppr::gpu
 		unsigned int data_count = mapping.get_count();
 
 		//  ================ [Start Watchdog]
-		ppr::watchdog::start_watchdog(stat, hist, stage, histogramFreq, histogramDensity, data_count);
+		ppr::watchdog::start_watchdog(configuration, stat, hist, stage, histogramFreq, histogramDensity, data_count);
 
 		//  ================ [Get statistics]
 		tbb::tick_count t0 = tbb::tick_count::now();

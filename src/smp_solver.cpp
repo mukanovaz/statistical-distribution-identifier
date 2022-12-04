@@ -30,10 +30,10 @@ namespace ppr::parallel
 		unsigned int data_count = mapping.get_count();
 
 		//  ================ [Start Watchdog]
-		ppr::watchdog::start_watchdog(stat, hist, stage, histogramFreq, histogramDensity, data_count);
+		ppr::watchdog::start_watchdog(configuration, stat, hist, stage, histogramFreq, histogramDensity, data_count);
 		
 		//  ================ [Get statistics]
-		if (USE_OPTIMIZATION)
+		if (configuration.use_optimalization)
 		{
 			// Optimized run
 			t0 = tbb::tick_count::now();
@@ -65,7 +65,7 @@ namespace ppr::parallel
 
 		stage = 1;
 		// Run
-		if (USE_OPTIMIZATION)
+		if (configuration.use_optimalization)
 		{
 			// Optimized run
 			t0 = tbb::tick_count::now();

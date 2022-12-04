@@ -15,6 +15,6 @@ namespace ppr::watchdog
 	/// <param name="histogram">Histogram vector reference</param>
 	/// <param name="histogramDesity">Density histogram vector reference</param>
 	/// <param name="data_count">Data count in a file</param>
-	void start_watchdog(SDataStat& stat, SHistogram& hist, int& stage,
+	void start_watchdog(SConfig& config, SDataStat& stat, SHistogram& hist, int& stage,
 		std::vector<int>& histogram, std::vector<double>& histogramDesity, int data_count);
 }

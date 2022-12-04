@@ -38,6 +38,7 @@ void get_dist_string(SResult result)
 			std::cout << "> Input data have 'Uniform distribution' with a=" << result.uniform_a << " and b=" << result.uniform_b << std::endl;
 			break;
 		default: "Unknown";
+			break;
 	}
 }
 
@@ -48,21 +49,23 @@ int main(int argc, char** argv) {
 	{
 		return ppr::EExitStatus::ARGS;
 	}
+
 	SYSTEM_INFO sysInfo;
 
 	//GetSystemInfo(&sysInfo);
 	//printf("%s %d\n\n", "PageSize[Bytes] :", sysInfo.dwPageSize);
 
 	std::string mode = conf.mode == ppr::ERun_mode::SMP ? "smp" : "all";
-	std::string opt = ppr::USE_OPTIMIZATION ? "TRUE" : "FALSE";
+	std::string opt = conf.use_optimalization ? "TRUE" : "FALSE";
 
 	std::cout << "\t\t\t[Initial parameters]" << std::endl;
 	std::cout << "---------------------------------------------------------------------" << std::endl;
-	//std::cout << "> Min chunk size:\t\t" << ppr::MAX_FILE_SIZE_MEM << " bytes" << std::endl;
-	std::cout << "> Optimalization:\t\t" << opt << std::endl;
-	std::cout << "> Number of threads:\t\t" << conf.thread_count << std::endl;
 	std::cout << "> Mode:\t\t\t\t" << mode << std::endl;
-	std::cout << "> Watchdog timer:\t\t" << ppr::WATCHDOG_INTERVAL_SEC << " sec" << std::endl;
+	std::cout << "> Number of threads:\t\t" << conf.thread_count << std::endl;
+	std::cout << "> Optimalization:\t\t" << opt << std::endl;
+	std::cout << "> Watchdog timer:\t\t" << conf.watchdog_interval << " sec" << std::endl;
+	std::cout << "> Thread per core:\t\t" << conf.thread_per_core << " threads" << std::endl;
+	std::cout << "> Statistics timeout:\t\t" << conf.stat_timeout << " sec" << std::endl;
 
 	std::cout << std::endl;
 	std::cout << std::endl;

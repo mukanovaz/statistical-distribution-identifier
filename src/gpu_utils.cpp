@@ -4,6 +4,7 @@
 #include <string>
 #include <algorithm>
 #include <iostream>
+#include <format>
 
 namespace ppr::gpu
 {
@@ -13,6 +14,8 @@ namespace ppr::gpu
         cl_int err = 0;
         const unsigned long long work_group_number = data_count / opencl.wg_size;
         const unsigned int count = data_count - (data_count % opencl.wg_size);
+
+        cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
 
         // Result data
         std::vector<double> out_var(work_group_number);
@@ -47,7 +50,7 @@ namespace ppr::gpu
         }
 
         // Pass all data to GPU
-        err = opencl.queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(count), cl::NDRange(opencl.wg_size));
+        err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(count), cl::NDRange(opencl.wg_size));
 
         if (err != CL_SUCCESS)
         {
@@ -56,8 +59,8 @@ namespace ppr::gpu
         }
 
         // Fill output vectors
-        err = opencl.queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, out_histogram.size() * sizeof(cl_uint), out_histogram.data());
-        err = opencl.queue.enqueueReadBuffer(out_var_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_var.data());
+        err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, out_histogram.size() * sizeof(cl_uint), out_histogram.data());
+        err = cmd_queue.enqueueReadBuffer(out_var_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_var.data());
 
         if (err != CL_SUCCESS)
         {
@@ -85,6 +88,8 @@ namespace ppr::gpu
         cl_int err = 0;
         const unsigned long long work_group_number = data_count / m_ocl_config.wg_size;
         const unsigned int count = data_count - (data_count % m_ocl_config.wg_size);
+
+        cl::CommandQueue cmd_queue(m_ocl_config.context, m_ocl_config.device, 0, &err);
 
         // Input and output buffers
         cl::Buffer in_data_buf(m_ocl_config.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, count * sizeof(double), data, &err);
@@ -119,7 +124,7 @@ namespace ppr::gpu
         std::vector<double> out_max(work_group_number);
 
         // Pass all data to GPU
-        err = m_ocl_config.queue.enqueueNDRangeKernel(m_ocl_config.kernel, cl::NullRange, cl::NDRange(count), cl::NDRange(m_ocl_config.wg_size));
+        err = cmd_queue.enqueueNDRangeKernel(m_ocl_config.kernel, cl::NullRange, cl::NDRange(count), cl::NDRange(m_ocl_config.wg_size));
         
         if (err != CL_SUCCESS)
         {
@@ -128,9 +133,9 @@ namespace ppr::gpu
         }
 
         // Fill output vectors
-        err = m_ocl_config.queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_sum.data());
-        err = m_ocl_config.queue.enqueueReadBuffer(out_min_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_min.data());
-        err = m_ocl_config.queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_max.data());
+        err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_sum.data());
+        err = cmd_queue.enqueueReadBuffer(out_min_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_min.data());
+        err = cmd_queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_max.data());
 
         if (err != CL_SUCCESS)
         {
@@ -166,7 +171,7 @@ namespace ppr::gpu
         cl::Platform::get(&platforms);
 
         // Find all devices on all platforms
-        std::vector<cl::Device> devices(configuration.cl_devices_name.size());
+        std::vector<cl::Device> devices;
         ppr::gpu::find_opencl_devices(platforms, devices, configuration.cl_devices_name);
         opencl.device = devices.front();
 
@@ -192,17 +197,27 @@ namespace ppr::gpu
         cl_int err = 0;
 
         opencl.kernel = cl::Kernel(opencl.program, kernel_name, &err);
+
+        if (err != CL_SUCCESS)
+        {
+            ppr::print_error(get_CL_error_string(err));
+            return;
+        }
+
         opencl.wg_size = opencl.kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(opencl.device);
     }
 
     void create_kernel_program(SOpenCLConfig& opencl, const std::string& file)
     {
         cl_int err = 0;
+        std::string file_path = __FILE__;
+        std::string kernel_path = file_path.substr(0, file_path.rfind("\\")) + "\\" + file;
 
         // Read kernel from file
-        std::ifstream kernel_file(file);
+        std::ifstream kernel_file(kernel_path);
         std::string src((std::istreambuf_iterator<char>(kernel_file)), (std::istreambuf_iterator<char>()));
         const char* t_src = src.c_str();
+
         cl::Program::Sources source(1, std::make_pair(t_src, src.length() + 1));
         kernel_file.close();
 
@@ -215,7 +230,13 @@ namespace ppr::gpu
             return;
         }
 
-        opencl.program = cl::Program(opencl.context, source);
+        opencl.program = cl::Program(opencl.context, source, &err);
+
+        if (err != CL_SUCCESS)
+        {
+            ppr::print_error(get_CL_error_string(err));
+            return;
+        }
 
         // Build our program
         err = opencl.program.build("-cl-std=CL2.0");
@@ -244,8 +265,8 @@ namespace ppr::gpu
                 bool exists = std::binary_search(user_devices.begin(), user_devices.end(), device_name);
 
                 if (available &&
-                    device_extensions.find("cl_khr_fp64") != std::string::npos
-                    /*exists*/) // TODO: add exists
+                    device_extensions.find("cl_khr_fp64") != std::string::npos &&
+                    std::find(user_devices.begin(), user_devices.end(), device_name) != user_devices.end())
                 {
                     all_devices.emplace_back(device);
                 }

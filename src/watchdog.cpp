@@ -6,7 +6,7 @@
 
 namespace ppr::watchdog
 {
-	void start_watchdog(SDataStat& stat, SHistogram& hist, int& stage,
+	void start_watchdog(SConfig& config, SDataStat& stat, SHistogram& hist, int& stage,
 		std::vector<int>& histogram, std::vector<double>& histogramDesity, int data_count)
 	{
         std::thread watchdog([&]() {
@@ -76,7 +76,7 @@ namespace ppr::watchdog
 					std::exit(status);
 				}
 
-				std::this_thread::sleep_for(std::chrono::seconds(WATCHDOG_INTERVAL_SEC));
+				std::this_thread::sleep_for(std::chrono::seconds(config.watchdog_interval));
 			}
 
         });
