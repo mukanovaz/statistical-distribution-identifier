@@ -61,7 +61,7 @@ namespace ppr::executor
 		}
 	};
 
-	double SumVectorOnCPU(tbb::task_arena& arena, std::vector<double> data)
+	double sum_vector_tbb(tbb::task_arena& arena, std::vector<double> data)
 	{
 		double sum = 0;
 		arena.execute([&]() {
@@ -74,101 +74,7 @@ namespace ppr::executor
 		return sum;
 	}
 
-	SDataStat RunStatisticsOnGPU(SOpenCLConfig& opencl, SConfig& configuration, double* data)
-	{
-		cl_int err = 0;
-
-		cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
-
-		//cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
-		cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
-		cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
-		cl::Buffer out_min_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
-		cl::Buffer out_max_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
-
-		// Set method arguments
-		err = opencl.kernel.setArg(0, in_data_buf);
-		err = opencl.kernel.setArg(1, opencl.wg_size * sizeof(double), nullptr);
-		err = opencl.kernel.setArg(2, opencl.wg_size * sizeof(double), nullptr);
-		err = opencl.kernel.setArg(3, opencl.wg_size * sizeof(double), nullptr);
-		err = opencl.kernel.setArg(4, out_sum_buf);
-		err = opencl.kernel.setArg(5, out_min_buf);
-		err = opencl.kernel.setArg(6, out_max_buf);
-		
-		// Result data
-		std::vector<double> out_sum(opencl.wg_count);
-		std::vector<double> out_min(opencl.wg_count);
-		std::vector<double> out_max(opencl.wg_count);
-
-
-		// Pass all data to GPU
-		err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(opencl.data_count_for_gpu), cl::NDRange(opencl.wg_size));
-		err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_sum.data());
-		err = cmd_queue.enqueueReadBuffer(out_min_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_min.data());
-		err = cmd_queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_max.data());
-
-		cl::finish();
-		
-		// Agregate results on CPU
-		double sum = ppr::parallel::sum_vector_elements_vectorized(out_sum);
-		double max = ppr::parallel::max_of_vector_vectorized(out_max);
-		double min = ppr::parallel::min_of_vector_vectorized(out_min);
-
-		return {
-			opencl.data_count_for_gpu,	// n
-			sum,					// sum
-			max,					// max
-			min,					// min
-			0.0,					// mean
-			0.0,					// variance
-			min < 0
-		};
-	}
-
-	void RunHistogramOnGPU(SOpenCLConfig& opencl, SDataStat& data_stat, SHistogram& histogram, double* data, std::vector<int>& freq_buckets)
-	{
-		cl_int err = 0;
-
-		std::vector<cl_uint> out_histogram(2 * histogram.binCount, 0);
-
-		cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, opencl.data_count_for_gpu * sizeof(double), data, &err);
-		cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, out_histogram.size() * sizeof(cl_uint), out_histogram.data(), &err);
-		cl::Buffer out_var_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, opencl.wg_count * sizeof(double), nullptr, &err);
-
-		// Set method arguments
- 		err = opencl.kernel.setArg(0, in_data_buf);
-		err = opencl.kernel.setArg(1, opencl.wg_size * sizeof(double), nullptr);
-		err = opencl.kernel.setArg(2, out_sum_buf);
-		err = opencl.kernel.setArg(3, out_var_buf);
-		err = opencl.kernel.setArg(4, sizeof(double), &data_stat.mean);
-		err = opencl.kernel.setArg(5, sizeof(double), &data_stat.min);
-		err = opencl.kernel.setArg(6, sizeof(double), &histogram.scaleFactor);
-		err = opencl.kernel.setArg(7, sizeof(double), &histogram.binSize);
-		err = opencl.kernel.setArg(8, sizeof(double), &histogram.binCount);
-
-		// Result data
-		std::vector<double> out_var(opencl.wg_count);
-
-		cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
-
-		// Pass all data to GPU
-		err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(opencl.data_count_for_gpu), cl::NDRange(opencl.wg_size));
-		err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, out_histogram.size() * sizeof(cl_uint), out_histogram.data());
-		err = cmd_queue.enqueueReadBuffer(out_var_buf, CL_TRUE, 0, opencl.wg_count * sizeof(double), out_var.data());
-
-		cl::finish();
-
-		for (int i = 0; i < histogram.binCount; i++)
-		{
-			const size_t value = static_cast<size_t>(out_histogram[2 * i]) + static_cast<size_t>(out_histogram[2 * i + 1]) * sizeof(cl_uint);
-			freq_buckets[i] += value;
-		}
-
-		// Agregate results on CPU
-		data_stat.variance += ppr::parallel::sum_vector_elements_vectorized(out_var);
-	}
-
-	void CalculateHistogramRSSOnCPU(SResult& res, tbb::task_arena& arena, std::vector<double>& histogramDensity, SHistogram& hist)
+	void calculate_histogram_RSS_with_tbb(SResult& res, tbb::task_arena& arena, std::vector<double>& histogramDensity, SHistogram& hist)
 	{
 		tbb::tick_count total1 = tbb::tick_count::now();
 
@@ -182,10 +88,10 @@ namespace ppr::executor
 		ppr::rss::RSSParallel exp_rss(exp, histogramDensity, hist.binSize);
 		ppr::rss::RSSParallel uniform_rss(uniform, histogramDensity, hist.binSize);
 
-		ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, gauss_rss, 0, static_cast<int>(hist.binCount));
-		ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, poisson_rss, 0, static_cast<int>(hist.binCount));
-		ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, exp_rss, 0, static_cast<int>(hist.binCount));
-		ppr::executor::RunOnCPU<ppr::rss::RSSParallel>(arena, uniform_rss, 0, static_cast<int>(hist.binCount));
+		ppr::executor::run_with_tbb<ppr::rss::RSSParallel>(arena, gauss_rss, 0, static_cast<int>(hist.binCount));
+		ppr::executor::run_with_tbb<ppr::rss::RSSParallel>(arena, poisson_rss, 0, static_cast<int>(hist.binCount));
+		ppr::executor::run_with_tbb<ppr::rss::RSSParallel>(arena, exp_rss, 0, static_cast<int>(hist.binCount));
+		ppr::executor::run_with_tbb<ppr::rss::RSSParallel>(arena, uniform_rss, 0, static_cast<int>(hist.binCount));
 
 		res.gauss_rss = gauss->Get_RSS();
 		res.poisson_rss = poisson->Get_RSS();
@@ -202,7 +108,7 @@ namespace ppr::executor
 		res.total_rss_time = (total2 - total1).seconds();
 	}
 
-	void AnalyzeResults(SResult& res)
+	void analyze_results(SResult& res)
 	{
 		// Find min RSS value
 		std::array<double, 4> rss = { res.gauss_rss, res.poisson_rss, res.exp_rss, res.uniform_rss };
@@ -230,7 +136,7 @@ namespace ppr::executor
 		res.status = EExitStatus::SUCCESS;
 	}
 
-	void ComputePropabilityDensityOfHistogram(SHistogram& hist, std::vector<int>& bucket_frequency, std::vector<double>& bucket_density, double count)
+	void compute_propability_density_histogram(SHistogram& hist, std::vector<int>& bucket_frequency, std::vector<double>& bucket_density, double count)
 	{
 		for (unsigned int i = 0; i < hist.binCount; i++)
 		{

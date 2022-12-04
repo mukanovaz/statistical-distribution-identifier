@@ -25,8 +25,8 @@ namespace ppr::parallel
 		SResult res;
 		SDataStat stat;
 		std::vector<int> tmp(0);
-		std::vector<int> histogramFreq(0);
-		std::vector<double> histogramDensity(0);
+		std::vector<int> histogramFreq(0);			// Will resize after collecting statistics
+		std::vector<double> histogramDensity(0);	// Will resize after collecting statistics
 		unsigned int data_count = mapping.get_count();
 
 		//  ================ [Start Watchdog]
@@ -35,14 +35,16 @@ namespace ppr::parallel
 		//  ================ [Get statistics]
 		if (USE_OPTIMIZATION)
 		{
+			// Optimized run
 			t0 = tbb::tick_count::now();
 			mapping.read_in_chunks_stat(configuration, opencl, stat);
 			t1 = tbb::tick_count::now();
 		}
 		else
 		{
+			// TBB run
 			t0 = tbb::tick_count::now();
-			mapping.read_in_chunks(hist, configuration, opencl, stat, arena, tmp, &GetStatisticsCPU);
+			mapping.read_in_chunks(hist, configuration, opencl, stat, arena, tmp, &get_statistics_CPU);
 			t1 = tbb::tick_count::now();
 		}
 
@@ -65,14 +67,16 @@ namespace ppr::parallel
 		// Run
 		if (USE_OPTIMIZATION)
 		{
+			// Optimized run
 			t0 = tbb::tick_count::now();
 			mapping.read_in_chunks_hist(hist, configuration, opencl, stat, histogramFreq);
 			t1 = tbb::tick_count::now();
 		}
 		else
 		{
+			// TBB run
 			t0 = tbb::tick_count::now();
-			mapping.read_in_chunks(hist, configuration, opencl, stat, arena, histogramFreq, &CreateFrequencyHistogramCPU);
+			mapping.read_in_chunks(hist, configuration, opencl, stat, arena, histogramFreq, &create_frequency_histogram_CPU);
 			t1 = tbb::tick_count::now();
 		}
 		res.total_hist_time = (t1 - t0).seconds();
@@ -82,7 +86,7 @@ namespace ppr::parallel
 
 		//  ================ [Create density histogram]
 		stage = 2;
-		ppr::executor::ComputePropabilityDensityOfHistogram(hist, histogramFreq, histogramDensity, stat.n);
+		ppr::executor::compute_propability_density_histogram(hist, histogramFreq, histogramDensity, stat.n);
 
 		//  ================ [Fit params using Maximum likelihood estimation]
 		res.isNegative = stat.min < 0;
@@ -105,10 +109,10 @@ namespace ppr::parallel
 
 		//	================ [Calculate RSS]
 		stage = 3;
-		ppr::executor::CalculateHistogramRSSOnCPU(res, arena, histogramDensity, hist);
+		ppr::executor::calculate_histogram_RSS_with_tbb(res, arena, histogramDensity, hist);
 
 		//	================ [Analyze Results]
-		ppr::executor::AnalyzeResults(res);
+		ppr::executor::analyze_results(res);
 
 		total2 = tbb::tick_count::now();
 		
@@ -117,11 +121,11 @@ namespace ppr::parallel
 		return res;
 	}
 
-	void GetStatisticsCPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
+	void get_statistics_CPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
 	{
 		// Find rest of a statistics on CPU
 		RunningStatParallel stat_cpu(data, opencl.data_count_for_cpu);
-		ppr::executor::RunOnCPU<RunningStatParallel>(arena, stat_cpu, opencl.data_count_for_cpu + 1, data_count);
+		ppr::executor::run_with_tbb<RunningStatParallel>(arena, stat_cpu, opencl.data_count_for_cpu + 1, data_count);
 
 		// Agregate results results
 		stat.n += stat_cpu.NumDataValues();
@@ -131,16 +135,16 @@ namespace ppr::parallel
 		stat.isNegative = stat.isNegative || stat_cpu.IsNegative();
 	}
 
-	void CreateFrequencyHistogramCPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
+	void create_frequency_histogram_CPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
 	{
 		// Run on CPU
 		ppr::hist::HistogramParallel hist_cpu(hist.binCount, hist.binSize, stat.min, stat.max, data, stat.mean);
-		ppr::executor::RunOnCPU<ppr::hist::HistogramParallel>(arena, hist_cpu, opencl.data_count_for_cpu, data_count);
+		ppr::executor::run_with_tbb<ppr::hist::HistogramParallel>(arena, hist_cpu, opencl.data_count_for_cpu, data_count);
 
 		// Transform vector
 		std::transform(histogram.begin(), histogram.end(), hist_cpu.m_bucketFrequency.begin(), histogram.begin(), std::plus<int>());
 
-		stat.variance += hist_cpu.m_var; // GPU + CPU "half" variance
+		stat.variance += hist_cpu.m_var;
 	}
 
 

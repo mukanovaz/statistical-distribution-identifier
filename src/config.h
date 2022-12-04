@@ -33,7 +33,7 @@ namespace ppr
     /// </summary>
     const constexpr DWORD MAX_FILE_SIZE_MEM_2gb = 1999962112;
     /// <summary>
-    ///  Gigabyte in bytes aligned for allocation granularity on current system
+    /// 1 Gigabyte in bytes aligned for allocation granularity on current system
     /// </summary>
     const constexpr DWORD MAX_FILE_SIZE_MEM_1gb = 999948288;
     /// <summary>

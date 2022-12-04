@@ -12,7 +12,7 @@ namespace ppr::gpu
 		tbb::task_arena arena(configuration.thread_count == 0 ? tbb::task_arena::automatic : static_cast<int>(configuration.thread_count));
 
 		//  ================ [Init OpenCL]
-		SOpenCLConfig opencl = ppr::gpu::Init(configuration, STAT_KERNEL, STAT_KERNEL_NAME);
+		SOpenCLConfig opencl = ppr::gpu::init(configuration, STAT_KERNEL, STAT_KERNEL_NAME);
 
 		//  ================ [Get file mapping]
 		File_mapping mapping(configuration);
@@ -33,7 +33,7 @@ namespace ppr::gpu
 
 		//  ================ [Get statistics]
 		tbb::tick_count t0 = tbb::tick_count::now();
-		mapping.read_in_chunks(hist, configuration, opencl, stat, arena, tmp, &GetStatistics);
+		mapping.read_in_chunks(hist, configuration, opencl, stat, arena, tmp, &get_statistics);
 		tbb::tick_count t1 = tbb::tick_count::now();
 		
 		res.total_stat_time = (t1 - t0).seconds();
@@ -43,7 +43,7 @@ namespace ppr::gpu
 
 		//  ================ [Create frequency histogram]
 		// Update kernel program
-		ppr::gpu::UpdateProgram(opencl, HIST_KERNEL, HIST_KERNEL_NAME);
+		ppr::gpu::update_kernel_program(opencl, HIST_KERNEL, HIST_KERNEL_NAME);
 
 		// Find histogram limits
 		hist.binCount = log2(stat.n) + 1;
@@ -51,14 +51,15 @@ namespace ppr::gpu
 		hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
 
 		// Allocate memmory
-		histogramFreq.resize(static_cast<int>(hist.binCount + 1));
-		histogramDensity.resize(static_cast<int>(hist.binCount + 1));
+		int bin_count = static_cast<int>(hist.binCount + 1);
+		histogramFreq.resize(bin_count);
+		histogramDensity.resize(bin_count);
 		cl_int err = 0;
 
 		// Run
 		stage = 1;
 		t0 = tbb::tick_count::now();
-		mapping.read_in_chunks(hist, configuration, opencl, stat, arena, histogramFreq, &CreateFrequencyHistogram);
+		mapping.read_in_chunks(hist, configuration, opencl, stat, arena, histogramFreq, &create_frequency_histogram);
 		t1 = tbb::tick_count::now();
 		
 		res.total_hist_time = (t1 - t0).seconds();
@@ -68,7 +69,7 @@ namespace ppr::gpu
 
 		//  ================ [Create density histogram]
 		stage = 2;
-		ppr::executor::ComputePropabilityDensityOfHistogram(hist, histogramFreq, histogramDensity, stat.n);
+		ppr::executor::compute_propability_density_histogram(hist, histogramFreq, histogramDensity, stat.n);
 
 		//	================ [Fit params using Maximum likelihood estimation]
 		res.isNegative = stat.isNegative;
@@ -91,10 +92,10 @@ namespace ppr::gpu
 
 		//	================ [Calculate RSS]
 		stage = 3;
-		ppr::executor::CalculateHistogramRSSOnCPU(res, arena, histogramDensity, hist);
+		ppr::executor::calculate_histogram_RSS_with_tbb(res, arena, histogramDensity, hist);
 
 		//	================ [Analyze Results]
-		ppr::executor::AnalyzeResults(res);
+		ppr::executor::analyze_results(res);
 
 		total2 = tbb::tick_count::now();
 
@@ -104,16 +105,16 @@ namespace ppr::gpu
 		return res;
 	}
 
-	void GetStatistics(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
+	void get_statistics(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
 	{
 		if (opencl.data_count_for_cpu < data_count)
 		{
 			// Find rest of a statistics on CPU
 			RunningStatParallel stat_cpu(data, opencl.data_count_for_cpu);
-			ppr::executor::RunOnCPU<RunningStatParallel>(arena, stat_cpu, opencl.data_count_for_cpu + 1, data_count);
+			ppr::executor::run_with_tbb<RunningStatParallel>(arena, stat_cpu, opencl.data_count_for_cpu + 1, data_count);
 
 			// Find statistics on GPU
-			SDataStat stat_gpu = ppr::executor::RunStatisticsOnGPU(opencl, configuration, data);
+			SDataStat stat_gpu = ppr::gpu::run_statistics_on_GPU(opencl, configuration, data, opencl.data_count_for_gpu);
 
 			// Agregate results results
 			stat.n += stat_gpu.n + stat_cpu.NumDataValues();
@@ -125,7 +126,7 @@ namespace ppr::gpu
 		else
 		{
 			// Find statistics on GPU
-			SDataStat stat_gpu = ppr::executor::RunStatisticsOnGPU(opencl, configuration, data);
+			SDataStat stat_gpu = ppr::gpu::run_statistics_on_GPU(opencl, configuration, data, opencl.data_count_for_gpu);
 
 			// Agregate results results
 			stat.n += stat_gpu.n;
@@ -136,13 +137,13 @@ namespace ppr::gpu
 		}
 	}
 
-	void CreateFrequencyHistogram(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
+	void create_frequency_histogram(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
 	{
 		if (opencl.data_count_for_cpu < data_count)
 		{
 			// Run on CPU
 			ppr::hist::HistogramParallel hist_cpu(hist.binCount, hist.binSize, stat.min, stat.max, data, stat.mean);
-			ppr::executor::RunOnCPU<ppr::hist::HistogramParallel>(arena, hist_cpu, opencl.data_count_for_cpu, data_count);
+			ppr::executor::run_with_tbb<ppr::hist::HistogramParallel>(arena, hist_cpu, opencl.data_count_for_cpu, data_count);
 
 			// Transform vector
 			std::transform(histogram.begin(), histogram.end(), hist_cpu.m_bucketFrequency.begin(), histogram.begin(), std::plus<int>());
@@ -151,6 +152,6 @@ namespace ppr::gpu
 		}
 
 		// Run on GPU
-		ppr::executor::RunHistogramOnGPU(opencl, stat, hist, data, histogram);
+		ppr::gpu::run_histogram_on_GPU(opencl, configuration, hist, stat, data, opencl.data_count_for_gpu, histogram, stat.variance);
 	}
 }

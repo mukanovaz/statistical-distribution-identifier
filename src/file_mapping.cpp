@@ -183,8 +183,8 @@ namespace ppr
                         // Process one chunk with multuply threads
                         for (int i = 0; i < config.thread_count; i++)
                         {
-                            ppr::parallel::CHistProcessingUnit unit(hist, config, opencl, stat);
-                            workers[i] = std::async(std::launch::async, &ppr::parallel::CHistProcessingUnit::RunCPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                            ppr::parallel::Hist_processing_unit unit(hist, config, opencl, stat);
+                            workers[i] = std::async(std::launch::async, &ppr::parallel::Hist_processing_unit::run_on_CPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
                         }
                        
                         // Agregate results results
@@ -262,8 +262,8 @@ namespace ppr
                         // Process chunk with multuply threads
                         for (int i = 0; i < config.thread_count; i++)
                         {
-                            ppr::parallel::CStatProcessingUnit unit(config, opencl);
-                            workers[i] = std::async(std::launch::async, &ppr::parallel::CStatProcessingUnit::RunCPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                            ppr::parallel::Stat_processing_unit unit(config, opencl);
+                            workers[i] = std::async(std::launch::async, &ppr::parallel::Stat_processing_unit::run_on_CPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
                         }
 
                         // Agregate results results

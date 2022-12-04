@@ -1,6 +1,9 @@
 #pragma once
 #include<vector>
 
+/// <summary>
+/// Enum with all existing distributions
+/// </summary>
 enum class EDistribution {
     GAUSS = 0,
     EXP = 1,
@@ -8,7 +11,9 @@ enum class EDistribution {
     UNIFORM = 3
 };
 
-
+/// <summary>
+/// HIstogram configuration structure
+/// </summary>
 struct SHistogram
 {
     double binSize = 0.0;
@@ -18,6 +23,9 @@ struct SHistogram
     double scaleFactor = 0.0;
 };
 
+/// <summary>
+/// Statistics collected from data. (Using only for sequential computing and TBB algoorithms)
+/// </summary>
 struct SStat
 {
     unsigned int n = 0;
@@ -32,6 +40,9 @@ struct SStat
     bool isNegative = 0;
 };
 
+/// <summary>
+/// Statistics collected from data
+/// </summary>
 struct SDataStat
 {
     unsigned int n = 0;
@@ -43,6 +54,9 @@ struct SDataStat
     bool isNegative = 0;
 };
 
+/// <summary>
+/// Structure with computing results
+/// </summary>
 struct SResult
 {
     EDistribution dist{};     // Result distribution

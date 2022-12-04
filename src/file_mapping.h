@@ -21,13 +21,37 @@ namespace ppr
     class File_mapping
     {
         private:
+            /// <summary>
+            /// Handle to file
+            /// </summary>
             HANDLE m_file;
+            /// <summary>
+            /// Handle for file mapping
+            /// </summary>
             HANDLE m_mapping;
+            /// <summary>
+            /// Scale is using to multiply alocation granularity
+            /// </summary>
             double m_scale;
+            /// <summary>
+            /// Maped data
+            /// </summary>
             double* m_data;
+            /// <summary>
+            /// File name
+            /// </summary>
             const WCHAR* m_filename;
+            /// <summary>
+            /// File lenght
+            /// </summary>
             unsigned long long m_fileLen;
-            unsigned int m_size;
+            /// <summary>
+            /// Data count in a file
+            /// </summary>
+            DWORD m_size;
+            /// <summary>
+            /// System allocation granularity
+            /// </summary>
             DWORD m_allocationGranularity;
 
             /// <summary>

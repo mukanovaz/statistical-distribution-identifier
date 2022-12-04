@@ -4,41 +4,48 @@
 
 namespace ppr::parallel
 {
-	SDataStat CStatProcessingUnit::RunCPU(double* data, int data_count)
+	SDataStat Stat_processing_unit::run_on_CPU(double* data, int data_count)
 	{
+		// Local variables
 		SDataStat local_stat;
 
-		GetStatisticsVectorized(local_stat, data_count, data);
+		get_statistics_vectorized(local_stat, data_count, data);
 
 		return local_stat;
 	}
 
-	SDataStat CStatProcessingUnit::RunGPU(double* data, int data_count)
+	SDataStat Stat_processing_unit::run_on_GPU(double* data, int data_count)
 	{
-		return ppr::gpu::RunStatisticsOnGPU(m_ocl_config, m_configuration, data, data_count);
+		// Call Opencl kernel
+		return ppr::gpu::run_statistics_on_GPU(m_ocl_config, m_configuration, data, data_count);
 	}
 
-	std::tuple<std::vector<int>, double> CHistProcessingUnit::RunCPU(double* data, int data_count)
+	std::tuple<std::vector<int>, double> Hist_processing_unit::run_on_CPU(double* data, int data_count)
 	{
+		// Local variables
 		std::vector<int> local_vector(m_hist.binCount + 1);
 		double variance = 0.0;
 
-		GetHistogramVectorized(local_vector, variance, data_count, data, m_hist, m_stat);
+		get_histogram_vectorized(local_vector, variance, data_count, data, m_hist, m_stat);
 
+		// Create return value
 		return std::make_tuple(local_vector, variance);
 	}
 
-	std::tuple<std::vector<int>, double> CHistProcessingUnit::RunGPU(double* data, int data_count)
+	std::tuple<std::vector<int>, double> Hist_processing_unit::run_on_GPU(double* data, int data_count)
 	{
+		// Local variables
 		std::vector<int> local_vector(m_hist.binCount + 1);
 		double variance = 0.0;
 
-		ppr::gpu::RunHistogramOnGPU(m_ocl_config, m_configuration, m_hist, m_stat, data, data_count, local_vector, variance);
+		// Call Opencl kernel
+		ppr::gpu::run_histogram_on_GPU(m_ocl_config, m_configuration, m_hist, m_stat, data, data_count, local_vector, variance);
 
+		// Create return value
 		return std::make_tuple(local_vector, variance);
 	}
 
-	void GetHistogramVectorized(std::vector<int>& local_vector, double& variance, int data_count, double* data, SHistogram& hist, SDataStat& stat)
+	void get_histogram_vectorized(std::vector<int>& local_vector, double& variance, int data_count, double* data, SHistogram& hist, SDataStat& stat)
 	{
 		// Fill vector with mean/min and scale value
 		const __m256d mean = _mm256_set1_pd(stat.mean);
@@ -68,6 +75,8 @@ namespace ppr::parallel
 		);
 
 		int size = vector.size() - (vector.size() % 4);
+
+		// Find maximum value in all vector elements in blocks of 4
 		for (int block = 0; block < size; block += 4)
 		{
 			__m256d vec = _mm256_set_pd(
@@ -79,7 +88,7 @@ namespace ppr::parallel
 			max = _mm256_max_pd(max, vec);
 		}
 
-		// Find min on the rest of the vector
+		// Find min on the rest of the vector (if last block is not full of 4 elements)
 		double* max_d = (double*)&max;
 		if (vector.size() - size != 0)
 		{
@@ -104,6 +113,8 @@ namespace ppr::parallel
 		);
 
 		int size = vector.size() - (vector.size() % 4);
+
+		// Find minimum value in all vector elements in blocks of 4
 		for (int block = 0; block < size; block += 4)
 		{
 			__m256d vec = _mm256_set_pd(
@@ -115,7 +126,7 @@ namespace ppr::parallel
 			min = _mm256_min_pd(min, vec);
 		}
 
-		// Find min on the rest of the vector
+		// Find min on the rest of the vector (if last block is not full of 4 elements)
 		double* min_d = (double*)&min;
 		if (vector.size() - size != 0)
 		{
@@ -138,6 +149,8 @@ namespace ppr::parallel
 	{
 		double sum = 0.0;
 		int size = vector.size() - (vector.size() % 4);
+
+		// Sum all vector elements in blocks of 4
 		for (int block = 0; block < size; block += 4)
 		{
 			__m256d vec = _mm256_set_pd(
@@ -149,7 +162,7 @@ namespace ppr::parallel
 			sum += hsum_double_avx(vec);
 		}
 
-		// Sum the rest if exist
+		// Sum the rest if exist (if last block is not full of 4 elements)
 		if (vector.size() - size != 0)
 		{
 			int size2 = vector.size() - size;
@@ -162,7 +175,7 @@ namespace ppr::parallel
 		return sum;
 	}
 
-	void GetStatisticsVectorized(SDataStat& stat, unsigned int data_count, double* data)
+	void get_statistics_vectorized(SDataStat& stat, unsigned int data_count, double* data)
 	{
 		__m256d min = _mm256_set1_pd(
 			std::numeric_limits<double>::max()
@@ -202,7 +215,7 @@ namespace ppr::parallel
 		__m256d sub = _mm256_sub_pd(v, mean);
 		__m256d mul = _mm256_mul_pd(sub, sub);
 
-		return  hsum_double_avx(mul);			// reduce to scalar
+		return  hsum_double_avx(mul); // reduce to scalar
 	}
 
 	inline double hsum_double_avx(__m256d v) {						
@@ -211,6 +224,6 @@ namespace ppr::parallel
 		vlow = _mm_add_pd(vlow, vhigh);								
 
 		__m128d high64 = _mm_unpackhi_pd(vlow, vlow);
-		return  _mm_cvtsd_f64(_mm_add_sd(vlow, high64));			// reduce to scalar
+		return  _mm_cvtsd_f64(_mm_add_sd(vlow, high64)); // reduce to scalar
 	}
 }

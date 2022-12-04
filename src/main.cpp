@@ -22,7 +22,7 @@ namespace ppr
 	}
 }
 
-void GetDistString(SResult result)
+void get_dist_string(SResult result)
 {
 	switch (result.dist) {
 		case EDistribution::GAUSS: 
@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
 	std::cout << "> Contains negative:\t\t" << result.isNegative << std::endl;
 	std::cout << "> All integers:\t\t\t" << result.isInteger << std::endl;
 	std::cout << std::endl;
-	GetDistString(result);
+	get_dist_string(result);
 
 	delete conf.input_fn;
 

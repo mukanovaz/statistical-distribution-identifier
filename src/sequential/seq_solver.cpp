@@ -78,7 +78,7 @@ namespace ppr::seq
 		std::cout << "Total RSS:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 
 		//	================ [Analyze]
-		ppr::executor::AnalyzeResults(res);
+		ppr::executor::analyze_results(res);
 
 		tbb::tick_count total1 = tbb::tick_count::now();
 		std::cout << "Total:\t" << (total1 - total0).seconds() << "\tsec." << std::endl;
