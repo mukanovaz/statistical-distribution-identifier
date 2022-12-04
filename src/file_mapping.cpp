@@ -58,6 +58,15 @@ namespace ppr
         {
             m_scale = static_cast<double>(MAX_FILE_SIZE_MEM_500mb) / sysinfo.dwAllocationGranularity;
         }
+        // For big files we are choosing bigger parts
+        else if (m_fileLen > MAX_FILE_SIZE_MEM_2gb)
+        {
+            m_scale = static_cast<double>(MAX_FILE_SIZE_MEM_2gb) / sysinfo.dwAllocationGranularity;
+        }
+        else
+        {
+            m_scale = static_cast<double>(MAX_FILE_SIZE_MEM_1gb) / sysinfo.dwAllocationGranularity;
+        }
     }
 
     bool File_mapping::create_file_n()

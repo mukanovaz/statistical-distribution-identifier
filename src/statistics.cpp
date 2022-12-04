@@ -96,7 +96,7 @@ namespace ppr
             }
     };
 
-    class RunningStatParallel
+    class Running_stat_parallel
     {       
         private:
             const double* m_data;
@@ -104,21 +104,21 @@ namespace ppr
             const int m_first_index;
 
         public:
-            RunningStatParallel(double* data, int first_index) : m_data(data), m_first_index(first_index)
+            Running_stat_parallel(double* data, int first_index) : m_data(data), m_first_index(first_index)
             {
                 m_stat.n = 1;
                 m_stat.sum = data[m_first_index];
                 m_stat.min = 88888.0; // TODO: min
-                m_stat.max = 0.0;
+                m_stat.max = -88888.0;
                 m_stat.isNegative = true;
             }
 
-            RunningStatParallel(RunningStatParallel& x, tbb::split) : m_data(x.m_data), m_first_index(x.m_first_index)
+            Running_stat_parallel(Running_stat_parallel& x, tbb::split) : m_data(x.m_data), m_first_index(x.m_first_index)
             {
                 m_stat.n = 1;
                 m_stat.sum = x.m_data[m_first_index];
                 m_stat.min = 88888.0; // TODO: min
-                m_stat.max = 0.0;
+                m_stat.max = -88888.0;
                 m_stat.isNegative = true;
             }
 
@@ -144,7 +144,7 @@ namespace ppr
                 m_stat = t_stat;
             }
 
-            void join(const RunningStatParallel& y)
+            void join(const Running_stat_parallel& y)
             {
                 m_stat.n += y.m_stat.n;
                 m_stat.sum += y.m_stat.sum; 

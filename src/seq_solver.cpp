@@ -5,7 +5,9 @@ namespace ppr::seq
 	
 	SResult run(SConfig& configuration)
 	{
-		tbb::tick_count total0 = tbb::tick_count::now();
+		tbb::tick_count total1;
+		tbb::tick_count total2;
+		total1 = tbb::tick_count::now();
 		SResult res;
 		File_mapping mapping(configuration.input_fn);
 
@@ -26,7 +28,7 @@ namespace ppr::seq
 			stat.Push(d);
 		}
 		tbb::tick_count t1 = tbb::tick_count::now();
-		std::cout << "Statistics:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
+		res.total_stat_time = (t1 - t0).seconds();
 
 		// ================ [Create histogram]
 		t0 = tbb::tick_count::now();
@@ -46,7 +48,8 @@ namespace ppr::seq
 		}
 
 		t1 = tbb::tick_count::now();
-		std::cout << "Histogram:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
+		res.total_hist_time = (t1 - t0).seconds();
+
 		mapping.unmap_file();
 
 		// ================ [Get propability density of histogram]
@@ -75,13 +78,22 @@ namespace ppr::seq
 		res.poisson_rss = hist.compute_rss_histogram(histogramDensity, 'p', res);
 		res.uniform_rss = hist.compute_rss_histogram(histogramDensity, 'u', res);
 		t1 = tbb::tick_count::now();
-		std::cout << "Total RSS:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
+		res.total_rss_time = (t1 - t0).seconds();
 
 		//	================ [Analyze]
 		ppr::executor::analyze_results(res);
 
-		tbb::tick_count total1 = tbb::tick_count::now();
-		std::cout << "Total:\t" << (total1 - total0).seconds() << "\tsec." << std::endl;
+		total2 = tbb::tick_count::now();
+		res.total_time = (total2 - total1).seconds();
+
+		std::cout << "\t\t\t[Statistics]" << std::endl;
+		std::cout << "---------------------------------------------------------------------" << std::endl;
+		std::cout << "> n:\t\t\t\t" << stat.NumDataValues() << std::endl;
+		std::cout << "> sum:\t\t\t\t" << stat.Sum() << std::endl;
+		std::cout << "> mean:\t\t\t\t" << stat.Mean() << std::endl;
+		std::cout << "> variance:\t\t\t" << stat.Variance() << std::endl;
+		std::cout << "> min:\t\t\t\t" << stat.Get_Min() << std::endl;
+		std::cout << "> max:\t\t\t\t" << stat.Get_Max() << std::endl;
 
 		return res;
 	}

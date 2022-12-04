@@ -53,6 +53,11 @@ namespace ppr
 			man_argc++;
 			config.mode = ERun_mode::SMP;
 		}
+		else if (std::strncmp("seq", argv[2], 3) == 0)
+		{
+			man_argc++;
+			config.mode = ERun_mode::SEQ;
+		}
 		else if (std::strncmp("all", argv[2], 3) == 0)
 		{
 			config.mode = ERun_mode::ALL;
@@ -128,19 +133,6 @@ namespace ppr
 				config.watchdog_interval = wi;
 			}
 
-			// statistics timeout
-			if (std::strncmp("-st", argv[i], 3) == 0)
-			{
-				int st = 0;
-				if (sscanf_s(argv[i + 1], "%d", &st) != 1)
-				{
-					print_error("wrong argument type!");
-					print_usage();
-					return false;
-				}
-
-				config.stat_timeout = st;
-			}
 		}
 
 		// Find number available of threads

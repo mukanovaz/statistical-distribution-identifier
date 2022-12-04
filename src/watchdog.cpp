@@ -34,6 +34,11 @@ namespace ppr::watchdog
 					break;
 				//	===== [Frequency histogram] =====
 				case 1:	
+					if (n_last > stat.n)						// Number of observing data is not increaing
+					{
+						ppr::print_error("Wrong number of numbers.");
+						status = EExitStatus::WD_STAT_WRONG_N;
+					}
 					if (hist.binCount == 0)						// Bin count is zero
 					{
 						ppr::print_error("Histogram 'bin count' is zero.");

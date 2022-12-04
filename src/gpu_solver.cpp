@@ -106,11 +106,14 @@ namespace ppr::gpu
 
 		std::cout << "\t\t\t[Statistics]" << std::endl;
 		std::cout << "---------------------------------------------------------------------" << std::endl;
-		std::cout << "> n:\t\t\t" << stat.n << std::endl;
-		std::cout << "> sum:\t\t\t" << stat.sum << std::endl;
-		std::cout << "> mean:\t\t" << stat.mean << std::endl;
+		std::cout << "> n:\t\t\t\t" << stat.n << std::endl;
+		std::cout << "> sum:\t\t\t\t" << stat.sum << std::endl;
+		std::cout << "> mean:\t\t\t\t" << stat.mean << std::endl;
 		std::cout << "> variance:\t\t\t" << stat.variance << std::endl;
-		std::cout << std::endl;
+		std::cout << "> min:\t\t\t\t" << stat.min << std::endl;
+		std::cout << "> max:\t\t\t\t" << stat.max << std::endl;
+		std::cout << "> isNegative:\t\t\t" << res.isNegative << std::endl;
+		std::cout << "> isInteger:\t\t\t" << res.isInteger << std::endl;
 
 		return res;
 	}
@@ -120,8 +123,8 @@ namespace ppr::gpu
 		if (opencl.data_count_for_cpu < data_count)
 		{
 			// Find rest of a statistics on CPU
-			RunningStatParallel stat_cpu(data, opencl.data_count_for_cpu);
-			ppr::executor::run_with_tbb<RunningStatParallel>(arena, stat_cpu, opencl.data_count_for_cpu + 1, data_count);
+			Running_stat_parallel stat_cpu(data, opencl.data_count_for_cpu);
+			ppr::executor::run_with_tbb<Running_stat_parallel>(arena, stat_cpu, opencl.data_count_for_cpu + 1, data_count);
 
 			// Find statistics on GPU
 			SDataStat stat_gpu = ppr::gpu::run_statistics_on_GPU(opencl, configuration, data, opencl.data_count_for_gpu);

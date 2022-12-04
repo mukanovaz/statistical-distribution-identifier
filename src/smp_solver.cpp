@@ -122,10 +122,15 @@ namespace ppr::parallel
 
 		std::cout << "\t\t\t[Statistics]" << std::endl;
 		std::cout << "---------------------------------------------------------------------" << std::endl;
-		std::cout << "> n:\t\t\t" << stat.n << std::endl;
-		std::cout << "> sum:\t\t\t" << stat.sum << std::endl;
-		std::cout << "> mean:\t\t\t" << stat.mean << std::endl;
-		std::cout << "> variance:\t\t" << stat.variance << std::endl;
+		std::cout << "> n:\t\t\t\t" << stat.n << std::endl;
+		std::cout << "> sum:\t\t\t\t" << stat.sum << std::endl;
+		std::cout << "> mean:\t\t\t\t" << stat.mean << std::endl;
+		std::cout << "> variance:\t\t\t" << stat.variance << std::endl;
+		std::cout << "> min:\t\t\t\t" << stat.min << std::endl;
+		std::cout << "> max:\t\t\t\t" << stat.max << std::endl;
+		std::cout << "> isNegative:\t\t\t" << res.isNegative << std::endl;
+		std::cout << "> isInteger:\t\t\t" << res.isInteger << std::endl;
+
 		std::cout << std::endl;
 
 		return res;
@@ -134,8 +139,8 @@ namespace ppr::parallel
 	void get_statistics_CPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
 	{
 		// Find rest of a statistics on CPU
-		RunningStatParallel stat_cpu(data, opencl.data_count_for_cpu);
-		ppr::executor::run_with_tbb<RunningStatParallel>(arena, stat_cpu, opencl.data_count_for_cpu + 1, data_count);
+		Running_stat_parallel stat_cpu(data, opencl.data_count_for_cpu);
+		ppr::executor::run_with_tbb<Running_stat_parallel>(arena, stat_cpu, opencl.data_count_for_cpu + 1, data_count);
 
 		// Agregate results results
 		stat.n += stat_cpu.NumDataValues();
