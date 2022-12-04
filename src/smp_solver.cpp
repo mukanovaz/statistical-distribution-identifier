@@ -44,7 +44,7 @@ namespace ppr::parallel
 		{
 			// TBB run
 			t0 = tbb::tick_count::now();
-			mapping.read_in_one_chunk_cpu(hist, configuration, opencl, stat, arena, tmp, &get_statistics_CPU);
+			mapping.read_in_chunks(hist, configuration, opencl, stat, arena, tmp, &get_statistics_CPU);
 			t1 = tbb::tick_count::now();
 		}
 
@@ -76,7 +76,7 @@ namespace ppr::parallel
 		{
 			// TBB run
 			t0 = tbb::tick_count::now();
-			mapping.read_in_one_chunk_cpu(hist, configuration, opencl, stat, arena, histogramFreq, &create_frequency_histogram_CPU);
+			mapping.read_in_chunks(hist, configuration, opencl, stat, arena, histogramFreq, &create_frequency_histogram_CPU);
 			t1 = tbb::tick_count::now();
 		}
 		res.total_hist_time = (t1 - t0).seconds();
@@ -109,7 +109,8 @@ namespace ppr::parallel
 
 		//	================ [Calculate RSS]
 		stage = 3;
-		ppr::executor::calculate_histogram_RSS_with_tbb(res, arena, histogramDensity, hist);
+		//ppr::executor::calculate_histogram_RSS_with_tbb(res, arena, histogramDensity, hist);
+		ppr::parallel::calculate_histogram_RSS_cpu(res, histogramDensity, hist);
 
 		//	================ [Analyze Results]
 		ppr::executor::analyze_results(res);

@@ -204,7 +204,7 @@ namespace ppr
         }
     }
 
-    void File_mapping::read_in_chunks_gpu(
+    void File_mapping::read_in_chunks(
         SHistogram& hist,
         SConfig& config,
         SOpenCLConfig& opencl,

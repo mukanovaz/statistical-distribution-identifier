@@ -1,6 +1,7 @@
 #include "include/smp_utils.h"
 #include "include/gpu_utils.h"
 #include "include/executor.h"
+#include <future>
 
 namespace ppr::parallel
 {
@@ -228,5 +229,87 @@ namespace ppr::parallel
 
 		__m128d high64 = _mm_unpackhi_pd(vlow, vlow);
 		return  _mm_cvtsd_f64(_mm_add_sd(vlow, high64)); // reduce to scalar
+	}
+
+	void calculate_histogram_RSS_cpu(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist)
+	{
+		tbb::tick_count total1 = tbb::tick_count::now();
+
+		std::vector<std::future<double>> workers(4);
+
+		// Run workers
+		workers[0] = std::async(std::launch::async, &get_gauss_rss, std::ref(res), std::ref(histogramDensity), std::ref(hist));
+		workers[1] = std::async(std::launch::async, &get_exp_rss, std::ref(res), std::ref(histogramDensity), std::ref(hist));
+		workers[2] = std::async(std::launch::async, &get_poisson_rss, std::ref(res), std::ref(histogramDensity), std::ref(hist));
+		workers[3] = std::async(std::launch::async, &get_uniform_rss, std::ref(res), std::ref(histogramDensity), std::ref(hist));
+
+		// Agregate results results
+		res.gauss_rss = workers[0].get();
+		res.exp_rss = workers[1].get();
+		res.poisson_rss = workers[2].get();
+		res.uniform_rss = workers[3].get();
+
+		tbb::tick_count total2 = tbb::tick_count::now();
+		res.total_rss_time = (total2 - total1).seconds();
+	}
+
+	double get_gauss_rss(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist)
+	{
+		ppr::rss::Distribution* dist = new ppr::rss::NormalDistribution(res.gauss_mean, res.gauss_stdev, res.gauss_variance);
+		// Compute RSS
+		for (size_t i = 0; i < histogramDensity.size(); i++)
+		{
+			double d = (double)histogramDensity[i];
+			dist->Push(d, (i * hist.binSize));
+		}
+		double result = dist->Get_RSS();
+		delete dist;
+
+		return result;
+	}
+
+	double get_poisson_rss(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist)
+	{
+		ppr::rss::Distribution* dist = new ppr::rss::PoissonDistribution(res.poisson_lambda);
+		// Compute RSS
+		for (size_t i = 0; i < histogramDensity.size(); i++)
+		{
+			double d = (double)histogramDensity[i];
+			dist->Push(d, (i * hist.binSize));
+		}
+		double result = dist->Get_RSS();
+		delete dist;
+
+		return result;
+	}
+
+	double get_exp_rss(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist)
+	{
+		ppr::rss::Distribution* dist = new ppr::rss::ExponentialDistribution(res.exp_lambda);
+		// Compute RSS
+		for (size_t i = 0; i < histogramDensity.size(); i++)
+		{
+			double d = (double)histogramDensity[i];
+			dist->Push(d, (i * hist.binSize));
+		}
+		double result = dist->Get_RSS();
+		delete dist;
+
+		return result;
+	}
+
+	double get_uniform_rss(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist)
+	{
+		ppr::rss::Distribution* dist = new ppr::rss::UniformDistribution(res.uniform_a, res.uniform_b);
+		// Compute RSS
+		for (size_t i = 0; i < histogramDensity.size(); i++)
+		{
+			double d = (double)histogramDensity[i];
+			dist->Push(d, (i * hist.binSize));
+		}
+		double result = dist->Get_RSS();
+		delete dist;
+
+		return result;
 	}
 }

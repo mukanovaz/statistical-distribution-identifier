@@ -147,8 +147,9 @@ namespace ppr::rss
 		void operator()(const tbb::blocked_range<size_t>& r)
 		{
 			ppr::rss::Distribution* t_dist = m_dist;    // to not discard earlier accumulations
-			size_t end = r.end();
-			for (size_t i = r.begin(); i != end; ++i)
+
+			#pragma loop(ivdep)
+			for (size_t i = r.begin(); i != r.end(); ++i)
 			{
 				double d = (double)m_bucketDensity[i];
 				m_dist->Push(d, (static_cast<double>(i) * m_bin_size));

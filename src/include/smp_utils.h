@@ -131,4 +131,48 @@ namespace ppr::parallel
 	/// <param name="v">- 4 element vector with data in double type</param>
 	/// <returns>sum of vector elements</returns>
 	inline double hsum_double_avx(__m256d v);
+
+	/// <summary>
+	/// Calculating RSS for each distribution i threads
+	/// </summary>
+	/// <param name="res">- Final results structure</param>
+	/// <param name="histogramDensity">- Density histogram reference</param>
+	/// <param name="hist">- Histogram configuration structure</param>
+	void calculate_histogram_RSS_cpu(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist);
+
+	/// <summary>
+	/// Method to calculate RSS for Gauss distribution. Used in thread
+	/// </summary>
+	/// <param name="res">- Final results structure</param>
+	/// <param name="histogramDensity">- Density histogram reference</param>
+	/// <param name="hist">- Histogram configuration structure</param>
+	/// <returns>rss</returns>
+	double get_gauss_rss(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist);
+
+	/// <summary>
+	/// Method to calculate RSS for Gauss distribution. Used in thread
+	/// </summary>
+	/// <param name="res">- Final results structure</param>
+	/// <param name="histogramDensity">- Density histogram reference</param>
+	/// <param name="hist">- Histogram configuration structure</param>
+	/// <returns>rss</returns>
+	double get_poisson_rss(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist);
+
+	/// <summary>
+	/// Method to calculate RSS for Exponential distribution. Used in thread
+	/// </summary>
+	/// <param name="res">- Final results structure</param>
+	/// <param name="histogramDensity">- Density histogram reference</param>
+	/// <param name="hist">- Histogram configuration structure</param>
+	/// <returns>rss</returns>
+	double get_exp_rss(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist);
+
+	/// <summary>
+	/// Method to calculate RSS for Uniform distribution. Used in thread
+	/// </summary>
+	/// <param name="res">- Final results structure</param>
+	/// <param name="histogramDensity">- Density histogram reference</param>
+	/// <param name="hist">- Histogram configuration structure</param>
+	/// <returns>rss</returns>
+	double get_uniform_rss(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist);
 }
