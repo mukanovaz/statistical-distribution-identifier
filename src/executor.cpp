@@ -1,5 +1,5 @@
-#include "executor.h"
-#include "smp/smp_utils.h"
+#include "include/executor.h"
+#include "include/smp_utils.h"
 #include <algorithm>
 
 namespace ppr::executor

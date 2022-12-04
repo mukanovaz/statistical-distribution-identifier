@@ -1,6 +1,6 @@
-#include "smp_utils.h"
-#include "../opencl/gpu_utils.h"
-#include "../executor.h"
+#include "include/smp_utils.h"
+#include "include/gpu_utils.h"
+#include "include/executor.h"
 
 namespace ppr::parallel
 {

@@ -1,9 +1,9 @@
-#include "file_mapping.h"
-#include "config.h"
-#include "data.h"
-#include "./smp/smp_solver.h"
-#include "./sequential/seq_solver.h"
-#include "./opencl/gpu_solver.h"
+#include "include/file_mapping.h"
+#include "include/config.h"
+#include "include/data.h"
+#include "include/smp_solver.h"
+#include "include/seq_solver.h"
+#include "include/gpu_solver.h"
 
 #include <iostream>
 

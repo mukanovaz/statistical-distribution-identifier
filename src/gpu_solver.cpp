@@ -1,6 +1,7 @@
-#include "gpu_solver.h"
-#include "../executor.h"
-#include "../watchdog.h"
+#include "include/gpu_solver.h"
+#include "include/executor.h"
+#include "include/watchdog.h"
+#include "include/histogram.h"
 
 namespace ppr::gpu
 {
@@ -142,8 +143,8 @@ namespace ppr::gpu
 		if (opencl.data_count_for_cpu < data_count)
 		{
 			// Run on CPU
-			ppr::hist::HistogramParallel hist_cpu(hist.binCount, hist.binSize, stat.min, stat.max, data, stat.mean);
-			ppr::executor::run_with_tbb<ppr::hist::HistogramParallel>(arena, hist_cpu, opencl.data_count_for_cpu, data_count);
+			ppr::hist::Histogram_parallel hist_cpu(hist.binCount, hist.binSize, stat.min, stat.max, data, stat.mean);
+			ppr::executor::run_with_tbb<ppr::hist::Histogram_parallel>(arena, hist_cpu, opencl.data_count_for_cpu, data_count);
 
 			// Transform vector
 			std::transform(histogram.begin(), histogram.end(), hist_cpu.m_bucketFrequency.begin(), histogram.begin(), std::plus<int>());

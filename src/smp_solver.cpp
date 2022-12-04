@@ -1,7 +1,7 @@
-#include "smp_solver.h"
+#include "include/smp_solver.h"
+#include "include/watchdog.h"
 #include <vector>
 #include <future>
-#include "../watchdog.h"
 
 namespace ppr::parallel
 {
@@ -138,8 +138,8 @@ namespace ppr::parallel
 	void create_frequency_histogram_CPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
 	{
 		// Run on CPU
-		ppr::hist::HistogramParallel hist_cpu(hist.binCount, hist.binSize, stat.min, stat.max, data, stat.mean);
-		ppr::executor::run_with_tbb<ppr::hist::HistogramParallel>(arena, hist_cpu, opencl.data_count_for_cpu, data_count);
+		ppr::hist::Histogram_parallel hist_cpu(hist.binCount, hist.binSize, stat.min, stat.max, data, stat.mean);
+		ppr::executor::run_with_tbb<ppr::hist::Histogram_parallel>(arena, hist_cpu, opencl.data_count_for_cpu, data_count);
 
 		// Transform vector
 		std::transform(histogram.begin(), histogram.end(), hist_cpu.m_bucketFrequency.begin(), histogram.begin(), std::plus<int>());

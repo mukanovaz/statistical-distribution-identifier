@@ -20,21 +20,21 @@ namespace ppr::rss
 			Distribution() : m_rss(0.0)
 			{}
 
-			virtual double Pdf(double x) { return 0.0; }
+			virtual double Pdf(double) { return 0.0; }
 
-			void Push(double y_obs, double bin)
+			virtual void Push(double y_obs, double bin)
 			{
 				double val = y_obs - Pdf(bin);
 				double tmp = m_rss + (val * val);
 				m_rss = tmp;
 			}
 
-			double Get_RSS() const
+			virtual double Get_RSS() const
 			{
 				return m_rss;
 			}
 			
-			void Add_RSS(double rss)
+			virtual void Add_RSS(double rss)
 			{
 				m_rss += rss;
 			}
@@ -89,7 +89,7 @@ namespace ppr::rss
 				: A(a), B(b)
 			{}
 
-			double Pdf(double x) override
+			double Pdf(double) override
 			{
 				// TODO: a <= x <= b
 				return 1.0 / (B - A);
@@ -162,7 +162,7 @@ namespace ppr::rss
 
 		void join(const RSSParallel& y)
 		{
-			//m_dist->Add_RSS(y.m_dist->Get_RSS());
+			m_dist->Add_RSS(y.m_dist->Get_RSS());
 		}
 	};
 }

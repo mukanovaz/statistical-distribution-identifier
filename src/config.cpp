@@ -1,4 +1,4 @@
-#include "config.h"
+#include "include/config.h"
 #include <thread>
 
 namespace ppr
@@ -79,6 +79,11 @@ namespace ppr
 	}
 
 	void print_error(const char* message)
+	{
+		std::cerr << "> [ERROR]: " << message << std::endl;
+	}
+
+	void print_error(const std::string message)
 	{
 		std::cerr << "> [ERROR]: " << message << std::endl;
 	}

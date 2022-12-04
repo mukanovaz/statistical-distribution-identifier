@@ -15,43 +15,48 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\file_mapping.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <None Include="statistics_kernel.cl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="histogram_kernel.cl">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="..\src\config.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\sequential\seq_solver.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\rss\statistics.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\rss\rss.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\histogram\histogram.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\referencni_rozdeleni\generator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\smp\smp_solver.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\opencl\gpu_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\executor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\opencl\gpu_solver.cpp">
+    <ClCompile Include="..\src\file_mapping.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\smp\smp_utils.cpp">
+    <ClCompile Include="..\src\gpu_solver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gpu_utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\histogram.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rss.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\seq_solver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\smp_solver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\smp_utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\statistics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\watchdog.cpp">
@@ -59,49 +64,41 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\file_mapping.h">
+    <ClInclude Include="..\src\include\config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\config.h">
+    <ClInclude Include="..\src\include\data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\data.h">
+    <ClInclude Include="..\src\include\executor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\main.h">
+    <ClInclude Include="..\src\include\file_mapping.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\sequential\seq_solver.h">
+    <ClInclude Include="..\src\include\gpu_solver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\smp\smp_solver.h">
+    <ClInclude Include="..\src\include\gpu_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\opencl\gpu_utils.h">
+    <ClInclude Include="..\src\include\histogram.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\executor.h">
+    <ClInclude Include="..\src\include\main.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\opencl\gpu_solver.h">
+    <ClInclude Include="..\src\include\seq_solver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\histogram\histogram.h">
+    <ClInclude Include="..\src\include\smp_solver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\smp\smp_utils.h">
+    <ClInclude Include="..\src\include\smp_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\watchdog.h">
+    <ClInclude Include="..\src\include\watchdog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="statistics_kernel.cl">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="histogram_kernel.cl">
-      <Filter>Resource Files</Filter>
-    </None>
   </ItemGroup>
 </Project>

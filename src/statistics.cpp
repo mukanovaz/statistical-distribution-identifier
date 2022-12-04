@@ -1,13 +1,13 @@
+#include "include/data.h"
 #include<cmath>
+#include <iostream>
+#include <numeric>
 
 #undef min
 #undef max
 
 #include <tbb/combinable.h>
 #include <tbb/parallel_for.h>
-#include "../data.h"
-#include <iostream>
-#include <numeric>
 
 namespace ppr
 {

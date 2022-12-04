@@ -123,6 +123,12 @@ namespace ppr
     /// <summary>
     /// Print error message
     /// </summary>
-    /// <param name="message"></param>
+    /// <param name="message">message</param>
     void print_error(const char* message);
+
+    /// <summary>
+    /// Print error message
+    /// </summary>
+    /// <param name="message">message</param>
+    void print_error(const std::string message);
 }

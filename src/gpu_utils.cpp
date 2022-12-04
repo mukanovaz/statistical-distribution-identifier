@@ -1,9 +1,9 @@
-#include "gpu_utils.h"
+#include "include/gpu_utils.h"
+#include "include/smp_utils.h"
 #include <fstream>
 #include <string>
 #include <algorithm>
 #include <iostream>
-#include "../smp/smp_utils.h"
 
 namespace ppr::gpu
 {
@@ -23,6 +23,12 @@ namespace ppr::gpu
         cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, out_histogram.size() * sizeof(cl_uint), out_histogram.data(), &err);
         cl::Buffer out_var_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, work_group_number * sizeof(double), nullptr, &err);
 
+        if (err != CL_SUCCESS)
+        {
+            ppr::print_error(get_CL_error_string(err));
+            return;
+        }
+
         // Set method arguments
         err = opencl.kernel.setArg(0, in_data_buf);
         err = opencl.kernel.setArg(1, opencl.wg_size * sizeof(double), nullptr);
@@ -34,10 +40,30 @@ namespace ppr::gpu
         err = opencl.kernel.setArg(7, sizeof(double), &hist.binSize);
         err = opencl.kernel.setArg(8, sizeof(double), &hist.binCount);
 
+        if (err != CL_SUCCESS)
+        {
+            ppr::print_error(get_CL_error_string(err));
+            return;
+        }
+
         // Pass all data to GPU
         err = opencl.queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(count), cl::NDRange(opencl.wg_size));
+
+        if (err != CL_SUCCESS)
+        {
+            ppr::print_error(get_CL_error_string(err));
+            return;
+        }
+
+        // Fill output vectors
         err = opencl.queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, out_histogram.size() * sizeof(cl_uint), out_histogram.data());
         err = opencl.queue.enqueueReadBuffer(out_var_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_var.data());
+
+        if (err != CL_SUCCESS)
+        {
+            ppr::print_error(get_CL_error_string(err));
+            return;
+        }
 
         // Wait on kernel
         cl::finish();
@@ -68,7 +94,7 @@ namespace ppr::gpu
         
         if (err != CL_SUCCESS)
         {
-            std::cout << "Error in buffer" << std::endl;
+            ppr::print_error(get_CL_error_string(err));
             return {};
         }
 
@@ -83,7 +109,7 @@ namespace ppr::gpu
 
         if (err != CL_SUCCESS)
         {
-            std::cout << "Error in args" << std::endl;
+            ppr::print_error(get_CL_error_string(err));
             return {};
         }
 
@@ -94,13 +120,21 @@ namespace ppr::gpu
 
         // Pass all data to GPU
         err = m_ocl_config.queue.enqueueNDRangeKernel(m_ocl_config.kernel, cl::NullRange, cl::NDRange(count), cl::NDRange(m_ocl_config.wg_size));
+        
+        if (err != CL_SUCCESS)
+        {
+            ppr::print_error(get_CL_error_string(err));
+            return {};
+        }
+
+        // Fill output vectors
         err = m_ocl_config.queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_sum.data());
         err = m_ocl_config.queue.enqueueReadBuffer(out_min_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_min.data());
         err = m_ocl_config.queue.enqueueReadBuffer(out_max_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_max.data());
 
         if (err != CL_SUCCESS)
         {
-            std::cout << "Error in queue" << std::endl;
+            ppr::print_error(get_CL_error_string(err));
             return {};
         }
 
@@ -125,7 +159,6 @@ namespace ppr::gpu
 
     SOpenCLConfig init(SConfig& configuration, const std::string& file, const char* kernel_name)
     {
-        cl_int err = 0;
         SOpenCLConfig opencl;
 
         // Find all platforms
@@ -175,6 +208,13 @@ namespace ppr::gpu
 
         // Create first program
         opencl.context = cl::Context(opencl.device, nullptr, nullptr, nullptr, &err);
+
+        if (err != CL_SUCCESS)
+        {
+            ppr::print_error(get_CL_error_string(err));
+            return;
+        }
+
         opencl.program = cl::Program(opencl.context, source);
 
         // Build our program
@@ -184,7 +224,7 @@ namespace ppr::gpu
         {
             // Get the build log for the first device
             std::string log = opencl.program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(opencl.device);
-            std::cerr << log << std::endl;
+            ppr::print_error(log);
         }
     }
 

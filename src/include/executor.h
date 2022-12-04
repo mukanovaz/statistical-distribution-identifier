@@ -1,4 +1,13 @@
 #pragma once
+#include "statistics.cpp"
+#include "histogram.h"
+#include "gpu_utils.h"
+#include <numeric>
+#include <vector>
+#include <algorithm>
+#include <functional>
+#include <array>
+
 #undef min
 #undef max
 
@@ -6,14 +15,7 @@
 #include <tbb/parallel_reduce.h>
 #include <tbb/task_arena.h>
 #include <tbb/blocked_range.h>
-#include "rss/statistics.cpp"
-#include "histogram/histogram.cpp"
-#include "opencl/gpu_utils.h"
-#include <numeric>
-#include <vector>
-#include <algorithm>
-#include <functional>
-#include <array>
+
 
 namespace ppr::executor
 {

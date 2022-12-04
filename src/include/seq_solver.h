@@ -1,8 +1,8 @@
 #pragma once
-#include "../data.h"
-#include "../config.h"
-#include "../file_mapping.h"
-#include "../executor.h"
+#include "include/data.h"
+#include "include/config.h"
+#include "include/file_mapping.h"
+#include "include/executor.h"
 
 namespace ppr::seq
 {	

@@ -1,8 +1,8 @@
 #pragma once
 #include <CL/cl.hpp>
 #include <string>
-#include "../config.h"
-#include "../data.h"
+#include "config.h"
+#include "data.h"
 
 namespace ppr::gpu
 {

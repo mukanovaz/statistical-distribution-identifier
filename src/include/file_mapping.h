@@ -2,7 +2,7 @@
 #ifndef FILEMAP_H
 #define FILEMAP_H
 
-#include "smp/smp_utils.h"
+#include "smp_utils.h"
 #include "config.h"
 #include "data.h"
 

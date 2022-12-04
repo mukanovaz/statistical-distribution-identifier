@@ -1,4 +1,4 @@
-#include "seq_solver.h"
+#include "include/seq_solver.h"
 
 namespace ppr::seq
 {
@@ -42,7 +42,7 @@ namespace ppr::seq
 		for (unsigned int i = 0; i < mapping.get_count(); i++)
 		{
 			double d = (double)data[i];
-			hist.Push(histogramFrequency, d);
+			hist.push(histogramFrequency, d);
 		}
 
 		t1 = tbb::tick_count::now();
@@ -50,7 +50,7 @@ namespace ppr::seq
 		mapping.unmap_file();
 
 		// ================ [Get propability density of histogram]
-		hist.ComputePropabilityDensityOfHistogram(histogramDensity, histogramFrequency, mapping.get_count());
+		hist.compute_propability_density_histogram(histogramDensity, histogramFrequency, mapping.get_count());
 
 		//	================ [Fit params]
 		// Gauss maximum likelihood estimators
@@ -70,10 +70,10 @@ namespace ppr::seq
 
 		// ================ [Calculate RSS]
 		t0 = tbb::tick_count::now();
-		res.gauss_rss = hist.ComputeRssOfHistogram(histogramDensity, 'n', res);
-		res.exp_rss = hist.ComputeRssOfHistogram(histogramDensity, 'e', res);
-		res.poisson_rss = hist.ComputeRssOfHistogram(histogramDensity, 'p', res);
-		res.uniform_rss = hist.ComputeRssOfHistogram(histogramDensity, 'u', res);
+		res.gauss_rss = hist.compute_rss_histogram(histogramDensity, 'n', res);
+		res.exp_rss = hist.compute_rss_histogram(histogramDensity, 'e', res);
+		res.poisson_rss = hist.compute_rss_histogram(histogramDensity, 'p', res);
+		res.uniform_rss = hist.compute_rss_histogram(histogramDensity, 'u', res);
 		t1 = tbb::tick_count::now();
 		std::cout << "Total RSS:\t" << (t1 - t0).seconds() << "\tsec." << std::endl;
 

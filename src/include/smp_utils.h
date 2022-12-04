@@ -1,6 +1,6 @@
 #pragma once
-#include "../config.h"
-#include "../data.h"
+#include "config.h"
+#include "data.h"
 #include <vector>
 
 #undef min

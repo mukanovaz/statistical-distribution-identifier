@@ -19,40 +19,39 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\referencni_rozdeleni\generator.cpp" />
-    <ClCompile Include="..\src\executor.cpp" />
-    <ClCompile Include="..\src\file_mapping.cpp" />
-    <ClCompile Include="..\src\histogram\histogram.cpp" />
-    <ClCompile Include="..\src\main.cpp" />
-    <ClCompile Include="..\src\config.cpp" />
-    <ClCompile Include="..\src\opencl\gpu_solver.cpp" />
-    <ClCompile Include="..\src\opencl\gpu_utils.cpp" />
-    <ClCompile Include="..\src\rss\rss.cpp" />
-    <ClCompile Include="..\src\rss\statistics.cpp" />
-    <ClCompile Include="..\src\sequential\seq_solver.cpp" />
-    <ClCompile Include="..\src\smp\smp_solver.cpp" />
-    <ClCompile Include="..\src\smp\smp_utils.cpp" />
-    <ClCompile Include="..\src\watchdog.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\src\data.h" />
-    <ClInclude Include="..\src\executor.h" />
-    <ClInclude Include="..\src\file_mapping.h" />
-    <ClInclude Include="..\src\config.h" />
-    <ClInclude Include="..\src\histogram\histogram.h" />
-    <ClInclude Include="..\src\main.h" />
-    <ClInclude Include="..\src\opencl\gpu_solver.h" />
-    <ClInclude Include="..\src\opencl\gpu_utils.h" />
-    <ClInclude Include="..\src\sequential\seq_solver.h" />
-    <ClInclude Include="..\src\smp\smp_solver.h" />
-    <ClInclude Include="..\src\smp\smp_utils.h" />
-    <ClInclude Include="..\src\watchdog.h" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="histogram_kernel.cl" />
     <None Include="statistics_kernel.cl">
       <FileType>Document</FileType>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\config.cpp" />
+    <ClCompile Include="..\src\executor.cpp" />
+    <ClCompile Include="..\src\file_mapping.cpp" />
+    <ClCompile Include="..\src\gpu_solver.cpp" />
+    <ClCompile Include="..\src\gpu_utils.cpp" />
+    <ClCompile Include="..\src\histogram.cpp" />
+    <ClCompile Include="..\src\main.cpp" />
+    <ClCompile Include="..\src\rss.cpp" />
+    <ClCompile Include="..\src\seq_solver.cpp" />
+    <ClCompile Include="..\src\smp_solver.cpp" />
+    <ClCompile Include="..\src\smp_utils.cpp" />
+    <ClCompile Include="..\src\statistics.cpp" />
+    <ClCompile Include="..\src\watchdog.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\include\config.h" />
+    <ClInclude Include="..\src\include\data.h" />
+    <ClInclude Include="..\src\include\executor.h" />
+    <ClInclude Include="..\src\include\file_mapping.h" />
+    <ClInclude Include="..\src\include\gpu_solver.h" />
+    <ClInclude Include="..\src\include\gpu_utils.h" />
+    <ClInclude Include="..\src\include\histogram.h" />
+    <ClInclude Include="..\src\include\main.h" />
+    <ClInclude Include="..\src\include\seq_solver.h" />
+    <ClInclude Include="..\src\include\smp_solver.h" />
+    <ClInclude Include="..\src\include\smp_utils.h" />
+    <ClInclude Include="..\src\include\watchdog.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -135,16 +134,16 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\include;$(TBBROOT)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\include;$(TBBROOT)\include;D:\Study\ZCU\5.semestr\PPR\kiv-ppr\include</AdditionalIncludeDirectories>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
-      <AdditionalOptions>/Qvec-report:2 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-Wall %(AdditionalOptions)</AdditionalOptions>
       <AssemblerOutput>AssemblyAndMachineCode</AssemblerOutput>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>$(TBBROOT)\redist\intel64\vc_mt;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\lib\x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(TBBROOT)\redist\intel64\vc_mt;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\lib\x64;D:\Study\ZCU\5.semestr\PPR\kiv-ppr\include</AdditionalLibraryDirectories>
       <AdditionalDependencies>OpenCL.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -171,16 +170,17 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\include;$(TBBROOT)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\include;$(TBBROOT)\include;D:\Study\ZCU\5.semestr\PPR\kiv-ppr\include</AdditionalIncludeDirectories>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <AdditionalOptions>-Wall %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>$(TBBROOT)\redist\intel64\vc_mt;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\lib\x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(TBBROOT)\redist\intel64\vc_mt;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\lib\x64;D:\Study\ZCU\5.semestr\PPR\kiv-ppr\include</AdditionalLibraryDirectories>
       <AdditionalDependencies>OpenCL.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

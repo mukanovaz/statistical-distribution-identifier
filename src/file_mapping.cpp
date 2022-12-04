@@ -1,4 +1,4 @@
-#include "file_mapping.h"
+#include "include/file_mapping.h"
 
 namespace ppr
 {
@@ -21,6 +21,8 @@ namespace ppr
         bool res_mf = map_file();
         if (!res_mf)
         {
+            ppr::print_error("Cannot create a mapping");
+            CloseHandle(m_file);
             return;
         }
 
