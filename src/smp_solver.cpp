@@ -37,14 +37,14 @@ namespace ppr::parallel
 		{
 			// Optimized run
 			t0 = tbb::tick_count::now();
-			mapping.read_in_chunks_cpu(hist, configuration, opencl, stat, EIteration::STAT, tmp);
+			mapping.read_in_one_chunk_cpu(hist, configuration, opencl, stat, EIteration::STAT, tmp);
 			t1 = tbb::tick_count::now();
 		}
 		else
 		{
 			// TBB run
 			t0 = tbb::tick_count::now();
-			mapping.read_in_chunks(hist, configuration, opencl, stat, arena, tmp, &get_statistics_CPU);
+			mapping.read_in_one_chunk_cpu(hist, configuration, opencl, stat, arena, tmp, &get_statistics_CPU);
 			t1 = tbb::tick_count::now();
 		}
 
@@ -69,14 +69,14 @@ namespace ppr::parallel
 		{
 			// Optimized run
 			t0 = tbb::tick_count::now();
-			mapping.read_in_chunks_cpu(hist, configuration, opencl, stat, EIteration::HIST, histogramFreq);
+			mapping.read_in_one_chunk_cpu(hist, configuration, opencl, stat, EIteration::HIST, histogramFreq);
 			t1 = tbb::tick_count::now();
 		}
 		else
 		{
 			// TBB run
 			t0 = tbb::tick_count::now();
-			mapping.read_in_chunks(hist, configuration, opencl, stat, arena, histogramFreq, &create_frequency_histogram_CPU);
+			mapping.read_in_one_chunk_cpu(hist, configuration, opencl, stat, arena, histogramFreq, &create_frequency_histogram_CPU);
 			t1 = tbb::tick_count::now();
 		}
 		res.total_hist_time = (t1 - t0).seconds();
