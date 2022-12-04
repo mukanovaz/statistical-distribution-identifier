@@ -93,7 +93,8 @@ namespace ppr::gpu
 
 		//	================ [Calculate RSS]
 		stage = 3;
-		ppr::executor::calculate_histogram_RSS_with_tbb(res, arena, histogramDensity, hist);
+		//ppr::executor::calculate_histogram_RSS_with_tbb(res, arena, histogramDensity, hist);
+		ppr::parallel::calculate_histogram_RSS_cpu(res, histogramDensity, hist);
 
 		//	================ [Analyze Results]
 		ppr::executor::analyze_results(res);

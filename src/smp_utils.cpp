@@ -263,6 +263,8 @@ namespace ppr::parallel
 			dist->Push(d, (i * hist.binSize));
 		}
 		double result = dist->Get_RSS();
+
+		// Free instance
 		delete dist;
 
 		return result;
@@ -278,6 +280,8 @@ namespace ppr::parallel
 			dist->Push(d, (i * hist.binSize));
 		}
 		double result = dist->Get_RSS();
+
+		// Free instance
 		delete dist;
 
 		return result;
@@ -293,6 +297,8 @@ namespace ppr::parallel
 			dist->Push(d, (i * hist.binSize));
 		}
 		double result = dist->Get_RSS();
+
+		// Free instance
 		delete dist;
 
 		return result;
@@ -308,6 +314,8 @@ namespace ppr::parallel
 			dist->Push(d, (i * hist.binSize));
 		}
 		double result = dist->Get_RSS();
+
+		// Free instance
 		delete dist;
 
 		return result;
