@@ -151,9 +151,9 @@
       </EnableParallelCodeGeneration>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <AssemblerOutput>AssemblyAndMachineCode</AssemblerOutput>
-      <DebugInformationFormat>None</DebugInformationFormat>
-      <ControlFlowGuard>Guard</ControlFlowGuard>
-      <AdditionalOptions>/analyze /GL /D "UNICODE"  /D CL_USE_DEPRECATED_OPENCL_1_2_APIS  /Fe:pprsolver.exe %(AdditionalOptions)</AdditionalOptions>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <ControlFlowGuard>false</ControlFlowGuard>
+      <AdditionalOptions>/D "UNICODE"  /D CL_USE_DEPRECATED_OPENCL_1_2_APIS  /Fe:pprsolver.exe %(AdditionalOptions)</AdditionalOptions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <CallingConvention>VectorCall</CallingConvention>
     </ClCompile>
@@ -162,6 +162,7 @@
       </ModuleDefinitionFile>
       <AdditionalLibraryDirectories>$(TBBROOT)\redist\intel64\vc_mt;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\lib\x64;D:\Study\ZCU\5.semestr\PPR\kiv-ppr\include</AdditionalLibraryDirectories>
       <AdditionalDependencies>OpenCL.lib</AdditionalDependencies>
+      <AdditionalOptions>/MACHINE:X64 /DEBUG:FULL %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

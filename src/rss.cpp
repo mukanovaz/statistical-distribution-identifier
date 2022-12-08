@@ -53,8 +53,9 @@ namespace ppr::rss
 
 			double Pdf(double x) override
 			{
-				return 1.0 / sqrt(DOUBLE_PI) * exp( -0.5 * x * x);
-				//return 1.0 / sqrt(DOUBLE_PI * Variance) * exp( -0.5 * pow((x - Mean)/ Stddev, 2));
+				double y = (x - Mean) / Stddev;
+				double pdf = exp(-pow(y, 2) / 2) / sqrt(DOUBLE_PI);
+				return pdf / Stddev;
 			}
 	};
 

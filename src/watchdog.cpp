@@ -6,12 +6,12 @@
 
 namespace ppr::watchdog
 {
-	void start_watchdog(SConfig& config, SDataStat& stat, SHistogram& hist, int& stage,
+	std::thread start_watchdog(SConfig& config, SDataStat& stat, SHistogram& hist, int& stage,
 		std::vector<int>& histogram, std::vector<double>& histogramDesity, int data_count)
 	{
         std::thread watchdog([&]() {
 			EExitStatus status = EExitStatus::SUCCESS;
-			unsigned int n_last = 0;
+			unsigned long long n_last = 0;
 
 			while (true)
 			{
@@ -85,6 +85,7 @@ namespace ppr::watchdog
 
         });
 
-		watchdog.detach();
+		return watchdog;
+		//watchdog.detach();
 	}
 }

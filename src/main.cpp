@@ -31,10 +31,10 @@ void get_dist_string(SResult result)
 			std::cout << "> Input data have 'Gauss/Normal distribution' with mean=" << result.gauss_mean << " and variance=" << result.gauss_variance << std::endl;
 			break;
 		case EDistribution::POISSON: 
-			std::cout << "> Input data have 'Poisson distribution' with lambda=" << result.poisson_lambda << result.gauss_variance << std::endl;
+			std::cout << "> Input data have 'Poisson distribution' with lambda=" << result.poisson_lambda << std::endl;
 			break;
 		case EDistribution::EXP: 
-			std::cout << "> Input data have 'Exponential distribution' with lambda=" << result.exp_lambda << result.gauss_variance << std::endl;
+			std::cout << "> Input data have 'Exponential distribution' with lambda=" << result.exp_lambda << std::endl;
 			break;
 		case EDistribution::UNIFORM: 
 			std::cout << "> Input data have 'Uniform distribution' with a=" << result.uniform_a << " and b=" << result.uniform_b << std::endl;
@@ -44,7 +44,8 @@ void get_dist_string(SResult result)
 	}
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char* argv[])
+{
 	ppr::SConfig conf;
 	bool parse_result = parse_args(argc, argv, conf);
 	if (!parse_result)
@@ -52,7 +53,7 @@ int main(int argc, char** argv) {
 		return ppr::EExitStatus::ARGS;
 	}
 
-	SYSTEM_INFO sysInfo;
+	//SYSTEM_INFO sysInfo;
 
 	//GetSystemInfo(&sysInfo);
 	//printf("%s %d\n\n", "PageSize[Bytes] :", sysInfo.dwPageSize);

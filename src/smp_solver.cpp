@@ -30,7 +30,7 @@ namespace ppr::parallel
 		unsigned int data_count = mapping.get_count();
 
 		//  ================ [Start Watchdog]
-		ppr::watchdog::start_watchdog(configuration, stat, hist, stage, histogramFreq, histogramDensity, data_count);
+		std::thread watchdog = ppr::watchdog::start_watchdog(configuration, stat, hist, stage, histogramFreq, histogramDensity, data_count);
 		
 		//  ================ [Get statistics]
 		if (configuration.use_optimalization)
@@ -55,13 +55,13 @@ namespace ppr::parallel
 
 		//  ================ [Create frequency histogram]
 		// Find histogram limits
-		hist.binCount = log2(stat.n) + 1;
+		hist.binCount = static_cast<int>(log2(stat.n)) + 2;
 		hist.binSize = (stat.max - stat.min) / (hist.binCount - 1);
 		hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
 
 		// Allocate memmory
-		histogramFreq.resize(static_cast<int>(hist.binCount + 1));
-		histogramDensity.resize(static_cast<int>(hist.binCount + 1));
+		histogramFreq.resize(static_cast<int>(hist.binCount));
+		histogramDensity.resize(static_cast<int>(hist.binCount));
 
 		stage = 1;
 		// Run
@@ -133,10 +133,11 @@ namespace ppr::parallel
 
 		std::cout << std::endl;
 
+		watchdog.join();
 		return res;
 	}
 
-	void get_statistics_CPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
+	void get_statistics_CPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram)
 	{
 		// Find rest of a statistics on CPU
 		Running_stat_parallel stat_cpu(data, opencl.data_count_for_cpu);
@@ -150,7 +151,7 @@ namespace ppr::parallel
 		stat.isNegative = stat.isNegative || stat_cpu.IsNegative();
 	}
 
-	void create_frequency_histogram_CPU(SHistogram& hist, SConfig&, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
+	void create_frequency_histogram_CPU(SHistogram& hist, SConfig&, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram)
 	{
 		// Run on CPU
 		ppr::hist::Histogram_parallel hist_cpu(hist.binCount, hist.binSize, stat.min, stat.max, data, stat.mean);

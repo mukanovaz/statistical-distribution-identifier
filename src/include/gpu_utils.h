@@ -18,7 +18,7 @@ namespace ppr::gpu
 	/// <param name="freq_buckets">- Frequency histogram reference</param>
 	/// <param name="var">- Final Variance</param>
 	void run_histogram_on_GPU(SOpenCLConfig& opencl, SConfig& configuration, SHistogram& hist, SDataStat& data_stat,
-		double* data, int data_count, std::vector<int>& freq_buckets, double& var);
+		double* data, unsigned long long data_count, std::vector<int>& freq_buckets, double& var);
 
 	/// <summary>
 	/// Collect data statistics on Opencl device
@@ -28,7 +28,7 @@ namespace ppr::gpu
 	/// <param name="data">- Data pointer</param>
 	/// <param name="data_count">- Data count to process</param>
 	/// <returns>Local data statistics</returns>
-	SDataStat run_statistics_on_GPU(SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, int data_count);
+	SDataStat run_statistics_on_GPU(SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, unsigned long long data_count);
 
 	/// <summary>
 	/// Init opencl 

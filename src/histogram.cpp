@@ -124,7 +124,7 @@ namespace ppr::hist
 
 	void Histogram_parallel::compute_propability_density_histogram(std::vector<double>& bucket_density, double count)
 	{
-		for (unsigned int i = 0; i < m_histogram.binCount; i++)
+		for (int i = 0; i < m_histogram.binCount; i++)
 		{
 			double next_edge = m_histogram.min + (m_histogram.binSize * (static_cast<double>(i) + 1.0));
 			double curr_edge = m_histogram.min + (m_histogram.binSize * static_cast<double>(i));

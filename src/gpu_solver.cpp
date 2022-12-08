@@ -30,7 +30,7 @@ namespace ppr::gpu
 		unsigned int data_count = mapping.get_count();
 
 		//  ================ [Start Watchdog]
-		ppr::watchdog::start_watchdog(configuration, stat, hist, stage, histogramFreq, histogramDensity, data_count);
+		std::thread watchdog = ppr::watchdog::start_watchdog(configuration, stat, hist, stage, histogramFreq, histogramDensity, data_count);
 
 		//  ================ [Get statistics]
 		tbb::tick_count t0 = tbb::tick_count::now();
@@ -47,7 +47,7 @@ namespace ppr::gpu
 		ppr::gpu::update_kernel_program(opencl, HIST_KERNEL, HIST_KERNEL_NAME);
 
 		// Find histogram limits
-		hist.binCount = log2(stat.n) + 1;
+		hist.binCount = static_cast<unsigned int>(log2(stat.n)) + 1;
 		hist.binSize = (stat.max - stat.min) / (hist.binCount - 1);
 		hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
 
@@ -115,10 +115,11 @@ namespace ppr::gpu
 		std::cout << "> isNegative:\t\t\t" << res.isNegative << std::endl;
 		std::cout << "> isInteger:\t\t\t" << res.isInteger << std::endl;
 
+		watchdog.join();
 		return res;
 	}
 
-	void get_statistics(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
+	void get_statistics(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram)
 	{
 		if (opencl.data_count_for_cpu < data_count)
 		{
@@ -150,7 +151,7 @@ namespace ppr::gpu
 		}
 	}
 
-	void create_frequency_histogram(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram)
+	void create_frequency_histogram(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram)
 	{
 		if (opencl.data_count_for_cpu < data_count)
 		{

@@ -188,8 +188,9 @@ namespace ppr::parallel
 		__m256d max = _mm256_set1_pd(
 			std::numeric_limits<double>::lowest()
 		);
+		int size = data_count - (data_count % 4);
 
-		for (int block = 0; block < data_count; block += 4)
+		for (int block = 0; block < size; block += 4)
 		{
 			// Count elements
 			stat.n += 4;

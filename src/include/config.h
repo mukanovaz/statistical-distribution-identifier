@@ -104,9 +104,9 @@ namespace ppr
         cl::Program program{};                          // Opencl program
         cl::Kernel kernel{};                            // Opencl kernel               
         cl::CommandQueue queue{};                       // Opencl shared queue
-        size_t wg_size = 0;                             // One work group size
-        unsigned long data_count_for_gpu = 0;           // Data count for process on gpu
-        unsigned long data_count_for_cpu = 0;           // Data count for process on cpu
+        unsigned long long wg_size = 0;                 // One work group size
+        unsigned long long data_count_for_gpu = 0;      // Data count for process on gpu
+        unsigned long long data_count_for_cpu = 0;      // Data count for process on cpu
         unsigned long wg_count = 0;                     // Work group count
     };
 

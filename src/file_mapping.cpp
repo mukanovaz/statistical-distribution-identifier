@@ -15,7 +15,7 @@ namespace ppr
         LARGE_INTEGER file_size = { 0 };
         ::GetFileSizeEx(m_file, &file_size);
         m_fileLen = static_cast<unsigned long long>(file_size.QuadPart);
-        m_size = m_fileLen / sizeof(double);
+        m_size = static_cast<DWORD>(m_fileLen / sizeof(double));
 
         // Map a file
         bool res_mf = map_file();
@@ -50,22 +50,22 @@ namespace ppr
         LARGE_INTEGER file_size = { 0 };
         ::GetFileSizeEx(m_file, &file_size);
         m_fileLen = static_cast<unsigned long long>(file_size.QuadPart);
-        m_size = m_fileLen / sizeof(double);
+        m_size = static_cast<DWORD>(m_fileLen / sizeof(double));
         CloseHandle(m_file);
 
         // For OpecCl devices we are choosing smaller parts
         if (config.mode == ERun_mode::ALL || m_fileLen < MAX_FILE_SIZE_MEM_500mb)
         {
-            m_scale = static_cast<double>(MAX_FILE_SIZE_MEM_500mb) / sysinfo.dwAllocationGranularity;
+            m_scale = MAX_FILE_SIZE_MEM_500mb / sysinfo.dwAllocationGranularity;
         }
         // For big files we are choosing bigger parts
         else if (m_fileLen > MAX_FILE_SIZE_MEM_2gb)
         {
-            m_scale = static_cast<double>(MAX_FILE_SIZE_MEM_2gb) / sysinfo.dwAllocationGranularity;
+            m_scale = MAX_FILE_SIZE_MEM_2gb / sysinfo.dwAllocationGranularity;
         }
         else
         {
-            m_scale = static_cast<double>(MAX_FILE_SIZE_MEM_1gb) / sysinfo.dwAllocationGranularity;
+            m_scale = MAX_FILE_SIZE_MEM_1gb / sysinfo.dwAllocationGranularity;
         }
     }
 
@@ -104,7 +104,7 @@ namespace ppr
         return m_data;
     }
 
-    const unsigned int File_mapping::get_file_len() const
+    const unsigned long long File_mapping::get_file_len() const
     {
         return m_fileLen;
     }
@@ -152,7 +152,7 @@ namespace ppr
                     ::MapViewOfFile(hmap, FILE_MAP_READ, 0, 0, 0));
 
                 if (pView != NULL) {
-                    unsigned int data_in_chunk = cbFile / sizeof(double);
+                    unsigned long long data_in_chunk = cbFile / sizeof(double);
 
                     // Set computing limits
                     opencl.data_count_for_cpu = data_in_chunk / config.thread_count;
@@ -209,7 +209,7 @@ namespace ppr
         SDataStat& stat,
         tbb::task_arena& arena,
         std::vector<int>& histogram,
-        void (*process_chunk) (SHistogram& hist, SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned int, double*, std::vector<int>&))
+        void (*process_chunk) (SHistogram& hist, SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned long long, double*, std::vector<int>&))
     {
         DWORD granulatity = m_allocationGranularity * m_scale;
 
@@ -239,13 +239,13 @@ namespace ppr
                         ::MapViewOfFile(hmap, FILE_MAP_READ, high, low, granulatity));
 
                     if (pView != NULL) {
-                        unsigned int data_in_chunk = granulatity / sizeof(double);
+                        unsigned long long data_in_chunk = granulatity / sizeof(double);
 
                         // Set opencl computing limits
                         if (opencl.wg_size != 0)
                         {
                             // Get number of data, which we want to process on GPU
-                            opencl.wg_count = data_in_chunk / opencl.wg_size;
+                            opencl.wg_count = static_cast<unsigned long>(data_in_chunk / opencl.wg_size);
                             opencl.data_count_for_gpu = data_in_chunk - (data_in_chunk % opencl.wg_size);
 
                             // The rest of the data we will process on CPU

@@ -32,7 +32,7 @@ namespace ppr
             /// <summary>
             /// Scale is using to multiply alocation granularity
             /// </summary>
-            double m_scale;
+            DWORD m_scale;
             /// <summary>
             /// Maped data
             /// </summary>
@@ -105,7 +105,7 @@ namespace ppr
             /// Get file lenght in bytes
             /// </summary>
             /// <returns>file lenght in bytes</returns>
-            const unsigned int get_file_len() const;
+            const unsigned long long get_file_len() const;
 
             /// <summary>
             /// Returnes how many doubles exitst in input file
@@ -133,7 +133,7 @@ namespace ppr
                 SDataStat& stat, 
                 tbb::task_arena& arena, 
                 std::vector<int>& histogram,
-                void (*process_chunk) (SHistogram& hist, SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned int, double*, std::vector<int>&));
+                void (*process_chunk) (SHistogram& hist, SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned long long, double*, std::vector<int>&));
 
             /// <summary>
             /// Mapping data as one block and [collecting data statistics / creating frequency histogram] of these data using multiply threads

@@ -27,7 +27,7 @@ namespace ppr::parallel
 	/// <param name="data">Data pointer</param>
 	/// <param name="histogram">Frequency histogram reference</param>
 	void get_statistics_CPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, 
-		tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram);
+		tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram);
 
 	/// <summary>
 	/// Create frequency histogram using Intel TBB algorithms. Calls from file_mapping.h > read_in_chunks()
@@ -40,5 +40,5 @@ namespace ppr::parallel
 	/// <param name="data">Data pointer</param>
 	/// <param name="histogram">Frequency histogram reference</param>
 	void create_frequency_histogram_CPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl,
-		SDataStat& stat, tbb::task_arena& arena, unsigned int data_count, double* data, std::vector<int>& histogram);
+		SDataStat& stat, tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram);
 }

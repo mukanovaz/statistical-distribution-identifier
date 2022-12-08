@@ -4,16 +4,15 @@
 #include <string>
 #include <algorithm>
 #include <iostream>
-#include <format>
 
 namespace ppr::gpu
 {
     void run_histogram_on_GPU(SOpenCLConfig& opencl, SConfig& configuration, SHistogram& hist, SDataStat& data_stat,
-        double* data, int data_count, std::vector<int>& freq_buckets, double& var)
+        double* data, unsigned long long data_count, std::vector<int>& freq_buckets, double& var)
     {
         cl_int err = 0;
         const unsigned long long work_group_number = data_count / opencl.wg_size;
-        const unsigned int count = data_count - (data_count % opencl.wg_size);
+        const unsigned long long count = data_count - (data_count % opencl.wg_size);
 
         cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
 
@@ -74,7 +73,7 @@ namespace ppr::gpu
         // Agragate results
         for (int i = 0; i < hist.binCount; i++)
         {
-            const size_t value = static_cast<size_t>(out_histogram[2 * i]) + static_cast<size_t>(out_histogram[2 * i + 1]) * sizeof(cl_uint);
+            const int value = out_histogram[2 * i] + out_histogram[2 * i + 1] * sizeof(cl_uint);
             freq_buckets[i] += value;
         }
 
@@ -82,12 +81,12 @@ namespace ppr::gpu
         data_stat.variance += ppr::parallel::sum_vector_elements_vectorized(out_var);
     }
 
-    SDataStat run_statistics_on_GPU(SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, int data_count)
+    SDataStat run_statistics_on_GPU(SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, unsigned long long data_count)
     {
         SDataStat local_stat;
         cl_int err = 0;
         const unsigned long long work_group_number = data_count / m_ocl_config.wg_size;
-        const int count = data_count - (data_count % m_ocl_config.wg_size);
+        const unsigned long long count = data_count - (data_count % m_ocl_config.wg_size);
 
         cl::CommandQueue cmd_queue(m_ocl_config.context, m_ocl_config.device, 0, &err);
 

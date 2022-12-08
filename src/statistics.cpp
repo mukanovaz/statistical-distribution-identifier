@@ -101,10 +101,10 @@ namespace ppr
         private:
             const double* m_data;
             SDataStat m_stat;
-            const int m_first_index;
+            const unsigned long long m_first_index;
 
         public:
-            Running_stat_parallel(double* data, int first_index) : m_data(data), m_first_index(first_index)
+            Running_stat_parallel(double* data, unsigned long long first_index) : m_data(data), m_first_index(first_index)
             {
                 m_stat.n = 1;
                 m_stat.sum = data[m_first_index];
@@ -153,7 +153,7 @@ namespace ppr
                 m_stat.isNegative = m_stat.isNegative || y.m_stat.isNegative;
             }
 
-            unsigned int NumDataValues() const
+            unsigned long long NumDataValues() const
             {
                 return m_stat.n;
             }

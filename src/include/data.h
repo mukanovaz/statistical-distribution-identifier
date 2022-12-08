@@ -28,7 +28,7 @@ struct SHistogram
     double max = 0.0;
     double min = 0.0;
     double scaleFactor = 0.0;
-    unsigned int binCount = 0;
+    int binCount = 0;
 };
 
 /// <summary>
@@ -59,7 +59,7 @@ struct SDataStat
     double mean = 0.0;
     double variance = 0.0;
     bool isNegative = 0;
-    int n = 0;
+    unsigned long long n = 0;
 };
 
 /// <summary>
@@ -72,6 +72,7 @@ struct SResult
     double gauss_variance = 0.0;
     double gauss_stdev = 0.0;
     double exp_lambda = 0.0;
+    double poisson_lambda = 0;
     double uniform_a = 0.0;
     double uniform_b = 0.0;
     double gauss_rss = 0.0;
@@ -82,7 +83,6 @@ struct SResult
     double total_hist_time = 0.0;
     double total_rss_time = 0.0;
     double total_time = 0.0;
-    long poisson_lambda = 0;
     int status = 0;
     bool isNegative = 0;
     bool isInteger = 0.0;

@@ -31,10 +31,10 @@ namespace ppr::executor
 		ppr::rss::RSSParallel exp_rss(exp, histogramDensity, hist.binSize);
 		ppr::rss::RSSParallel uniform_rss(uniform, histogramDensity, hist.binSize);
 
-		ppr::executor::run_with_tbb<ppr::rss::RSSParallel>(arena, gauss_rss, 0, static_cast<int>(hist.binCount));
-		ppr::executor::run_with_tbb<ppr::rss::RSSParallel>(arena, poisson_rss, 0, static_cast<int>(hist.binCount));
-		ppr::executor::run_with_tbb<ppr::rss::RSSParallel>(arena, exp_rss, 0, static_cast<int>(hist.binCount));
-		ppr::executor::run_with_tbb<ppr::rss::RSSParallel>(arena, uniform_rss, 0, static_cast<int>(hist.binCount));
+		ppr::executor::run_with_tbb<ppr::rss::RSSParallel>(arena, gauss_rss, 0, static_cast<unsigned long long>(hist.binCount));
+		ppr::executor::run_with_tbb<ppr::rss::RSSParallel>(arena, poisson_rss, 0, static_cast<unsigned long long>(hist.binCount));
+		ppr::executor::run_with_tbb<ppr::rss::RSSParallel>(arena, exp_rss, 0, static_cast<unsigned long long>(hist.binCount));
+		ppr::executor::run_with_tbb<ppr::rss::RSSParallel>(arena, uniform_rss, 0, static_cast<unsigned long long>(hist.binCount));
 
 		res.gauss_rss = gauss->Get_RSS();
 		res.poisson_rss = poisson->Get_RSS();
@@ -57,31 +57,35 @@ namespace ppr::executor
 		std::array<double, 4> rss = { res.gauss_rss, res.poisson_rss, res.exp_rss, res.uniform_rss };
 		std::sort(rss.begin(), rss.end());
 
-		bool canBePoisson = !res.isNegative && res.isInteger;
-		bool canBeExp = !res.isNegative && !res.isInteger;
+		bool canBePoisson = !res.isNegative && res.isInteger && res.poisson_lambda > 0;
+		bool canBeExp = !res.isNegative && !res.isInteger && res.exp_lambda > 0;
 
-		if (res.uniform_rss == rss[0])
+		if (canBePoisson)
 		{
-			res.dist = EDistribution::UNIFORM;
+			if (res.poisson_rss == rss[0] || res.exp_rss == rss[0] || res.poisson_rss == rss[1])
+			{
+				res.dist = EDistribution::POISSON;
+			}
 		}
-		else if ((res.poisson_rss == rss[0] && canBePoisson) || (res.poisson_rss == rss[1] && canBePoisson))
-		{
-			res.dist = EDistribution::POISSON;
-		}
-		else if ((res.exp_rss == rss[0] && canBeExp) || (res.exp_rss == rss[1] && canBeExp))
+		else if (canBeExp && res.exp_rss == rss[0])
 		{
 			res.dist = EDistribution::EXP;
 		}
-		else if (res.gauss_rss == rss[0])
+		else if(res.gauss_rss == rss[0])
 		{
 			res.dist = EDistribution::GAUSS;
 		}
+		else if (res.uniform_rss == rss[0])
+		{
+			res.dist = EDistribution::UNIFORM;
+		}
+
 		res.status = EExitStatus::SUCCESS;
 	}
 
-	void compute_propability_density_histogram(SHistogram& hist, std::vector<int>& bucket_frequency, std::vector<double>& bucket_density, double count)
+	void compute_propability_density_histogram(SHistogram& hist, std::vector<int>& bucket_frequency, std::vector<double>& bucket_density, unsigned long long count)
 	{
-		for (unsigned int i = 0; i < hist.binCount; i++)
+		for (size_t i = 0; i < static_cast<size_t>(hist.binCount); i++)
 		{
 			double next_edge = hist.min + (hist.binSize * (static_cast<double>(i) + 1.0));
 			double curr_edge = hist.min + (hist.binSize * static_cast<double>(i));

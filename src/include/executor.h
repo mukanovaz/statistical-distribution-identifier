@@ -29,7 +29,7 @@ namespace ppr::executor
 	/// <param name="end">- End interval</param>
 	/// <returns>Processed time</returns>
 	template <typename T>
-	double run_with_tbb(tbb::task_arena& arena, T& class_to_execute, int begin, int end)
+	double run_with_tbb(tbb::task_arena& arena, T& class_to_execute, unsigned long long begin, unsigned long long end)
 	{
 		tbb::tick_count t0 = tbb::tick_count::now();
 		arena.execute([&]() {
@@ -72,5 +72,5 @@ namespace ppr::executor
 	/// <param name="bucket_density">- Density histogram reference</param>
 	/// <param name="count">- All data count</param>
 	void compute_propability_density_histogram(SHistogram& hist, std::vector<int>& bucket_frequency, 
-		std::vector<double>& bucket_density, double data_count);
+		std::vector<double>& bucket_density, unsigned long long data_count);
 }
