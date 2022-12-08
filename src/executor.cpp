@@ -4,63 +4,6 @@
 
 namespace ppr::executor
 {
-	// https://www.cs.cmu.edu/afs/cs/academic/class/15499-s09/www/handouts/TBB-HPCC07.pdf
-	class MinParallel {
-		const std::vector<double> my_a;
-	public:
-		double value_of_min;
-
-		MinParallel(const std::vector<double> a) :
-			my_a(a),
-			value_of_min(FLT_MAX)
-		{}
-
-		MinParallel(MinParallel& x, tbb::split) :
-			my_a(x.my_a),
-			value_of_min(FLT_MAX)
-		{}
-
-		void operator()(const tbb::blocked_range<size_t>& r) {
-			const std::vector<double> a = my_a;
-			for (size_t i = r.begin(); i != r.end(); ++i) {
-				double value = a[i];
-				value_of_min = std::min({ value_of_min , value });
-			}
-		}
-
-		void join(const MinParallel& y) {
-			value_of_min = std::min({ value_of_min , y.value_of_min });
-		}
-	};
-
-	class MaxParallel {
-		const std::vector<double> my_a;
-	public:
-		double value_of_max;
-
-		MaxParallel(const std::vector<double> a) :
-			my_a(a),
-			value_of_max(FLT_MIN)
-		{}
-
-		MaxParallel(MaxParallel& x, tbb::split) :
-			my_a(x.my_a),
-			value_of_max(FLT_MIN)
-		{}
-
-		void operator()(const tbb::blocked_range<size_t>& r) {
-			const std::vector<double> a = my_a;
-			for (size_t i = r.begin(); i != r.end(); ++i) {
-				double value = a[i];
-				value_of_max = std::max({ value_of_max , value });
-			}
-		}
-
-		void join(const MaxParallel& y) {
-			value_of_max = std::max({ value_of_max , y.value_of_max });
-		}
-	};
-
 	double sum_vector_tbb(tbb::task_arena& arena, std::vector<double> data)
 	{
 		double sum = 0;

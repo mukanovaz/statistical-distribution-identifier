@@ -4,7 +4,7 @@
 #include <fstream>
 #include <algorithm>
 #include <vector>
-#include <CL/cl.hpp>
+#include <CL/opencl.hpp>
 
 namespace ppr
 {

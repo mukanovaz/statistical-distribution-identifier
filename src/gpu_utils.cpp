@@ -87,7 +87,7 @@ namespace ppr::gpu
         SDataStat local_stat;
         cl_int err = 0;
         const unsigned long long work_group_number = data_count / m_ocl_config.wg_size;
-        const unsigned int count = data_count - (data_count % m_ocl_config.wg_size);
+        const int count = data_count - (data_count % m_ocl_config.wg_size);
 
         cl::CommandQueue cmd_queue(m_ocl_config.context, m_ocl_config.device, 0, &err);
 
@@ -151,13 +151,13 @@ namespace ppr::gpu
         double min = ppr::parallel::min_of_vector_vectorized(out_min);
 
         return {
-            sum != 0 ? count : 0,					// n
             sum,					// sum
             max,					// max
             min,					// min
             0.0,					// mean
             0.0,					// variance
-            min < 0
+            min < 0,                // is Negative
+            sum != 0 ? count : 0	// n
         };
     }
 

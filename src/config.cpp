@@ -78,7 +78,7 @@ namespace ppr
 		}
 
 		// Get optional
-		for (size_t i = man_argc; i < argc; i += 2)
+		for (int i = man_argc; i < argc; i += 2)
 		{
 			if (i + 1 >= argc)
 			{
@@ -102,7 +102,7 @@ namespace ppr
 					return false;
 				}
 
-				config.use_optimalization = opt;
+				config.use_optimalization = opt == 1;
 			}
 
 			// thread per code
@@ -136,7 +136,7 @@ namespace ppr
 		}
 
 		// Find number available of threads
-		config.thread_count = std::thread::hardware_concurrency() * config.thread_per_core;
+		config.thread_count =  static_cast<int>(std::thread::hardware_concurrency()) * config.thread_per_core;
 
 		return true;
 	}

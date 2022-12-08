@@ -12,7 +12,6 @@ namespace ppr::watchdog
         std::thread watchdog([&]() {
 			EExitStatus status = EExitStatus::SUCCESS;
 			unsigned int n_last = 0;
-			bool once = false;
 
 			while (true)
 			{
@@ -22,7 +21,7 @@ namespace ppr::watchdog
 				case 0:	
 					if (n_last > stat.n)						// Number of observing data is not increaing
 					{
-						ppr::print_error("Wrong number of numbers.");
+						ppr::print_error("Wrong number of processing data.");
 						status = EExitStatus::WD_STAT_WRONG_N;
 					}
 					n_last = stat.n;
@@ -34,9 +33,9 @@ namespace ppr::watchdog
 					break;
 				//	===== [Frequency histogram] =====
 				case 1:	
-					if (n_last > stat.n)						// Number of observing data is not increaing
+					if (stat.n > data_count)						// Number of observing data is wrong
 					{
-						ppr::print_error("Wrong number of numbers.");
+						ppr::print_error("Wrong number of processing data.");
 						status = EExitStatus::WD_STAT_WRONG_N;
 					}
 					if (hist.binCount == 0)						// Bin count is zero

@@ -15,7 +15,6 @@ namespace ppr
     class RunningStat
     {
         protected:
-            int m_n;
             double m_oldM;
             double m_newM;
             double  m_oldS;
@@ -24,6 +23,7 @@ namespace ppr
             double m_sumAbs;
             double m_max;
             double m_min;
+            int m_n;
 
         public:
 

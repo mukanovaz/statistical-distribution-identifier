@@ -76,3 +76,15 @@ src/CMakeCache.txt
 src/cmake_install.cmake
 compiled/
 diagnostic/
+doc/old_diagrams/PPR-DISTRIBUTION.pptx
+doc/old_diagrams/PPR-DISTRIBUTION.pdf
+doc/old_diagrams/Data flow diagram.svg
+doc/old_diagrams/Data flow diagram.png
+doc/old_diagrams/Data flow diagram.html
+doc/old_diagrams/Data flow diagram.drawio
+doc/old_diagrams/Data flow diagram (1).drawio
+doc/old_diagrams/Control flow diagram.drawio.svg
+doc/old_diagrams/Control flow diagram.drawio.png
+doc/old_diagrams/Control flow diagram.drawio.html
+doc/old_diagrams/Control flow diagram (2).drawio
+doc/old_diagrams/Control flow diagram (1).drawio

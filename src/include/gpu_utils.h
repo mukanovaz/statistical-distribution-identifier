@@ -1,5 +1,5 @@
 #pragma once
-#include <CL/cl.hpp>
+#include <CL/opencl.hpp>
 #include <string>
 #include "config.h"
 #include "data.h"
