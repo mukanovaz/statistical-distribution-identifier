@@ -41,16 +41,6 @@ namespace ppr::executor
 	}
 
 	/// <summary>
-	/// 
-	/// </summary>
-	/// <param name="res"></param>
-	/// <param name="arena"></param>
-	/// <param name="histogramDensity"></param>
-	/// <param name="hist"></param>
-	void calculate_histogram_RSS_with_tbb(SResult& res, tbb::task_arena& arena, std::vector<double>& histogramDensity, 
-		SHistogram& hist);
-
-	/// <summary>
 	/// Sum all vector elements using TBB algorithm
 	/// </summary>
 	/// <param name="arena">- TBB arena</param>

@@ -30,11 +30,41 @@ namespace ppr::seq
 		tbb::tick_count t1 = tbb::tick_count::now();
 		res.total_stat_time = (t1 - t0).seconds();
 
+		//	================ [Fit params]
+		res.isNegative = stat.Get_Min() < 0;
+		res.isInteger = std::floor(stat.Sum()) == stat.Sum();
+
+		// Gauss maximum likelihood estimators
+		res.gauss_mean = stat.Mean();
+		res.gauss_variance = stat.Variance();
+		res.gauss_stdev = stat.StandardDeviation();
+
+		// Exponential maximum likelihood estimators
+		res.exp_lambda = static_cast<double>(stat.NumDataValues()) / stat.Sum();;
+
+		// Poisson likelihood estimators
+		res.poisson_lambda = stat.Sum() / stat.NumDataValues();
+
+		// Uniform likelihood estimators
+		res.uniform_a = stat.Get_Min();
+		res.uniform_b = stat.Get_Max();
+
 		// ================ [Create histogram]
 		t0 = tbb::tick_count::now();
 
-		const double bin_count = log2(mapping.get_count()) + 1;
-		double bin_size = (stat.Get_Max() - stat.Get_Min()) / (bin_count - 1); // TODO
+		double bin_count = 0.0;
+		double bin_size = 0.0;
+
+		if (!res.isNegative && res.isInteger && res.poisson_lambda > 0)
+		{
+			bin_count = stat.Get_Max() - stat.Get_Min();
+			bin_size = 1.0;
+		}
+		else
+		{
+			bin_count = static_cast<int>(log2(stat.NumDataValues())) + 2;
+			bin_size = (stat.Get_Max() - stat.Get_Min()) / (bin_count - 1);
+		}
 
 		ppr::hist::Histogram hist(static_cast<int>(bin_count), bin_size, stat.Get_Min(), stat.Get_Max());
 
@@ -54,22 +84,6 @@ namespace ppr::seq
 
 		// ================ [Get propability density of histogram]
 		hist.compute_propability_density_histogram(histogramDensity, histogramFrequency, mapping.get_count());
-
-		//	================ [Fit params]
-		// Gauss maximum likelihood estimators
-		res.gauss_mean = stat.Mean();
-		res.gauss_variance = stat.Variance();
-		res.gauss_stdev = stat.StandardDeviation();
-
-		// Exponential maximum likelihood estimators
-		res.exp_lambda = static_cast<double>(stat.NumDataValues()) / stat.Sum();;
-
-		// Poisson likelihood estimators
-		res.poisson_lambda = stat.Sum() / stat.NumDataValues();
-
-		// Uniform likelihood estimators
-		res.uniform_a = stat.Get_Min();
-		res.uniform_b = stat.Get_Max();
 
 		// ================ [Calculate RSS]
 		t0 = tbb::tick_count::now();

@@ -238,6 +238,8 @@ namespace ppr::parallel
 
 		std::vector<std::future<double>> workers(4);
 
+		get_gauss_rss(res, histogramDensity, hist);
+
 		// Run workers
 		workers[0] = std::async(std::launch::async, &get_gauss_rss, std::ref(res), std::ref(histogramDensity), std::ref(hist));
 		workers[1] = std::async(std::launch::async, &get_exp_rss, std::ref(res), std::ref(histogramDensity), std::ref(hist));
@@ -256,12 +258,12 @@ namespace ppr::parallel
 
 	double get_gauss_rss(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist)
 	{
-		ppr::rss::Distribution* dist = new ppr::rss::NormalDistribution(res.gauss_mean, res.gauss_stdev, res.gauss_variance);
+		ppr::rss::Distribution* dist = new ppr::rss::NormalDistribution(res.gauss_mean, res.gauss_stdev);
 		// Compute RSS
 		for (size_t i = 0; i < histogramDensity.size(); i++)
 		{
 			double d = (double)histogramDensity[i];
-			dist->Push(d, (i * hist.binSize));
+			dist->Push(d, (res.uniform_a + (i * hist.binSize)));
 		}
 		double result = dist->Get_RSS();
 
@@ -278,7 +280,7 @@ namespace ppr::parallel
 		for (size_t i = 0; i < histogramDensity.size(); i++)
 		{
 			double d = (double)histogramDensity[i];
-			dist->Push(d, (i * hist.binSize));
+			dist->Push(d, (res.uniform_a + (i * hist.binSize)));
 		}
 		double result = dist->Get_RSS();
 
@@ -290,12 +292,15 @@ namespace ppr::parallel
 
 	double get_exp_rss(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist)
 	{
-		ppr::rss::Distribution* dist = new ppr::rss::ExponentialDistribution(res.exp_lambda);
+		double mean = res.uniform_a;
+		double stdev = res.gauss_mean - mean;
+
+		ppr::rss::Distribution* dist = new ppr::rss::ExponentialDistribution(mean, stdev);
 		// Compute RSS
 		for (size_t i = 0; i < histogramDensity.size(); i++)
 		{
 			double d = (double)histogramDensity[i];
-			dist->Push(d, (i * hist.binSize));
+			dist->Push(d, (res.uniform_a + (i * hist.binSize)));
 		}
 		double result = dist->Get_RSS();
 
@@ -307,12 +312,15 @@ namespace ppr::parallel
 
 	double get_uniform_rss(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist)
 	{
-		ppr::rss::Distribution* dist = new ppr::rss::UniformDistribution(res.uniform_a, res.uniform_b);
+		double mean = res.uniform_a;
+		double stdev = res.uniform_b - res.uniform_a;
+		ppr::rss::Distribution* dist = new ppr::rss::UniformDistribution(mean, stdev);
+
 		// Compute RSS
 		for (size_t i = 0; i < histogramDensity.size(); i++)
 		{
 			double d = (double)histogramDensity[i];
-			dist->Push(d, (i * hist.binSize));
+			dist->Push(d, (res.uniform_a + (i * hist.binSize)));
 		}
 		double result = dist->Get_RSS();
 

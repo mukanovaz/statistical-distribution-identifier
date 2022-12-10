@@ -14,18 +14,37 @@ namespace ppr::rss
 	class Distribution
 	{
 		protected:
-			double m_rss;
+			double m_rss, m_mean, m_stddev;
 		
 		public:
-			Distribution() : m_rss(0.0)
+
+			Distribution() : m_rss(0.0), m_mean(0.0), m_stddev(0.0)
+			{}
+
+			Distribution(double mean, double stdev) : m_rss(0.0), m_mean(mean), m_stddev(stdev)
 			{}
 
 			virtual double Pdf(double) { return 0.0; }
 
-			void Push(double y_obs, double bin)
+			void Push(double density_x, double bin)
 			{
-				double val = y_obs - Pdf(bin);
-				double tmp = m_rss + (val * val);
+				double pdf = 0.0;
+				double tmp = 0.0;
+
+				if (m_stddev == 0.0 && m_mean == 0.0)
+				{
+					pdf = Pdf(bin);
+					double val = pow(density_x - pdf, 2);
+					tmp = m_rss + val;
+				}
+				else
+				{
+					double y = (bin - m_mean) / m_stddev;
+					pdf = Pdf(y) / m_stddev;
+
+					double val = pow(density_x - pdf, 2);
+					tmp = m_rss + val;
+				}
 				m_rss = tmp;
 			}
 
@@ -43,40 +62,26 @@ namespace ppr::rss
 
 	class NormalDistribution : public Distribution
 	{
-		private:
-			double Mean, Stddev, Variance;
-
 		public:
-			NormalDistribution(double mean, double stddev, double variance)
-				: Mean(mean), Stddev(stddev), Variance(variance)
-			{}
+			using Distribution::Distribution;
 
 			double Pdf(double x) override
 			{
-				double y = (x - Mean) / Stddev;
-				double pdf = exp(-pow(y, 2) / 2) / sqrt(DOUBLE_PI);
-				return pdf / Stddev;
+				return exp(-pow(x, 2) / 2.0) / sqrt(DOUBLE_PI);
 			}
 	};
 
 	class ExponentialDistribution : public Distribution
 	{
-		private:
-			double Lambda;
-
 		public:
-			ExponentialDistribution(double lambda)
-				: Lambda(lambda)
-			{}
+			using Distribution::Distribution;
 
 			virtual double Pdf(double x) override
 			{
-				// TODO: x >= 0
-				if (x < 0) return 0;
-				double betta = 1 / Lambda;
-				double t1 = 1 / betta;
-				double t2 = exp(-(x / betta));
-				return t1 * t2;
+				if (x >= 0.0)
+					return exp(-x);
+				else
+					return 0.0;
 			}
 	};
 
@@ -86,14 +91,11 @@ namespace ppr::rss
 			double A, B;
 
 		public:
-			UniformDistribution(double a, double b)
-				: A(a), B(b)
-			{}
+			using Distribution::Distribution;
 
 			double Pdf(double) override
 			{
-				// TODO: a <= x <= b
-				return 1.0 / (B - A);
+				return 1.0;
 			}
 	};
 
@@ -118,10 +120,10 @@ namespace ppr::rss
 
 			double Pdf(double x) override
 			{
-				// TODO: x >= 0; Mu >= 0; If Mu == 0 -> PDF = 1.0
-				double t1 = exp(-Mu);
-				double t2 = pow(Mu, x);
-				return (t1 * t2) / Factorial(x);
+				if (x >= 0.0)
+					return exp(-Mu) * pow(Mu, x) / Factorial(x);
+				else
+					return 0.0;
 			}
 	};
 

@@ -38,16 +38,16 @@ namespace ppr::hist
 		switch (dist_val)
 		{
 		case 'n':
-			dist = new ppr::rss::NormalDistribution(res.gauss_mean, res.gauss_stdev, res.gauss_variance);
+			dist = new ppr::rss::NormalDistribution(res.gauss_mean, res.gauss_stdev);
 			break;
 		case 'e':
-			dist = new ppr::rss::ExponentialDistribution(res.exp_lambda);
+			dist = new ppr::rss::ExponentialDistribution(res.uniform_a, res.gauss_mean - res.uniform_a);
 			break;
 		case 'p':
 			dist = new ppr::rss::PoissonDistribution(res.poisson_lambda);
 			break;
 		case 'u':
-			dist = new ppr::rss::UniformDistribution(res.uniform_a, res.uniform_b);
+			dist = new ppr::rss::UniformDistribution(res.uniform_a, res.uniform_b - res.uniform_a);
 			break;
 		default:
 			return 0.0;
@@ -57,7 +57,7 @@ namespace ppr::hist
 		for (unsigned int i = 0; i < Size; i++)
 		{
 			double d = (double)bucket_density[i];
-			dist->Push(d, (i * BinSize));
+			dist->Push(d, (res.uniform_a + (i * BinSize)));
 		}
 
 		double result = dist->Get_RSS();

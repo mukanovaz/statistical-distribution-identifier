@@ -53,16 +53,12 @@ int main(int argc, char* argv[])
 		return ppr::EExitStatus::ARGS;
 	}
 
-	//SYSTEM_INFO sysInfo;
-
-	//GetSystemInfo(&sysInfo);
-	//printf("%s %d\n\n", "PageSize[Bytes] :", sysInfo.dwPageSize);
-
 	std::string mode = conf.mode == ppr::ERun_mode::SMP ? "smp" : "all";
 	std::string opt = conf.use_optimalization ? "TRUE" : "FALSE";
 
 	std::cout << "\t\t\t[Initial parameters]" << std::endl;
 	std::cout << "---------------------------------------------------------------------" << std::endl;
+	std::cout << "> File:\t\t\t\t" << argv[1] << std::endl;
 	std::cout << "> Mode:\t\t\t\t" << mode << std::endl;
 	std::cout << "> Number of threads:\t\t" << conf.thread_count << std::endl;
 	std::cout << "> Optimalization:\t\t" << opt << std::endl;

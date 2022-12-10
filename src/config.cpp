@@ -166,4 +166,20 @@ namespace ppr
 	{
 		std::cerr << "> [ERROR]: " << message << std::endl;
 	}
+
+	void print_stat(SDataStat& stat, SResult& res)
+	{
+		std::cout << "\t\t\t[Statistics]" << std::endl;
+		std::cout << "---------------------------------------------------------------------" << std::endl;
+		std::cout << "> n:\t\t\t\t" << stat.n << std::endl;
+		std::cout << "> sum:\t\t\t\t" << stat.sum << std::endl;
+		std::cout << "> mean:\t\t\t\t" << stat.mean << std::endl;
+		std::cout << "> variance:\t\t\t" << stat.variance << std::endl;
+		std::cout << "> min:\t\t\t\t" << stat.min << std::endl;
+		std::cout << "> max:\t\t\t\t" << stat.max << std::endl;
+		std::cout << "> isNegative:\t\t\t" << res.isNegative << std::endl;
+		std::cout << "> isInteger:\t\t\t" << res.isInteger << std::endl;
+
+		std::cout << std::endl;
+	}
 }

@@ -6,6 +6,8 @@
 #include <vector>
 #include <CL/opencl.hpp>
 
+#include "include/data.h"
+
 namespace ppr
 {
     /// <summary>
@@ -135,4 +137,11 @@ namespace ppr
     /// </summary>
     /// <param name="message">message</param>
     void print_error(const std::string message);
+
+    /// <summary>
+    /// Pring final statistics
+    /// </summary>
+    /// <param name="stat">Statistics structure</param>
+    /// <param name="res">Result structure</param>
+    void print_stat(SDataStat& stat, SResult& res);
 }

@@ -59,11 +59,11 @@ namespace ppr::watchdog
 					break;
 				//	===== [RSS] =====
 				case 3:		
-					if (std::all_of(histogramDesity.begin(), histogramDesity.end(), [](int i) { return i == 0; }))	
+					/*if (std::all_of(histogramDesity.begin(), histogramDesity.end(), [](int i) { return i == 0; }))	
 					{
 						ppr::print_error("Density Histogram vector contains only zeros after computing histogram");
 						status = EExitStatus::WD_DHIST_ALL_ZERO;
-					}
+					}*/
 					break;
 				//	===== [END] =====
 				case 4:

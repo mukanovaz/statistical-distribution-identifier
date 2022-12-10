@@ -50,13 +50,34 @@ namespace ppr::parallel
 
 		res.total_stat_time = (t1 - t0).seconds();
 
+		//  ================ [Fit params using Maximum likelihood estimation]
+
+		res.isNegative = stat.min < 0;
+		res.isInteger = std::floor(stat.sum) == stat.sum;
+
 		// Find mean
 		stat.mean = stat.sum / stat.n;
+		
+		// Poisson likelihood estimators
+		res.poisson_lambda = stat.sum / stat.n;
 
 		//  ================ [Create frequency histogram]
+		
 		// Find histogram limits
-		hist.binCount = static_cast<int>(log2(stat.n)) + 2;
-		hist.binSize = (stat.max - stat.min) / (hist.binCount - 1);
+		double bin_count = 0.0;
+		double bin_size = 0.0;
+
+		// If data can belongs to poisson distribution, we should use integer intervals
+		if (!res.isNegative && res.isInteger && res.poisson_lambda > 0)
+		{
+			hist.binCount = stat.max - stat.min;
+			hist.binSize = 1.0;
+		}
+		else
+		{
+			hist.binCount = static_cast<int>(log2(stat.n)) + 2;
+			hist.binSize = (stat.max - stat.min) / (hist.binCount - 1);
+		}
 		hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
 
 		// Allocate memmory
@@ -64,6 +85,7 @@ namespace ppr::parallel
 		histogramDensity.resize(static_cast<int>(hist.binCount));
 
 		stage = 1;
+
 		// Run
 		if (configuration.use_optimalization)
 		{
@@ -81,16 +103,11 @@ namespace ppr::parallel
 		}
 		res.total_hist_time = (t1 - t0).seconds();
 
-		// Find variance
-		stat.variance = stat.variance / stat.n;
-
-		//  ================ [Create density histogram]
-		stage = 2;
-		ppr::executor::compute_propability_density_histogram(hist, histogramFreq, histogramDensity, stat.n);
 
 		//  ================ [Fit params using Maximum likelihood estimation]
-		res.isNegative = stat.min < 0;
-		res.isInteger = std::floor(stat.sum) == stat.sum;
+
+		// Find variance
+		stat.variance = stat.variance / stat.n;
 
 		// Gauss maximum likelihood estimators
 		res.gauss_mean = stat.mean;
@@ -100,16 +117,17 @@ namespace ppr::parallel
 		// Exponential maximum likelihood estimators
 		res.exp_lambda = stat.n / stat.sum;
 
-		// Poisson likelihood estimators
-		res.poisson_lambda = stat.sum / stat.n;
-
 		// Uniform likelihood estimators
 		res.uniform_a = stat.min;
 		res.uniform_b = stat.max;
 
+
+		//  ================ [Create density histogram]
+		stage = 2;
+		ppr::executor::compute_propability_density_histogram(hist, histogramFreq, histogramDensity, stat.n);
+
 		//	================ [Calculate RSS]
 		stage = 3;
-		//ppr::executor::calculate_histogram_RSS_with_tbb(res, arena, histogramDensity, hist);
 		ppr::parallel::calculate_histogram_RSS_cpu(res, histogramDensity, hist);
 
 		//	================ [Analyze Results]
@@ -120,19 +138,9 @@ namespace ppr::parallel
 		res.total_time = (total2 - total1).seconds();
 		stage = 4;
 
-		std::cout << "\t\t\t[Statistics]" << std::endl;
-		std::cout << "---------------------------------------------------------------------" << std::endl;
-		std::cout << "> n:\t\t\t\t" << stat.n << std::endl;
-		std::cout << "> sum:\t\t\t\t" << stat.sum << std::endl;
-		std::cout << "> mean:\t\t\t\t" << stat.mean << std::endl;
-		std::cout << "> variance:\t\t\t" << stat.variance << std::endl;
-		std::cout << "> min:\t\t\t\t" << stat.min << std::endl;
-		std::cout << "> max:\t\t\t\t" << stat.max << std::endl;
-		std::cout << "> isNegative:\t\t\t" << res.isNegative << std::endl;
-		std::cout << "> isInteger:\t\t\t" << res.isInteger << std::endl;
+		print_stat(stat, res);
 
-		std::cout << std::endl;
-
+		// Wait until watchdog will finish
 		watchdog.join();
 		return res;
 	}
