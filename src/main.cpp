@@ -77,7 +77,6 @@ int main(int argc, char* argv[])
 	std::cout << "> Poisson RSS:\t\t\t" << result.poisson_rss << std::endl;
 	std::cout << "> Exponential RSS:\t\t" << result.exp_rss << std::endl;
 	std::cout << "> Uniform RSS:\t\t\t" << result.uniform_rss << std::endl;
-	std::cout << std::endl;
 
 	std::cout << std::endl;
 	std::cout << std::endl;

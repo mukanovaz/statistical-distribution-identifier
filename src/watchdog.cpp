@@ -27,7 +27,7 @@ namespace ppr::watchdog
 					n_last = stat.n;
 					if (stat.min > stat.max)					// Min is bigger that max
 					{
-						ppr::print_error("Minumum value cannot be bigger, that maximum");
+						ppr::print_error("Minumum value cannot be bigger, that maximum.");
 						status = EExitStatus::WD_STAT_MIN_MAX;
 					}
 					break;
@@ -45,7 +45,7 @@ namespace ppr::watchdog
 					}
 					if (histogram.size() == 0)					// Histogram vector has no elements
 					{
-						ppr::print_error("Frequency histogram not exist.");
+						ppr::print_error("Frequency histogram not exists.");
 						status = EExitStatus::WD_HIST_SIZE;
 					}
 					break;
@@ -53,17 +53,17 @@ namespace ppr::watchdog
 				case 2:	
 					if (std::all_of(histogram.begin(), histogram.end(), [](int i) { return i == 0; }))				
 					{
-						ppr::print_error("Frequency Histogram vector contains only zeros after computing histogram");
+						ppr::print_error("Frequency Histogram vector contains only zeros after computing histogram.");
 						status = EExitStatus::WD_HIST_ALL_ZERO;
 					}
 					break;
 				//	===== [RSS] =====
 				case 3:		
-					/*if (std::all_of(histogramDesity.begin(), histogramDesity.end(), [](int i) { return i == 0; }))	
+					if (std::all_of(histogramDesity.begin(), histogramDesity.end(), [](int i) { return i == 0; }))	
 					{
-						ppr::print_error("Density Histogram vector contains only zeros after computing histogram");
+						ppr::print_error("Density Histogram vector contains only zeros after computing histogram.");
 						status = EExitStatus::WD_DHIST_ALL_ZERO;
-					}*/
+					}
 					break;
 				//	===== [END] =====
 				case 4:
@@ -76,7 +76,7 @@ namespace ppr::watchdog
 
 				if (status != EExitStatus::SUCCESS)
 				{
-					ppr::print_error("Watchdog found some problem in computing process");
+					ppr::print_error("Watchdog found some problem in computing process.");
 					std::exit(status);
 				}
 

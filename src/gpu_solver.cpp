@@ -39,22 +39,41 @@ namespace ppr::gpu
 		
 		res.total_stat_time = (t1 - t0).seconds();
 
+		//  ================ [Fit params using Maximum likelihood estimation]
+
+		res.isNegative = stat.min < 0;
+		res.isInteger = std::floor(stat.sum) == stat.sum;
+
 		// Find mean
 		stat.mean = stat.sum / stat.n;
+
+		// Poisson likelihood estimators
+		res.poisson_lambda = stat.sum / stat.n;
 
 		//  ================ [Create frequency histogram]
 		// Update kernel program
 		ppr::gpu::update_kernel_program(opencl, HIST_KERNEL, HIST_KERNEL_NAME);
 
 		// Find histogram limits
-		hist.binCount = static_cast<unsigned int>(log2(stat.n)) + 1;
-		hist.binSize = (stat.max - stat.min) / (hist.binCount - 1);
+		double bin_count = 0.0;
+		double bin_size = 0.0;
+
+		// If data can belongs to poisson distribution, we should use integer intervals
+		if (!res.isNegative && res.isInteger && res.poisson_lambda > 0)
+		{
+			hist.binCount = stat.max - stat.min;
+			hist.binSize = 1.0;
+		}
+		else
+		{
+			hist.binCount = static_cast<int>(log2(stat.n)) + 2;
+			hist.binSize = (stat.max - stat.min) / (hist.binCount - 1);
+		}
 		hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
 
 		// Allocate memmory
-		int bin_count = static_cast<int>(hist.binCount + 1);
-		histogramFreq.resize(bin_count);
-		histogramDensity.resize(bin_count);
+		histogramFreq.resize(static_cast<int>(hist.binCount));
+		histogramDensity.resize(static_cast<int>(hist.binCount));
 		cl_int err = 0;
 
 		// Run
@@ -65,16 +84,14 @@ namespace ppr::gpu
 		
 		res.total_hist_time = (t1 - t0).seconds();
 
-		// Find variance
-		stat.variance = stat.variance / stat.n;
-
 		//  ================ [Create density histogram]
 		stage = 2;
 		ppr::executor::compute_propability_density_histogram(hist, histogramFreq, histogramDensity, stat.n);
 
-		//	================ [Fit params using Maximum likelihood estimation]
-		res.isNegative = stat.isNegative;
-		res.isInteger = std::floor(stat.sum) == stat.sum;
+		//  ================ [Fit params using Maximum likelihood estimation]
+
+		// Find variance
+		stat.variance = stat.variance / stat.n;
 
 		// Gauss maximum likelihood estimators
 		res.gauss_mean = stat.mean;
@@ -84,16 +101,12 @@ namespace ppr::gpu
 		// Exponential maximum likelihood estimators
 		res.exp_lambda = stat.n / stat.sum;
 
-		// Poisson likelihood estimators
-		res.poisson_lambda = stat.sum / stat.n;
-
 		// Uniform likelihood estimators
 		res.uniform_a = stat.min;
 		res.uniform_b = stat.max;
 
 		//	================ [Calculate RSS]
 		stage = 3;
-		//ppr::executor::calculate_histogram_RSS_with_tbb(res, arena, histogramDensity, hist);
 		ppr::parallel::calculate_histogram_RSS_cpu(res, histogramDensity, hist);
 
 		//	================ [Analyze Results]
@@ -121,50 +134,19 @@ namespace ppr::gpu
 
 	void get_statistics(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram)
 	{
-		if (opencl.data_count_for_cpu < data_count)
-		{
-			// Find rest of a statistics on CPU
-			Running_stat_parallel stat_cpu(data, opencl.data_count_for_cpu);
-			ppr::executor::run_with_tbb<Running_stat_parallel>(arena, stat_cpu, opencl.data_count_for_cpu + 1, data_count);
+		// Find statistics on GPU
+		SDataStat stat_gpu = ppr::gpu::run_statistics_on_GPU(opencl, configuration, data, opencl.data_count_for_gpu);
 
-			// Find statistics on GPU
-			SDataStat stat_gpu = ppr::gpu::run_statistics_on_GPU(opencl, configuration, data, opencl.data_count_for_gpu);
-
-			// Agregate results results
-			stat.n += stat_gpu.n + stat_cpu.NumDataValues();
-			stat.min = std::min({ stat.min, std::min({ stat_gpu.min, stat_cpu.Get_Min() }) });
-			stat.max = std::max({ stat.max, std::max({ stat_gpu.max, stat_cpu.Get_Max() }) });
-			stat.sum += stat_gpu.sum + stat_cpu.Sum();
-			stat.isNegative = stat.isNegative || stat_gpu.isNegative || stat_cpu.IsNegative();
-		}
-		else
-		{
-			// Find statistics on GPU
-			SDataStat stat_gpu = ppr::gpu::run_statistics_on_GPU(opencl, configuration, data, opencl.data_count_for_gpu);
-
-			// Agregate results results
-			stat.n += stat_gpu.n;
-			stat.min = std::min({ stat_gpu.min, stat.min});
-			stat.max = std::max({ stat_gpu.max, stat.max });
-			stat.sum += stat_gpu.sum;
-			stat.isNegative = stat.isNegative || stat_gpu.isNegative;
-		}
+		// Agregate results results
+		stat.n += stat_gpu.n;
+		stat.min = std::min({ stat_gpu.min, stat.min });
+		stat.max = std::max({ stat_gpu.max, stat.max });
+		stat.sum += stat_gpu.sum;
+		stat.isNegative = stat.isNegative || stat_gpu.isNegative;
 	}
 
 	void create_frequency_histogram(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram)
 	{
-		if (opencl.data_count_for_cpu < data_count)
-		{
-			// Run on CPU
-			ppr::hist::Histogram_parallel hist_cpu(hist.binCount, hist.binSize, stat.min, stat.max, data, stat.mean);
-			ppr::executor::run_with_tbb<ppr::hist::Histogram_parallel>(arena, hist_cpu, opencl.data_count_for_cpu, data_count);
-
-			// Transform vector
-			std::transform(histogram.begin(), histogram.end(), hist_cpu.m_bucketFrequency.begin(), histogram.begin(), std::plus<int>());
-			
-			stat.variance += hist_cpu.m_var; // GPU + CPU "half" variance
-		}
-
 		// Run on GPU
 		ppr::gpu::run_histogram_on_GPU(opencl, configuration, hist, stat, data, opencl.data_count_for_gpu, histogram, stat.variance);
 	}
