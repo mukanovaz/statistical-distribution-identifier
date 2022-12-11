@@ -126,7 +126,7 @@ namespace ppr
             /// <param name="arena">- arena object. using for TBB algorithm</param>
             /// <param name="histogram">- vector reference for frequency histogram</param>
             /// <param name="process_chunk">- method is using for process one data chunk</param>
-            void read_in_chunks(
+            void read_in_chunks_tbb(
                 SHistogram& hist,
                 SConfig& config,
                 SOpenCLConfig& opencl, 

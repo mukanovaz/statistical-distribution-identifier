@@ -202,7 +202,7 @@ namespace ppr
         }
     }
 
-    void File_mapping::read_in_chunks(
+    void File_mapping::read_in_chunks_tbb(
         SHistogram& hist,
         SConfig& config,
         SOpenCLConfig& opencl,

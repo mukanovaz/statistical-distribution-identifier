@@ -34,7 +34,7 @@ namespace ppr::gpu
 
 		//  ================ [Get statistics]
 		tbb::tick_count t0 = tbb::tick_count::now();
-		mapping.read_in_chunks(hist, configuration, opencl, stat, arena, tmp, &get_statistics);
+		mapping.read_in_chunks_tbb(hist, configuration, opencl, stat, arena, tmp, &get_statistics);
 		tbb::tick_count t1 = tbb::tick_count::now();
 		
 		res.total_stat_time = (t1 - t0).seconds();
@@ -79,7 +79,7 @@ namespace ppr::gpu
 		// Run
 		stage = 1;
 		t0 = tbb::tick_count::now();
-		mapping.read_in_chunks(hist, configuration, opencl, stat, arena, histogramFreq, &create_frequency_histogram);
+		mapping.read_in_chunks_tbb(hist, configuration, opencl, stat, arena, histogramFreq, &create_frequency_histogram);
 		t1 = tbb::tick_count::now();
 		
 		res.total_hist_time = (t1 - t0).seconds();

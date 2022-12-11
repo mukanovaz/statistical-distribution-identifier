@@ -44,7 +44,7 @@ namespace ppr::parallel
 		{
 			// TBB run
 			t0 = tbb::tick_count::now();
-			mapping.read_in_chunks(hist, configuration, opencl, stat, arena, tmp, &get_statistics_CPU);
+			mapping.read_in_chunks_tbb(hist, configuration, opencl, stat, arena, tmp, &get_statistics_CPU);
 			t1 = tbb::tick_count::now();
 		}
 
@@ -98,7 +98,7 @@ namespace ppr::parallel
 		{
 			// TBB run
 			t0 = tbb::tick_count::now();
-			mapping.read_in_chunks(hist, configuration, opencl, stat, arena, histogramFreq, &create_frequency_histogram_CPU);
+			mapping.read_in_chunks_tbb(hist, configuration, opencl, stat, arena, histogramFreq, &create_frequency_histogram_CPU);
 			t1 = tbb::tick_count::now();
 		}
 		res.total_hist_time = (t1 - t0).seconds();
