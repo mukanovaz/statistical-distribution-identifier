@@ -7,14 +7,12 @@
 #include "data.h"
 
 #include<future>
-#include<vector>
-#include <windows.h>
-#include <iostream>
-#undef min
-#undef max
-
 #include <tbb/task_arena.h>
-#include <tbb/tick_count.h>
+
+#ifndef NOMINMAX
+# define NOMINMAX
+#endif
+#include <windows.h>
 
 namespace ppr
 {
@@ -32,7 +30,7 @@ namespace ppr
             /// <summary>
             /// Scale is using to multiply alocation granularity
             /// </summary>
-            DWORD m_scale;
+            long m_scale;
             /// <summary>
             /// Maped data
             /// </summary>
@@ -40,7 +38,7 @@ namespace ppr
             /// <summary>
             /// File name
             /// </summary>
-            const WCHAR* m_filename;
+            const char* m_filename;
             /// <summary>
             /// File lenght
             /// </summary>
@@ -48,11 +46,11 @@ namespace ppr
             /// <summary>
             /// Data count in a file
             /// </summary>
-            DWORD m_size;
+            long m_size;
             /// <summary>
             /// System allocation granularity
             /// </summary>
-            DWORD m_allocationGranularity;
+            long m_allocationGranularity;
 
             /// <summary>
             /// Create file. Is using for getting file lenght before all computings and for sequential computing.
@@ -76,7 +74,7 @@ namespace ppr
             /// Constructor is using for sequential computing
             /// </summary>
             /// <param name="filename">file name</param>
-            File_mapping(const WCHAR* filename);
+            File_mapping(const char* filename);
 
             /// <summary>
             /// Main constructor
@@ -99,7 +97,7 @@ namespace ppr
             /// Get allocation granularity for current system
             /// </summary>
             /// <returns>allocation granularity</returns>
-            const DWORD get_granularity() const;
+            const long get_granularity() const;
 
             /// <summary>
             /// Get file lenght in bytes
@@ -111,7 +109,7 @@ namespace ppr
             /// Returnes how many doubles exitst in input file
             /// </summary>
             /// <returns>Number of doubles</returns>
-            const unsigned int get_count() const;
+            const long get_count() const;
 
             /// <summary>
             /// Calls 'process_chunk' function with each chunk of the file.
@@ -129,11 +127,11 @@ namespace ppr
             void read_in_chunks_tbb(
                 SHistogram& hist,
                 SConfig& config,
-                SOpenCLConfig& opencl, 
+                ppr::gpu::SOpenCLConfig& opencl,
                 SDataStat& stat, 
                 tbb::task_arena& arena, 
                 std::vector<int>& histogram,
-                void (*process_chunk) (SHistogram& hist, SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned long long, double*, std::vector<int>&));
+                void (*process_chunk) (SHistogram& hist, SConfig&, ppr::gpu::SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned long long, double*, std::vector<int>&));
 
             /// <summary>
             /// Mapping data as one block and [collecting data statistics / creating frequency histogram] of these data using multiply threads
@@ -147,7 +145,7 @@ namespace ppr
             void read_in_one_chunk_cpu(
                 SHistogram& hist,
                 SConfig& config,
-                SOpenCLConfig& opencl,
+                ppr::gpu::SOpenCLConfig& opencl,
                 SDataStat& stat,
                 EIteration iteration,
                 std::vector<int>& histogram);

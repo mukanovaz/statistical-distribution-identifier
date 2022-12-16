@@ -26,7 +26,7 @@ namespace ppr::parallel
 	/// <param name="data_count">Data count for processing</param>
 	/// <param name="data">Data pointer</param>
 	/// <param name="histogram">Frequency histogram reference</param>
-	void get_statistics_CPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, 
+	void get_statistics_CPU(SHistogram& hist, SConfig& configuration, ppr::gpu::SOpenCLConfig& opencl, SDataStat& stat,
 		tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram);
 
 	/// <summary>
@@ -39,6 +39,6 @@ namespace ppr::parallel
 	/// <param name="data_count">Data count for processing</param>
 	/// <param name="data">Data pointer</param>
 	/// <param name="histogram">Frequency histogram reference</param>
-	void create_frequency_histogram_CPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl,
+	void create_frequency_histogram_CPU(SHistogram& hist, SConfig& configuration, ppr::gpu::SOpenCLConfig& opencl,
 		SDataStat& stat, tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram);
 }

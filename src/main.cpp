@@ -90,8 +90,6 @@ int main(int argc, char* argv[])
 	std::cout << std::endl;
 	get_dist_string(result);
 
-	delete conf.input_fn;
-
-	getchar();
+	//getchar();
 	return result.status;
 }

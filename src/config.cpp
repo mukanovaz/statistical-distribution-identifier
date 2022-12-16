@@ -3,16 +3,6 @@
 
 namespace ppr
 {
-	const WCHAR* Char2Wchar(char const* c)
-	{
-		size_t size = strlen(c) + 1;
-		WCHAR* wc = new WCHAR[size];
-
-		size_t outSize;
-		mbstowcs_s(&outSize, wc, size, c, size - 1);
-		return wc;
-	}
-
 	char asciitolower(char in) {
 		if (in <= 'Z' && in >= 'A')
 			return in - ('Z' - 'z');
@@ -31,7 +21,7 @@ namespace ppr
 		int man_argc = 0;
 
 		// Check if file exist
-		config.input_fn = Char2Wchar(argv[1]);
+		config.input_fn = argv[1];
 
 		std::string file_name = argv[1];
 		man_argc++;

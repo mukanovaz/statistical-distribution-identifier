@@ -6,8 +6,12 @@
 
 namespace ppr::watchdog
 {
+	bool is_all_zeros(double n) {
+		return (n == 0);
+	}
+
 	std::thread start_watchdog(SConfig& config, SDataStat& stat, SHistogram& hist, int& stage,
-		std::vector<int>& histogram, std::vector<double>& histogramDesity, int data_count)
+		std::vector<int>& histogram, std::vector<double>& histogramDesity, long data_count)
 	{
         std::thread watchdog([&]() {
 			EExitStatus status = EExitStatus::SUCCESS;
@@ -51,7 +55,7 @@ namespace ppr::watchdog
 					break;
 				//	===== [Density histogram] =====
 				case 2:	
-					if (std::all_of(histogram.begin(), histogram.end(), [](int i) { return i == 0; }))				
+					if (std::all_of(histogram.begin(), histogram.end(), is_all_zeros))
 					{
 						ppr::print_error("Frequency Histogram vector contains only zeros after computing histogram.");
 						status = EExitStatus::WD_HIST_ALL_ZERO;
@@ -59,7 +63,7 @@ namespace ppr::watchdog
 					break;
 				//	===== [RSS] =====
 				case 3:		
-					if (std::all_of(histogramDesity.begin(), histogramDesity.end(), [](int i) { return i == 0; }))	
+					if (std::all_of(histogramDesity.begin(), histogramDesity.end(), is_all_zeros))
 					{
 						ppr::print_error("Density Histogram vector contains only zeros after computing histogram.");
 						status = EExitStatus::WD_DHIST_ALL_ZERO;

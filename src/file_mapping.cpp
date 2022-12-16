@@ -2,7 +2,17 @@
 
 namespace ppr
 {
-    File_mapping::File_mapping(const WCHAR* filename)
+    const WCHAR* char2wchar(char const* c)
+    {
+        size_t size = strlen(c) + 1;
+        WCHAR* wc = new WCHAR[size];
+
+        size_t outSize;
+        mbstowcs_s(&outSize, wc, size, c, size - 1);
+        return wc;
+    }
+
+    File_mapping::File_mapping(const char* filename)
         : m_filename(filename), m_file(INVALID_HANDLE_VALUE), m_mapping(INVALID_HANDLE_VALUE), m_data(NULL)
     {
         bool res_cf = create_file_n();
@@ -71,10 +81,12 @@ namespace ppr
 
     bool File_mapping::create_file_n()
     {
-        m_file = CreateFileW(m_filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+        const WCHAR* filename = char2wchar(m_filename);
+        m_file = CreateFileW(filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 
         if (m_file == INVALID_HANDLE_VALUE)
         {
+            delete filename;
             return false;
         };
 
@@ -109,7 +121,7 @@ namespace ppr
         return m_fileLen;
     }
 
-    const unsigned int File_mapping::get_count() const
+    const long File_mapping::get_count() const
     {
         return m_size;
     }
@@ -121,7 +133,7 @@ namespace ppr
         CloseHandle(m_file);
     }
 
-    const DWORD File_mapping::get_granularity() const
+    const long File_mapping::get_granularity() const
     {
         return m_allocationGranularity;
     }
@@ -129,14 +141,15 @@ namespace ppr
     void File_mapping::read_in_one_chunk_cpu(
         SHistogram& hist,
         SConfig& config,
-        SOpenCLConfig& opencl,
+        ppr::gpu::SOpenCLConfig& opencl,
         SDataStat& stat,
         EIteration iteration,
         std::vector<int>& histogram)
     {
         DWORD granulatity = m_allocationGranularity * m_scale;
 
-        HANDLE hfile = ::CreateFileW(m_filename, GENERIC_READ, FILE_SHARE_READ,
+        const WCHAR* filename = char2wchar(m_filename);
+        HANDLE hfile = ::CreateFileW(filename, GENERIC_READ, FILE_SHARE_READ,
             NULL, OPEN_EXISTING, 0, NULL);
         if (hfile != INVALID_HANDLE_VALUE) {
             LARGE_INTEGER file_size = { 0 };
@@ -178,6 +191,7 @@ namespace ppr
                     }
                     else
                     {
+                        // Histogram vector + variance
                         std::vector<std::future<std::tuple<std::vector<int>, double>>> workers(config.thread_count);
 
                         for (int i = 0; i < config.thread_count; i++)
@@ -200,21 +214,23 @@ namespace ppr
             }
             ::CloseHandle(hfile);
         }
+        delete filename;
     }
 
     void File_mapping::read_in_chunks_tbb(
         SHistogram& hist,
         SConfig& config,
-        SOpenCLConfig& opencl,
+        ppr::gpu::SOpenCLConfig& opencl,
         SDataStat& stat,
         tbb::task_arena& arena,
         std::vector<int>& histogram,
-        void (*process_chunk) (SHistogram& hist, SConfig&, SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned long long, double*, std::vector<int>&))
+        void (*process_chunk) (SHistogram& hist, SConfig&, ppr::gpu::SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned long long, double*, std::vector<int>&))
     {
         DWORD granulatity = m_allocationGranularity * m_scale;
 
-        // Crate a file
-        HANDLE hfile = ::CreateFileW(m_filename, GENERIC_READ, FILE_SHARE_READ,
+        // Create a file
+        const WCHAR* filename = char2wchar(m_filename);
+        HANDLE hfile = ::CreateFileW(filename, GENERIC_READ, FILE_SHARE_READ,
             NULL, OPEN_EXISTING, 0, NULL);
         if (hfile != INVALID_HANDLE_VALUE) {
             LARGE_INTEGER file_size = { 0 };
@@ -266,6 +282,7 @@ namespace ppr
             }
             ::CloseHandle(hfile);
         }
+        delete filename;
     }
 
 

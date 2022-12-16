@@ -217,7 +217,7 @@ namespace ppr::gpu
         std::string src((std::istreambuf_iterator<char>(kernel_file)), (std::istreambuf_iterator<char>()));
         const char* t_src = src.c_str();
 
-        cl::Program::Sources source(1, std::make_pair(t_src, src.length() + 1));
+        cl::Program::Sources source(1, { t_src, src.length() + 1 });
         kernel_file.close();
 
         // Create first program

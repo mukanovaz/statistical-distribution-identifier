@@ -20,14 +20,14 @@ namespace ppr::parallel
 		tbb::tick_count t0;
 		tbb::tick_count t1;
 		int stage = 0;
-		SOpenCLConfig opencl;
+		ppr::gpu::SOpenCLConfig opencl;
 		SHistogram hist;
 		SResult res;
 		SDataStat stat;
 		std::vector<int> tmp(0);
 		std::vector<int> histogramFreq(0);			// Will resize after collecting statistics
 		std::vector<double> histogramDensity(0);	// Will resize after collecting statistics
-		unsigned int data_count = mapping.get_count();
+		long data_count = mapping.get_count();
 
 		//  ================ [Start Watchdog]
 		std::thread watchdog = ppr::watchdog::start_watchdog(configuration, stat, hist, stage, histogramFreq, histogramDensity, data_count);
@@ -70,7 +70,7 @@ namespace ppr::parallel
 		// If data can belongs to poisson distribution, we should use integer intervals
 		if (!res.isNegative && res.isInteger && res.poisson_lambda > 0)
 		{
-			hist.binCount = stat.max - stat.min;
+			hist.binCount = static_cast<int>(stat.max - stat.min);
 			hist.binSize = 1.0;
 		}
 		else
@@ -145,7 +145,7 @@ namespace ppr::parallel
 		return res;
 	}
 
-	void get_statistics_CPU(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram)
+	void get_statistics_CPU(SHistogram& hist, SConfig& configuration, ppr::gpu::SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram)
 	{
 		// Find rest of a statistics on CPU
 		Running_stat_parallel stat_cpu(data, opencl.data_count_for_cpu);
@@ -159,7 +159,7 @@ namespace ppr::parallel
 		stat.isNegative = stat.isNegative || stat_cpu.IsNegative();
 	}
 
-	void create_frequency_histogram_CPU(SHistogram& hist, SConfig&, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram)
+	void create_frequency_histogram_CPU(SHistogram& hist, SConfig&, ppr::gpu::SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram)
 	{
 		// Run on CPU
 		ppr::hist::Histogram_parallel hist_cpu(hist.binCount, hist.binSize, stat.min, stat.max, data, stat.mean);

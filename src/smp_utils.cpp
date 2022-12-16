@@ -5,7 +5,7 @@
 
 namespace ppr::parallel
 {
-	SDataStat Stat_processing_unit::run_on_CPU(double* data, int data_count)
+	SDataStat Stat_processing_unit::run_on_CPU(double* data, long long data_count)
 	{
 		// Local variables
 		SDataStat local_stat;
@@ -15,13 +15,13 @@ namespace ppr::parallel
 		return local_stat;
 	}
 
-	SDataStat Stat_processing_unit::run_on_GPU(double* data, int data_count)
+	SDataStat Stat_processing_unit::run_on_GPU(double* data, long long data_count)
 	{
 		// Call Opencl kernel
 		return ppr::gpu::run_statistics_on_GPU(m_ocl_config, m_configuration, data, data_count);
 	}
 
-	std::tuple<std::vector<int>, double> Hist_processing_unit::run_on_CPU(double* data, int data_count)
+	std::tuple<std::vector<int>, double> Hist_processing_unit::run_on_CPU(double* data, long long data_count)
 	{
 		// Local variables
 		std::vector<int> local_vector(m_hist.binCount + 1);
@@ -33,7 +33,7 @@ namespace ppr::parallel
 		return std::make_tuple(local_vector, variance);
 	}
 
-	std::tuple<std::vector<int>, double> Hist_processing_unit::run_on_GPU(double* data, int data_count)
+	std::tuple<std::vector<int>, double> Hist_processing_unit::run_on_GPU(double* data, long long data_count)
 	{
 		// Local variables
 		std::vector<int> local_vector(m_hist.binCount + 1);
@@ -46,7 +46,7 @@ namespace ppr::parallel
 		return std::make_tuple(local_vector, variance);
 	}
 
-	void get_histogram_vectorized(std::vector<int>& local_vector, double& variance, int data_count, double* data, SHistogram& hist, SDataStat& stat)
+	void get_histogram_vectorized(std::vector<int>& local_vector, double& variance, long long data_count, double* data, SHistogram& hist, SDataStat& stat)
 	{
 		// Fill vector with mean/min and scale value
 		const __m256d mean = _mm256_set1_pd(stat.mean);
@@ -179,7 +179,7 @@ namespace ppr::parallel
 		return sum;
 	}
 
-	void get_statistics_vectorized(SDataStat& stat, int data_count, double* data)
+	void get_statistics_vectorized(SDataStat& stat, long long data_count, double* data)
 	{
 		__m256d min = _mm256_set1_pd(
 			std::numeric_limits<double>::max()
@@ -188,7 +188,7 @@ namespace ppr::parallel
 		__m256d max = _mm256_set1_pd(
 			std::numeric_limits<double>::lowest()
 		);
-		int size = data_count - (data_count % 4);
+		long long size = data_count - (data_count % 4);
 
 		for (int block = 0; block < size; block += 4)
 		{

@@ -4,7 +4,6 @@
 #include <fstream>
 #include <algorithm>
 #include <vector>
-#include <CL/opencl.hpp>
 
 #include "include/data.h"
 
@@ -33,23 +32,23 @@ namespace ppr
     /// <summary>
     /// 2 Gigabytes in bytes aligned for allocation granularity on current system
     /// </summary>
-    const constexpr DWORD MAX_FILE_SIZE_MEM_2gb = 1999962112;
+    const constexpr long MAX_FILE_SIZE_MEM_2gb = 1999962112;
     /// <summary>
     /// 1 Gigabyte in bytes aligned for allocation granularity on current system
     /// </summary>
-    const constexpr DWORD MAX_FILE_SIZE_MEM_1gb = 999948288;
+    const constexpr long MAX_FILE_SIZE_MEM_1gb = 999948288;
     /// <summary>
     /// 0.5 Gigabyte in bytes aligned for allocation granularity on current system
     /// </summary>
-    const constexpr DWORD MAX_FILE_SIZE_MEM_500mb = 499974144;
+    const constexpr long MAX_FILE_SIZE_MEM_500mb = 499974144;
     /// <summary>
     /// Watchdog default interval
     /// </summary>
-    const constexpr long long WATCHDOG_INTERVAL_SEC = 2;
+    const constexpr int WATCHDOG_INTERVAL_SEC = 2;
     /// <summary>
     /// Timeout for get statistics from one chunk of file. Using for changing allocation granularity scale.
     /// </summary>
-    const constexpr long long STAT_TIMEOUT_SEC = 5;
+    const constexpr int STAT_TIMEOUT_SEC = 5;
     /// <summary>
     /// Default optimalization setting
     /// </summary>
@@ -87,7 +86,7 @@ namespace ppr
     /// Structure of program configuration
     /// </summary>
     struct SConfig {
-        const WCHAR* input_fn{};                        // Input file name
+        const char* input_fn{};                         // Input file name
         ERun_mode mode{};                               // Program running mode
         std::vector<std::string> cl_devices_name{};     // OpenCl Devices from user input
         int thread_count = 0;                           // System max thread count
@@ -95,21 +94,6 @@ namespace ppr
         long long stat_timeout = STAT_TIMEOUT_SEC;
         bool use_optimalization = USE_OPTIMIZATION;
         int thread_per_core = THREAD_PER_CORE;
-    };
-
-    /// <summary>
-    /// Structure of opencl configuration
-    /// </summary>
-    struct SOpenCLConfig {
-        cl::Device device{};                            // Opencl device
-        cl::Context context{};                          // Opencl context
-        cl::Program program{};                          // Opencl program
-        cl::Kernel kernel{};                            // Opencl kernel               
-        cl::CommandQueue queue{};                       // Opencl shared queue
-        unsigned long long wg_size = 0;                 // One work group size
-        unsigned long long data_count_for_gpu = 0;      // Data count for process on gpu
-        unsigned long long data_count_for_cpu = 0;      // Data count for process on cpu
-        unsigned long wg_count = 0;                     // Work group count
     };
 
     /// <summary>

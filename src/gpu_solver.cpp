@@ -13,7 +13,7 @@ namespace ppr::gpu
 		tbb::task_arena arena(configuration.thread_count == 0 ? tbb::task_arena::automatic : static_cast<int>(configuration.thread_count));
 
 		//  ================ [Init OpenCL]
-		SOpenCLConfig opencl = ppr::gpu::init(configuration, STAT_KERNEL, STAT_KERNEL_NAME);
+		ppr::gpu::SOpenCLConfig opencl = ppr::gpu::init(configuration, STAT_KERNEL, STAT_KERNEL_NAME);
 
 		//  ================ [Get file mapping]
 		File_mapping mapping(configuration);
@@ -27,7 +27,7 @@ namespace ppr::gpu
 		std::vector<int> tmp(0);
 		std::vector<int> histogramFreq(0);
 		std::vector<double> histogramDensity(0);
-		unsigned int data_count = mapping.get_count();
+		long data_count = mapping.get_count();
 
 		//  ================ [Start Watchdog]
 		std::thread watchdog = ppr::watchdog::start_watchdog(configuration, stat, hist, stage, histogramFreq, histogramDensity, data_count);
@@ -61,13 +61,13 @@ namespace ppr::gpu
 		// If data can belongs to poisson distribution, we should use integer intervals
 		if (!res.isNegative && res.isInteger && res.poisson_lambda > 0)
 		{
-			hist.binCount = stat.max - stat.min;
+			hist.binCount = static_cast<int>(stat.max - stat.min);
 			hist.binSize = 1.0;
 		}
 		else
 		{
 			hist.binCount = static_cast<int>(log2(stat.n)) + 2;
-			hist.binSize = (stat.max - stat.min) / (hist.binCount - 1);
+			hist.binSize = (stat.max - stat.min) / (static_cast<double>(hist.binCount) - 1.0);
 		}
 		hist.scaleFactor = (hist.binCount) / (stat.max - stat.min);
 

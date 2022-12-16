@@ -1,4 +1,10 @@
 #pragma once
+
+#define CL_TARGET_OPENCL_VERSION 200
+#define CL_HPP_TARGET_OPENCL_VERSION 200
+#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
+#define CL_HPP_ENABLE_EXCEPTIONS
+
 #include <CL/opencl.hpp>
 #include <string>
 #include "config.h"
@@ -6,6 +12,22 @@
 
 namespace ppr::gpu
 {
+
+	/// <summary>
+	/// Structure of opencl configuration
+	/// </summary>
+	struct SOpenCLConfig {
+		cl::Device device{};                            // Opencl device
+		cl::Context context{};                          // Opencl context
+		cl::Program program{};                          // Opencl program
+		cl::Kernel kernel{};                            // Opencl kernel               
+		cl::CommandQueue queue{};                       // Opencl shared queue
+		unsigned long long wg_size = 0;                 // One work group size
+		unsigned long long data_count_for_gpu = 0;      // Data count for process on gpu
+		unsigned long long data_count_for_cpu = 0;      // Data count for process on cpu
+		unsigned long wg_count = 0;                     // Work group count
+	};
+
 	/// <summary>
 	/// Create data histogram on Opencl device
 	/// </summary>

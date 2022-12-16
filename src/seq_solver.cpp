@@ -22,7 +22,7 @@ namespace ppr::seq
 
 		// ================ [Get statistics]
 		tbb::tick_count t0 = tbb::tick_count::now();
-		for (unsigned int i = 1; i < mapping.get_count(); i++)
+		for (long i = 1; i < mapping.get_count(); i++)
 		{
 			double d = (double)data[i];
 			stat.Push(d);
@@ -62,7 +62,7 @@ namespace ppr::seq
 		}
 		else
 		{
-			bin_count = static_cast<int>(log2(stat.NumDataValues())) + 2;
+			bin_count = log2(stat.NumDataValues()) + 2;
 			bin_size = (stat.Get_Max() - stat.Get_Min()) / (bin_count - 1);
 		}
 
