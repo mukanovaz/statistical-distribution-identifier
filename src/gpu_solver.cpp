@@ -13,7 +13,8 @@ namespace ppr::gpu
 		tbb::task_arena arena(configuration.thread_count == 0 ? tbb::task_arena::automatic : static_cast<int>(configuration.thread_count));
 
 		//  ================ [Init OpenCL]
-		ppr::gpu::SOpenCLConfig opencl = ppr::gpu::init(configuration, STAT_KERNEL, STAT_KERNEL_NAME);
+		/*ppr::gpu::SOpenCLConfig opencl = ppr::gpu::init(configuration, STAT_KERNEL, STAT_KERNEL_NAME);*/
+
 
 		//  ================ [Get file mapping]
 		File_mapping mapping(configuration);
@@ -28,13 +29,14 @@ namespace ppr::gpu
 		std::vector<int> histogramFreq(0);
 		std::vector<double> histogramDensity(0);
 		long data_count = mapping.get_count();
+		double* data = mapping.get_data();
 
 		//  ================ [Start Watchdog]
 		std::thread watchdog = ppr::watchdog::start_watchdog(configuration, stat, hist, stage, histogramFreq, histogramDensity, data_count);
 
 		//  ================ [Get statistics]
 		tbb::tick_count t0 = tbb::tick_count::now();
-		mapping.read_in_chunks_tbb(hist, configuration, opencl, stat, arena, tmp, &get_statistics);
+		mapping.read_in_chunks_gpu(hist, configuration, stat, EIteration::STAT, histogramFreq);
 		tbb::tick_count t1 = tbb::tick_count::now();
 		
 		res.total_stat_time = (t1 - t0).seconds();
@@ -51,8 +53,6 @@ namespace ppr::gpu
 		res.poisson_lambda = stat.sum / stat.n;
 
 		//  ================ [Create frequency histogram]
-		// Update kernel program
-		ppr::gpu::update_kernel_program(opencl, HIST_KERNEL, HIST_KERNEL_NAME);
 
 		// Find histogram limits
 		double bin_count = 0.0;
@@ -79,7 +79,7 @@ namespace ppr::gpu
 		// Run
 		stage = 1;
 		t0 = tbb::tick_count::now();
-		mapping.read_in_chunks_tbb(hist, configuration, opencl, stat, arena, histogramFreq, &create_frequency_histogram);
+		mapping.read_in_chunks_gpu(hist, configuration, stat, EIteration::HIST, histogramFreq);
 		t1 = tbb::tick_count::now();
 		
 		res.total_hist_time = (t1 - t0).seconds();
@@ -132,22 +132,4 @@ namespace ppr::gpu
 		return res;
 	}
 
-	void get_statistics(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram)
-	{
-		// Find statistics on GPU
-		SDataStat stat_gpu = ppr::gpu::run_statistics_on_GPU(opencl, configuration, data, opencl.data_count_for_gpu);
-
-		// Agregate results results
-		stat.n += stat_gpu.n;
-		stat.min = std::min({ stat_gpu.min, stat.min });
-		stat.max = std::max({ stat_gpu.max, stat.max });
-		stat.sum += stat_gpu.sum;
-		stat.isNegative = stat.isNegative || stat_gpu.isNegative;
-	}
-
-	void create_frequency_histogram(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram)
-	{
-		// Run on GPU
-		ppr::gpu::run_histogram_on_GPU(opencl, configuration, hist, stat, data, opencl.data_count_for_gpu, histogram, stat.variance);
-	}
 }

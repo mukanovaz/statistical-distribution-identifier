@@ -17,11 +17,10 @@ namespace ppr::gpu
 	/// Structure of opencl configuration
 	/// </summary>
 	struct SOpenCLConfig {
-		cl::Device device{};                            // Opencl device
+		cl::Device device{};						// Executing device
 		cl::Context context{};                          // Opencl context
 		cl::Program program{};                          // Opencl program
-		cl::Kernel kernel{};                            // Opencl kernel               
-		cl::CommandQueue queue{};                       // Opencl shared queue
+		cl::Kernel kernel{};                            // Opencl kernel          
 		unsigned long long wg_size = 0;                 // One work group size
 		unsigned long long data_count_for_gpu = 0;      // Data count for process on gpu
 		unsigned long long data_count_for_cpu = 0;      // Data count for process on cpu
@@ -40,7 +39,7 @@ namespace ppr::gpu
 	/// <param name="freq_buckets">- Frequency histogram reference</param>
 	/// <param name="var">- Final Variance</param>
 	void run_histogram_on_GPU(SOpenCLConfig& opencl, SConfig& configuration, SHistogram& hist, SDataStat& data_stat,
-		double* data, unsigned long long data_count, std::vector<int>& freq_buckets, double& var);
+		double* data, long long begin, long long end, std::vector<int>& freq_buckets, double& var);
 
 	/// <summary>
 	/// Collect data statistics on Opencl device
@@ -50,7 +49,7 @@ namespace ppr::gpu
 	/// <param name="data">- Data pointer</param>
 	/// <param name="data_count">- Data count to process</param>
 	/// <returns>Local data statistics</returns>
-	SDataStat run_statistics_on_GPU(SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, unsigned long long data_count);
+	SDataStat run_statistics_on_GPU(SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, long long begin, long long end);
 
 	/// <summary>
 	/// Init opencl 
@@ -67,7 +66,7 @@ namespace ppr::gpu
 	/// <param name="configuration">- Program configuration structure</param>
 	/// <param name="file">- kernel file</param>
 	/// <param name="kernel_name">- kernel name</param>
-	void update_kernel_program(SOpenCLConfig& opencl, const std::string& file, const char* kernel_name);
+	void set_kernel_program(SOpenCLConfig& opencl, const std::string& file, const char* kernel_name);
 
 	/// <summary>
 	/// Create OpenCl kernel with init program
@@ -89,7 +88,7 @@ namespace ppr::gpu
 	/// <param name="platforms">- OpenCL platform</param>
 	/// <param name="all_devices">- Vector of devices in a system</param>
 	/// <param name="user_devices">- Vector of devices from user</param>
-	void find_opencl_devices(std::vector<cl::Platform>& platforms, std::vector<cl::Device>& all_devices, 
+	void find_opencl_devices(std::vector<cl::Device>& all_devices, 
 		std::vector<std::string>& user_devices);
 
 	/// <summary>

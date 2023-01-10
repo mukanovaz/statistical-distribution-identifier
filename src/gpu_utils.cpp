@@ -8,20 +8,19 @@
 namespace ppr::gpu
 {
     void run_histogram_on_GPU(SOpenCLConfig& opencl, SConfig& configuration, SHistogram& hist, SDataStat& data_stat,
-        double* data, unsigned long long data_count, std::vector<int>& freq_buckets, double& var)
+        double* data, long long begin, long long end, std::vector<int>& freq_buckets, double& var)
     {
         cl_int err = 0;
+        const long long data_count = opencl.data_count_for_gpu;
         const unsigned long long work_group_number = data_count / opencl.wg_size;
         const unsigned long long count = data_count - (data_count % opencl.wg_size);
-
-        cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
 
         // Result data
         std::vector<double> out_var(work_group_number);
         std::vector<cl_uint> out_histogram(2 * hist.binCount, 0);
 
         // Buffers
-        cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, count * sizeof(double), data, &err); 
+        cl::Buffer in_data_buf(opencl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, count * sizeof(double), data + begin, &err); 
         cl::Buffer out_sum_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, out_histogram.size() * sizeof(cl_uint), out_histogram.data(), &err);
         cl::Buffer out_var_buf(opencl.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, work_group_number * sizeof(double), nullptr, &err);
 
@@ -49,6 +48,7 @@ namespace ppr::gpu
         }
 
         // Pass all data to GPU
+        cl::CommandQueue cmd_queue(opencl.context, opencl.device, 0, &err);
         err = cmd_queue.enqueueNDRangeKernel(opencl.kernel, cl::NullRange, cl::NDRange(count), cl::NDRange(opencl.wg_size));
 
         if (err != CL_SUCCESS)
@@ -78,20 +78,21 @@ namespace ppr::gpu
         }
 
         // Agregate results on CPU
-        data_stat.variance += ppr::parallel::sum_vector_elements_vectorized(out_var);
+        var += ppr::parallel::sum_vector_elements_vectorized(out_var);
     }
 
-    SDataStat run_statistics_on_GPU(SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, unsigned long long data_count)
+    SDataStat run_statistics_on_GPU(SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, long long begin, long long end)
     {
         SDataStat local_stat;
         cl_int err = 0;
+        const long long data_count = m_ocl_config.data_count_for_gpu;
         const unsigned long long work_group_number = data_count / m_ocl_config.wg_size;
         const unsigned long long count = data_count - (data_count % m_ocl_config.wg_size);
 
         cl::CommandQueue cmd_queue(m_ocl_config.context, m_ocl_config.device, 0, &err);
 
         // Input and output buffers
-        cl::Buffer in_data_buf(m_ocl_config.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, count * sizeof(double), data, &err);
+        cl::Buffer in_data_buf(m_ocl_config.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, count * sizeof(double), data + begin, &err);
         cl::Buffer out_sum_buf(m_ocl_config.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, work_group_number * sizeof(double), nullptr, &err);
         cl::Buffer out_min_buf(m_ocl_config.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, work_group_number * sizeof(double), nullptr, &err);
         cl::Buffer out_max_buf(m_ocl_config.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, work_group_number * sizeof(double), nullptr, &err);
@@ -160,29 +161,7 @@ namespace ppr::gpu
         };
     }
 
-
-    SOpenCLConfig init(SConfig& configuration, const std::string& file, const char* kernel_name)
-    {
-        SOpenCLConfig opencl;
-
-        // Find all platforms
-        std::vector<cl::Platform> platforms;
-        cl::Platform::get(&platforms);
-
-        // Find all devices on all platforms
-        std::vector<cl::Device> devices;
-        ppr::gpu::find_opencl_devices(platforms, devices, configuration.cl_devices_name);
-        opencl.device = devices.front();
-
-        // Create program
-        create_kernel_program(opencl, file);
-
-        // Create kernel
-        create_kernel(opencl, kernel_name);
-        return opencl;
-    }
-
-    void update_kernel_program(SOpenCLConfig& opencl, const std::string& file, const char* kernel_name)
+    void set_kernel_program(SOpenCLConfig& opencl, const std::string& file, const char* kernel_name)
     {
         // Update program
         create_kernel_program(opencl, file);
@@ -248,8 +227,12 @@ namespace ppr::gpu
         }
     }
 
-    void find_opencl_devices(std::vector<cl::Platform>& platforms, std::vector<cl::Device>& all_devices, std::vector<std::string>& user_devices)
+    void find_opencl_devices(std::vector<cl::Device>& all_devices, std::vector<std::string>& user_devices)
     {
+        // Find all platforms
+        std::vector<cl::Platform> platforms;
+        cl::Platform::get(&platforms);
+
         for (const auto& platform : platforms)
         {
             // Get all devices of the current platform.
@@ -265,7 +248,7 @@ namespace ppr::gpu
 
                 if (available &&
                     device_extensions.find("cl_khr_fp64") != std::string::npos &&
-                    std::find(user_devices.begin(), user_devices.end(), device_name) != user_devices.end())
+                    (user_devices.size() == 0 || std::find(user_devices.begin(), user_devices.end(), device_name) != user_devices.end()))
                 {
                     all_devices.emplace_back(device);
                 }

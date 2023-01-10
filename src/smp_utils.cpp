@@ -15,10 +15,10 @@ namespace ppr::parallel
 		return local_stat;
 	}
 
-	SDataStat Stat_processing_unit::run_on_GPU(double* data, long long data_count)
+	SDataStat Stat_processing_unit::run_on_GPU(double* data, long long begin, long long end)
 	{
 		// Call Opencl kernel
-		return ppr::gpu::run_statistics_on_GPU(m_ocl_config, m_configuration, data, data_count);
+		return ppr::gpu::run_statistics_on_GPU(m_ocl_config, m_configuration, data, begin, end - 1);
 	}
 
 	std::tuple<std::vector<int>, double> Hist_processing_unit::run_on_CPU(double* data, long long data_count)
@@ -33,14 +33,14 @@ namespace ppr::parallel
 		return std::make_tuple(local_vector, variance);
 	}
 
-	std::tuple<std::vector<int>, double> Hist_processing_unit::run_on_GPU(double* data, long long data_count)
+	std::tuple<std::vector<int>, double> Hist_processing_unit::run_on_GPU(double* data, long long begin, long long end)
 	{
 		// Local variables
 		std::vector<int> local_vector(m_hist.binCount + 1);
 		double variance = 0.0;
 
 		// Call Opencl kernel
-		ppr::gpu::run_histogram_on_GPU(m_ocl_config, m_configuration, m_hist, m_stat, data, data_count, local_vector, variance);
+		ppr::gpu::run_histogram_on_GPU(m_ocl_config, m_configuration, m_hist, m_stat, data, begin, end - 1, local_vector, variance);
 
 		// Create return value
 		return std::make_tuple(local_vector, variance);

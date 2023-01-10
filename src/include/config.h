@@ -60,8 +60,27 @@ namespace ppr
     enum class ERun_mode {
         SMP = 0,
         ALL = 1,
-        SEQ = 2
+        SEQ = 2,
+        CL = 3
+
     };
+
+    inline const char* print_mode(ERun_mode v)
+    {
+        switch (v)
+        {
+            case ERun_mode::SMP:    
+                return "SMP";
+            case ERun_mode::ALL:    
+                return "ALL";
+            case ERun_mode::SEQ:    
+                return "Sequential";
+            case ERun_mode::CL: 
+                return "On selected devices";
+
+            default:      return "[Unknown OS_type]";
+        }
+    }
 
     /// <summary>
     /// Enum for exit codes definition

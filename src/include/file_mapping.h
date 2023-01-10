@@ -128,10 +128,20 @@ namespace ppr
                 SHistogram& hist,
                 SConfig& config,
                 ppr::gpu::SOpenCLConfig& opencl,
-                SDataStat& stat, 
-                tbb::task_arena& arena, 
+                SDataStat& stat,
+                tbb::task_arena& arena,
                 std::vector<int>& histogram,
                 void (*process_chunk) (SHistogram& hist, SConfig&, ppr::gpu::SOpenCLConfig&, SDataStat&, tbb::task_arena&, unsigned long long, double*, std::vector<int>&));
+
+
+
+
+            void read_in_chunks_gpu(
+                SHistogram& hist,
+                SConfig& config,
+                SDataStat& stat, 
+                EIteration iteration,
+                std::vector<int>& histogram);
 
             /// <summary>
             /// Mapping data as one block and [collecting data statistics / creating frequency histogram] of these data using multiply threads

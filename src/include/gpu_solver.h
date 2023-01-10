@@ -27,7 +27,7 @@ namespace ppr::gpu
 	/// <param name="data">Data pointer</param>
 	/// <param name="histogram">Frequency histogram reference</param>
 	void get_statistics(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, 
-		tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram);
+		unsigned long long data_count, double* data, std::vector<int>& histogram);
 	
 	/// <summary>
 	/// Create frequency histogram using Intel TBB algorithms and OpenCL device. Calls from file_mapping.h > read_in_chunks()
@@ -41,5 +41,5 @@ namespace ppr::gpu
 	/// <param name="data">Data pointer</param>
 	/// <param name="histogram">Frequency histogram reference</param>
 	void create_frequency_histogram(SHistogram& hist, SConfig& configuration, SOpenCLConfig& opencl, SDataStat& stat, 
-		tbb::task_arena& arena, unsigned long long data_count, double* data, std::vector<int>& histogram);
+		unsigned long long data_count, double* data, std::vector<int>& histogram);
 }

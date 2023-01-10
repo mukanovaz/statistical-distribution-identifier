@@ -11,7 +11,7 @@ namespace ppr
 
 	bool parse_args(int argc, char** argv, SConfig& config)
 	{
-		if (argc < 4)
+		if (argc < 3)
 		{
 			print_error("wrong number of arguments!");
 			print_usage();
@@ -50,8 +50,13 @@ namespace ppr
 		}
 		else if (std::strncmp("all", argv[2], 3) == 0)
 		{
+			man_argc++;
 			config.mode = ERun_mode::ALL;
-			man_argc += 2;
+		}
+		else if (argv[2][0] != '-')
+		{
+			man_argc++;
+			config.mode = ERun_mode::CL;
 
 			// Save devices
 			while (man_argc < argc && argv[man_argc][0] != '-')
@@ -68,13 +73,8 @@ namespace ppr
 		}
 
 		// Get optional
-		for (int i = man_argc; i < argc; i += 2)
+		for (int i = man_argc + 1; i < argc; i += 2)
 		{
-			if (i + 1 >= argc)
-			{
-				print_error("wrong number of arguments!");
-			}
-
 			// use optimalization
 			if (std::strncmp("-o", argv[i], 2) == 0)
 			{
@@ -94,9 +94,7 @@ namespace ppr
 
 				config.use_optimalization = opt == 1;
 			}
-
-			// thread per code
-			if (std::strncmp("-t", argv[i], 2) == 0)
+			else if (std::strncmp("-t", argv[i], 2) == 0) // thread per code
 			{
 				int tc = 0;
 				if (sscanf_s(argv[i + 1], "%d", &tc) != 1)
@@ -108,9 +106,7 @@ namespace ppr
 
 				config.thread_count = tc;
 			}
-
-			// watchdog interval
-			if (std::strncmp("-w", argv[i], 2) == 0)
+			else if (std::strncmp("-w", argv[i], 2) == 0) // watchdog interval
 			{
 				int wi = 0;
 				if (sscanf_s(argv[i + 1], "%d", &wi) != 1)

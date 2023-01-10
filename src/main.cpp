@@ -18,6 +18,8 @@ namespace ppr
 			return parallel::run(configuration);
 		case ERun_mode::ALL:  
 			return gpu::run(configuration);
+		case ERun_mode::CL:
+			return gpu::run(configuration);
 		default:
 			return SResult::error_res(EExitStatus::UNKNOWN);
 		}
@@ -53,13 +55,21 @@ int main(int argc, char* argv[])
 		return ppr::EExitStatus::ARGS;
 	}
 
-	std::string mode = conf.mode == ppr::ERun_mode::SMP ? "smp" : "all";
 	std::string opt = conf.use_optimalization ? "TRUE" : "FALSE";
 
 	std::cout << "\t\t\t[Initial parameters]" << std::endl;
 	std::cout << "---------------------------------------------------------------------" << std::endl;
 	std::cout << "> File:\t\t\t\t" << argv[1] << std::endl;
-	std::cout << "> Mode:\t\t\t\t" << mode << std::endl;
+	std::cout << "> Mode:\t\t\t\t" << ppr::print_mode(conf.mode) << std::endl;
+	if (conf.cl_devices_name.size() != 0 && conf.mode == ppr::ERun_mode::CL)
+	{
+		std::cout << "> Devices:\t\t\t" << std::endl;
+
+		for (size_t i = 0; i < conf.cl_devices_name.size(); i++)
+		{
+			std::cout << "> \t\t\t\t" << conf.cl_devices_name[i] << std::endl;
+		}
+	}
 	std::cout << "> Number of threads:\t\t" << conf.thread_count << std::endl;
 	std::cout << "> Optimalization:\t\t" << opt << std::endl;
 	std::cout << "> Watchdog timer:\t\t" << conf.watchdog_interval << " sec" << std::endl;
