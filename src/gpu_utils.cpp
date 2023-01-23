@@ -78,7 +78,7 @@ namespace ppr::gpu
         }
 
         // Agregate results on CPU
-        var += ppr::parallel::sum_vector_elements_vectorized(out_var);
+        //var += ppr::parallel::sum_vector_elements_vectorized(out_var);
     }
 
     SDataStat run_statistics_on_GPU(SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, long long begin, long long end)
@@ -146,18 +146,18 @@ namespace ppr::gpu
         cl::finish();
 
         // Agregate results on CPU
-        double sum = ppr::parallel::sum_vector_elements_vectorized(out_sum);
+        /*double sum = ppr::parallel::sum_vector_elements_vectorized(out_sum);
         double max = ppr::parallel::max_of_vector_vectorized(out_max);
-        double min = ppr::parallel::min_of_vector_vectorized(out_min);
+        double min = ppr::parallel::min_of_vector_vectorized(out_min);*/
 
         return {
-            sum,					// sum
-            max,					// max
-            min,					// min
+            0,					// sum
+            0,					// max
+            0,					// min
             0.0,					// mean
             0.0,					// variance
-            min < 0,                // is Negative
-            sum != 0 ? count : 0	// n
+            0,                // is Negative
+            0	// n
         };
     }
 

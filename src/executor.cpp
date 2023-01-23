@@ -23,7 +23,7 @@ namespace ppr::executor
 		std::array<double, 4> rss = { res.gauss_rss, res.poisson_rss, res.exp_rss, res.uniform_rss };
 		std::sort(rss.begin(), rss.end());
 
-		if (res.poisson_rss == rss[0])
+		if (res.poisson_rss == rss[0] && res.isInteger && !res.isNegative)
 		{
 			res.dist = EDistribution::POISSON;
 		}
@@ -45,12 +45,16 @@ namespace ppr::executor
 
 	void compute_propability_density_histogram(SHistogram& hist, std::vector<int>& bucket_frequency, std::vector<double>& bucket_density, unsigned long long count)
 	{
-		for (size_t i = 0; i < static_cast<size_t>(hist.binCount); i++)
+		int binCount = hist.binCount;
+		double n = static_cast<double>(count);
+
+		for (int i = 0; i < binCount; i++)
 		{
 			double next_edge = hist.min + (hist.binSize * (static_cast<double>(i) + 1.0));
 			double curr_edge = hist.min + (hist.binSize * static_cast<double>(i));
+
 			double diff = next_edge - curr_edge;
-			bucket_density[i] = bucket_frequency[i] / diff / count;
+			bucket_density[i] = (double) bucket_frequency[i] / diff / n;
 		}
 	}
 	

@@ -25,9 +25,9 @@ enum class EDistribution {
 struct SHistogram
 {
     double binSize = 0.0;
-    double max = 0.0;
-    double min = 0.0;
     double scaleFactor = 0.0;
+    double min = 0.0;
+    double max = 0.0;
     int binCount = 0;
 };
 

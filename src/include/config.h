@@ -4,11 +4,14 @@
 #include <fstream>
 #include <algorithm>
 #include <vector>
+#include <Windows.h>
 
-#include "include/data.h"
+#include "data.h"
 
 namespace ppr
 {
+    const WCHAR* char2wchar(char const* c);
+
     /// <summary>
     /// Constant for definition how many thread should run on 1 CPU core
     /// </summary>

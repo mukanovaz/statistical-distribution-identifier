@@ -3,6 +3,16 @@
 
 namespace ppr
 {
+	const WCHAR* char2wchar(char const* c)
+	{
+		size_t size = strlen(c) + 1;
+		WCHAR* wc = new WCHAR[size];
+
+		size_t outSize;
+		mbstowcs_s(&outSize, wc, size, c, size - 1);
+		return wc;
+	}
+
 	char asciitolower(char in) {
 		if (in <= 'Z' && in >= 'A')
 			return in - ('Z' - 'z');

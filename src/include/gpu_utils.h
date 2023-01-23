@@ -5,10 +5,15 @@
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #define CL_HPP_ENABLE_EXCEPTIONS
 
+
+#undef min
+#undef max
+
 #include <CL/opencl.hpp>
 #include <string>
 #include "config.h"
 #include "data.h"
+
 
 namespace ppr::gpu
 {
@@ -17,7 +22,7 @@ namespace ppr::gpu
 	/// Structure of opencl configuration
 	/// </summary>
 	struct SOpenCLConfig {
-		cl::Device device{};						// Executing device
+		cl::Device device{};							// Executing device
 		cl::Context context{};                          // Opencl context
 		cl::Program program{};                          // Opencl program
 		cl::Kernel kernel{};                            // Opencl kernel          
@@ -25,6 +30,10 @@ namespace ppr::gpu
 		unsigned long long data_count_for_gpu = 0;      // Data count for process on gpu
 		unsigned long long data_count_for_cpu = 0;      // Data count for process on cpu
 		unsigned long wg_count = 0;                     // Work group count
+		DWORD high = 0; 
+		DWORD low = 0;
+		int thread_id = 0;
+		DWORD64 data_count = 0;
 	};
 
 	/// <summary>

@@ -3,7 +3,8 @@
 #include "include/data.h"
 #include "include/smp_solver.h"
 #include "include/seq_solver.h"
-#include "include/gpu_solver.h"
+#include "include/seq_solver.h"
+#include "include/solver.h"
 
 #include <iostream>
 
@@ -15,11 +16,11 @@ namespace ppr
 		case ERun_mode::SEQ:
 			return seq::run(configuration);
 		case ERun_mode::SMP:  
-			return parallel::run(configuration);
-		case ERun_mode::ALL:  
-			return gpu::run(configuration);
-		case ERun_mode::CL:
-			return gpu::run(configuration);
+			return solver::run(configuration);
+		//case ERun_mode::ALL:  
+		//	return gpu::run(configuration);
+		//case ERun_mode::CL:
+		//	return gpu::run(configuration);
 		default:
 			return SResult::error_res(EExitStatus::UNKNOWN);
 		}

@@ -64,12 +64,13 @@ namespace ppr
             /// <returns>Is success</returns>
             bool map_file();
 
+        public:
+
             /// <summary>
             /// Create a file view. (Using only for sequential computing)
             /// </summary>
-            void view();
+            double* view();
 
-        public:
             /// <summary>
             /// Constructor is using for sequential computing
             /// </summary>

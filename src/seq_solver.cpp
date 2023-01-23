@@ -11,7 +11,7 @@ namespace ppr::seq
 		SResult res;
 		File_mapping mapping(configuration.input_fn);
 
-		const double* data = mapping.get_data();
+		const double* data = mapping.view();
 
 		if (!data)
 		{
@@ -110,5 +110,6 @@ namespace ppr::seq
 		std::cout << "> max:\t\t\t\t" << stat.Get_Max() << std::endl;
 
 		return res;
+
 	}
 }

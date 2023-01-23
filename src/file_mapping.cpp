@@ -2,15 +2,6 @@
 
 namespace ppr
 {
-    const WCHAR* char2wchar(char const* c)
-    {
-        size_t size = strlen(c) + 1;
-        WCHAR* wc = new WCHAR[size];
-
-        size_t outSize;
-        mbstowcs_s(&outSize, wc, size, c, size - 1);
-        return wc;
-    }
 
     File_mapping::File_mapping(const char* filename)
         : m_filename(filename), m_file(INVALID_HANDLE_VALUE), m_mapping(INVALID_HANDLE_VALUE), m_data(NULL)
@@ -27,7 +18,7 @@ namespace ppr
         m_fileLen = static_cast<unsigned long long>(file_size.QuadPart);
         m_size = static_cast<DWORD>(m_fileLen / sizeof(double));
 
-        // Map a file
+        // Create file mapping
         bool res_mf = map_file();
         if (!res_mf)
         {
@@ -36,8 +27,13 @@ namespace ppr
             return;
         }
 
-        // Create map view
-        view();
+        // Offsets must be a multiple of the system's allocation granularity.  We
+     // guarantee this by making our view size equal to the allocation granularity.
+        SYSTEM_INFO sysinfo = { 0 };
+        ::GetSystemInfo(&sysinfo);
+
+        m_allocationGranularity = sysinfo.dwAllocationGranularity;
+
     }
 
     File_mapping::File_mapping(SConfig& config)
@@ -95,7 +91,7 @@ namespace ppr
 
     bool File_mapping::map_file() {
 
-        m_mapping = CreateFileMapping(m_file, 0, PAGE_READONLY, 0, 0, 0);
+        m_mapping = CreateFileMappingW(m_file, 0, PAGE_READONLY, 0, 0, 0);
         if (m_mapping == 0)
         {
             CloseHandle(m_file);
@@ -106,9 +102,9 @@ namespace ppr
     }
 
 
-    void File_mapping::view()
+    double* File_mapping::view()
     {
-        m_data = (double*)MapViewOfFile(m_mapping, FILE_MAP_READ, 0, 0, 0);
+        return (double*)MapViewOfFile(m_mapping, FILE_MAP_READ, 0, 0, 0);
     }
 
     double* File_mapping::get_data() const
@@ -170,44 +166,44 @@ namespace ppr
                     // Set computing limits
                     opencl.data_count_for_cpu = data_in_chunk / config.thread_count;
 
-                    if (iteration == EIteration::STAT)
-                    {
-                        std::vector<std::future<SDataStat>> workers(config.thread_count);
-                        for (int i = 0; i < config.thread_count; i++)
-                        {
-                            ppr::parallel::Stat_processing_unit unit(config, opencl);
-                            workers[i] = std::async(std::launch::async, &ppr::parallel::Stat_processing_unit::run_on_CPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
-                        }
+                    //if (iteration == EIteration::STAT)
+                    //{
+                    //    std::vector<std::future<SDataStat>> workers(config.thread_count);
+                    //    for (int i = 0; i < config.thread_count; i++)
+                    //    {
+                    //        ppr::parallel::Stat_processing_unit unit(config, opencl);
+                    //        workers[i] = std::async(std::launch::async, &ppr::parallel::Stat_processing_unit::run_on_CPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                    //    }
 
-                        // Agregate results results
-                        for (auto& worker : workers)
-                        {
-                            SDataStat local_stat = worker.get();
-                            stat.sum += local_stat.sum;
-                            stat.n += local_stat.n;
-                            stat.max = std::max({ stat.max, local_stat.max });
-                            stat.min = std::min({ stat.min, local_stat.min });
-                        }
-                    }
-                    else
-                    {
-                        // Histogram vector + variance
-                        std::vector<std::future<std::tuple<std::vector<int>, double>>> workers(config.thread_count);
+                    //    // Agregate results results
+                    //    for (auto& worker : workers)
+                    //    {
+                    //        SDataStat local_stat = worker.get();
+                    //        stat.sum += local_stat.sum;
+                    //        stat.n += local_stat.n;
+                    //        stat.max = std::max({ stat.max, local_stat.max });
+                    //        stat.min = std::min({ stat.min, local_stat.min });
+                    //    }
+                    //}
+                    //else
+                    //{
+                    //    // Histogram vector + variance
+                    //    std::vector<std::future<std::tuple<std::vector<int>, double>>> workers(config.thread_count);
 
-                        for (int i = 0; i < config.thread_count; i++)
-                        {
-                            ppr::parallel::Hist_processing_unit unit(hist, config, opencl, stat);
-                            workers[i] = std::async(std::launch::async, &ppr::parallel::Hist_processing_unit::run_on_CPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
-                        }
+                    //    for (int i = 0; i < config.thread_count; i++)
+                    //    {
+                    //        ppr::parallel::Hist_processing_unit unit(hist, config, opencl, stat);
+                    //        workers[i] = std::async(std::launch::async, &ppr::parallel::Hist_processing_unit::run_on_CPU, unit, pView + (opencl.data_count_for_cpu * i), opencl.data_count_for_cpu);
+                    //    }
 
-                        // Agregate results results
-                        for (auto& worker : workers)
-                        {
-                            auto [vector, variance] = worker.get();
-                            stat.variance += variance;
-                            std::transform(histogram.begin(), histogram.end(), vector.begin(), histogram.begin(), std::plus<int>());
-                        }
-                    }
+                    //    // Agregate results results
+                    //    for (auto& worker : workers)
+                    //    {
+                    //        auto [vector, variance] = worker.get();
+                    //        stat.variance += variance;
+                    //        std::transform(histogram.begin(), histogram.end(), vector.begin(), histogram.begin(), std::plus<int>());
+                    //    }
+                    //}
                     UnmapViewOfFile(pView);
                 }
                 ::CloseHandle(hmap);
@@ -357,10 +353,12 @@ namespace ppr
             // Create a file mapping
             HANDLE hmap = ::CreateFileMappingW(hfile, NULL, PAGE_READONLY, 0, 0, NULL);
             if (hmap != NULL) {
+
                 for (unsigned long long offset = 0; offset < cbFile; offset += granulatity) {
                     // Get chunk limits
                     DWORD high = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFFul);
                     DWORD low = static_cast<DWORD>(offset & 0xFFFFFFFFul);
+
                     // The last view may be shorter.
                     if (offset + granulatity > cbFile) {
                         granulatity = static_cast<int>(cbFile - offset);
