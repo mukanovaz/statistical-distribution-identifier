@@ -56,10 +56,8 @@ namespace ppr::parallel
 		/// <summary>
 		/// Create frequency histogram of data block using AVX2 instructions.
 		/// </summary>
-		/// <param name="data">- data block pointer</param>
-		/// <param name="data_count">- data count</param>
 		/// <returns>Histogram vector and variance</returns>
-		std::tuple<std::vector<int>, double> run_on_GPU(double* data, long long begin, long long end);
+		std::tuple<std::vector<int>, double> run_on_GPU();
 	};
 
 	double sum_vector_elements_vectorized(double* data, int size);

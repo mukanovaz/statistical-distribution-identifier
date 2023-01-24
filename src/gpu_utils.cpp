@@ -54,6 +54,7 @@ namespace ppr::gpu
             return false;
         }
 
+        long long t = ocl_config.kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device);
         ocl_config.wg_size = ocl_config.kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device);
         ocl_config.device = device;
 
@@ -64,20 +65,17 @@ namespace ppr::gpu
         SHistogram& hist, std::vector<int>& freq_buckets, double& variance)
     {
         cl_int err = 0;
-
+        
         const unsigned long long work_group_number = data_count / ocl_config.wg_size;
         const unsigned long long count = data_count - (data_count % ocl_config.wg_size);
 
         // Result data
         double* out_var = new double[work_group_number];
-        cl_uint* out_histogram = new cl_uint[2 * hist.binCount] {0};
-
-        //std::vector<double> out_var(work_group_number);
-        //std::vector<cl_uint> out_histogram(2 * hist.binCount, 0);
+        std::vector<cl_uint> out_histogram(2 * hist.binCount, 0);
 
         // Buffers
-        cl::Buffer in_data_buf(ocl_config.context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, count * sizeof(double), data, &err);
-        cl::Buffer out_sum_buf(ocl_config.context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, 2 * hist.binCount * sizeof(cl_uint), out_histogram, &err);
+        cl::Buffer in_data_buf(ocl_config.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, count * sizeof(double), data, &err);
+        cl::Buffer out_sum_buf(ocl_config.context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, out_histogram.size() * sizeof(cl_uint), out_histogram.data(), &err);
         cl::Buffer out_var_buf(ocl_config.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, work_group_number * sizeof(double), nullptr, &err);
 
         if (err != CL_SUCCESS)
@@ -86,9 +84,9 @@ namespace ppr::gpu
             return;
         }
 
-        // Set method arguments
+        // Set kernel arguments
         err = ocl_config.kernel.setArg(0, in_data_buf);
-        err = ocl_config.kernel.setArg(1, ocl_config.wg_size * sizeof(double), nullptr);
+        err = ocl_config.kernel.setArg(1, work_group_number * sizeof(double), nullptr);
         err = ocl_config.kernel.setArg(2, out_sum_buf);
         err = ocl_config.kernel.setArg(3, out_var_buf);
         err = ocl_config.kernel.setArg(4, sizeof(double), &stat.mean);
@@ -114,7 +112,7 @@ namespace ppr::gpu
         }
 
         // Fill output vectors
-        err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, 2 * hist.binCount * sizeof(cl_uint), out_histogram);
+        err = cmd_queue.enqueueReadBuffer(out_sum_buf, CL_TRUE, 0, out_histogram.size() * sizeof(cl_uint), out_histogram.data());
         err = cmd_queue.enqueueReadBuffer(out_var_buf, CL_TRUE, 0, work_group_number * sizeof(double), out_var);
 
         if (err != CL_SUCCESS)
@@ -239,6 +237,7 @@ namespace ppr::gpu
                     (user_devices.size() == 0 || std::find(user_devices.begin(), user_devices.end(), device_name) != user_devices.end()))
                 {
                     all_devices.emplace_back(device);
+                    return;
                 }
             }
         }

@@ -75,7 +75,7 @@ namespace ppr::parallel
 		return std::make_tuple(local_vector, variance);
 	}
 
-	std::tuple<std::vector<int>, double> Hist_processing_unit::run_on_GPU(double* data, long long begin, long long end)
+	std::tuple<std::vector<int>, double> Hist_processing_unit::run_on_GPU()
 	{
 		// Local variables
 		std::vector<int> local_vector(m_hist.binCount + 1);

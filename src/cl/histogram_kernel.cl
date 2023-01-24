@@ -22,7 +22,7 @@ __kernel void Get_Data_Histogram(
     uint localSize = get_local_size(0);
 
     local_var[localId] = (data[globalId] - mean) * (data[globalId] - mean);
-    
+
     barrier(CLK_LOCAL_MEM_FENCE);
 
     double val = data[globalId];

@@ -28,6 +28,7 @@ namespace ppr::solver
 		std::vector<double> histogramDensity(0);	// Will resize after collecting statistics
 		DWORD64 data_count = 0;
 
+
 		DWORDLONG ram_mem = getAvailPhysMem() - 1000000000;
 		// TODO: check ram_mem
 
@@ -56,15 +57,7 @@ namespace ppr::solver
 
 		//  ================ [Get statistics]
 		t0 = tbb::tick_count::now();
-		if (configuration.mode == ERun_mode::SMP)
-		{
-			compute_statistics_cpu(configuration, stat, file_len, data_count);
-		}
-		else
-		{
-			compute_statistics_gpu(devices, configuration, stat, file_len, data_count);
-		}
-		
+		compute_statistics(devices, configuration, stat, file_len, data_count);
 		t1 = tbb::tick_count::now();
 
 		res.total_stat_time = (t1 - t0).seconds();
@@ -104,13 +97,7 @@ namespace ppr::solver
 		histogramDensity.resize(static_cast<int>(hist.binCount));
 
 		t0 = tbb::tick_count::now();
-		if (configuration.mode == ERun_mode::SMP)
-		{
-			compute_histogram_cpu(hist, configuration, stat, file_len, data_count, histogramFreq);
-		}
-		else
-		{
-		}
+		compute_histogram(devices, hist, configuration, stat, file_len, data_count, histogramFreq);
 		t1 = tbb::tick_count::now();
 
 		res.total_hist_time = (t1 - t0).seconds();
@@ -155,11 +142,13 @@ namespace ppr::solver
 		return res;
 	}
 
-	void compute_histogram_cpu(SHistogram& hist, SConfig& configuration, SDataStat& stat, const unsigned long long file_len, DWORD64 data_count,
+	void compute_histogram(std::vector<cl::Device> devices, SHistogram& hist, SConfig& configuration, SDataStat& stat, const unsigned long long file_len, DWORD64 data_count,
 		std::vector<int>& histogram)
 	{
 		int index = 0;
-		std::vector<std::future<std::tuple<std::vector<int>, double>>> workers_hist(configuration.thread_count);
+		int workers_count = configuration.mode == ERun_mode::SMP ? configuration.thread_count : devices.size();
+
+		std::vector<std::future<std::tuple<std::vector<int>, double>>> workers_hist(workers_count);
 
 		for (unsigned long long offset = 0; offset < file_len; offset += data_count)
 		{
@@ -175,10 +164,26 @@ namespace ppr::solver
 			opencl.low = low;
 			opencl.data_count = data_count;
 
-			ppr::parallel::Hist_processing_unit unit(hist, configuration, opencl, stat);
-			workers_hist[index] = std::async(std::launch::async, &ppr::parallel::Hist_processing_unit::run_on_CPU, unit);
+			if (configuration.mode != ERun_mode::SMP)
+			{
+				bool res = ppr::gpu::init_opencl(devices[index], HIST_KERNEL, HIST_KERNEL_NAME, opencl);
 
-			if (index == configuration.thread_count - 1)
+				if (!res)
+				{
+					return;
+					// TODO!!!
+				}
+				ppr::parallel::Hist_processing_unit unit(hist, configuration, opencl, stat);
+				unit.run_on_GPU();
+				//workers_hist[index] = std::async(std::launch::async, &ppr::parallel::Hist_processing_unit::run_on_GPU, unit);
+			}
+			else
+			{
+				ppr::parallel::Hist_processing_unit unit(hist, configuration, opencl, stat);
+				workers_hist[index] = std::async(std::launch::async, &ppr::parallel::Hist_processing_unit::run_on_CPU, unit);
+			}
+
+			if (index == workers_count - 1)
 			{
 				for (auto& worker : workers_hist)
 				{
@@ -206,11 +211,12 @@ namespace ppr::solver
 		}
 	}
 
-	void compute_statistics_cpu(SConfig& configuration, SDataStat& stat, const unsigned long long file_len, DWORD64 data_count)
+	void compute_statistics(std::vector<cl::Device> devices, SConfig& configuration, SDataStat& stat, const unsigned long long file_len, DWORD64 data_count)
 	{
 		int index_stat = 0;
+		int workers_count = configuration.mode == ERun_mode::SMP ? configuration.thread_count : devices.size();
 
-		std::vector<std::future<SDataStat>> workers_stat(configuration.thread_count);
+		std::vector<std::future<SDataStat>> workers_stat(workers_count);
 
 		for (unsigned long long offset = 0; offset < file_len; offset += data_count)
 		{
@@ -227,9 +233,26 @@ namespace ppr::solver
 			opencl.data_count = data_count;
 
 			ppr::parallel::Stat_processing_unit unit(configuration, opencl);
-			workers_stat[index_stat] = std::async(std::launch::async, &ppr::parallel::Stat_processing_unit::run_on_CPU, unit);
 
-			if (index_stat == configuration.thread_count - 1)
+			if (configuration.mode != ERun_mode::SMP)
+			{
+				bool res = ppr::gpu::init_opencl(devices[index_stat], STAT_KERNEL, STAT_KERNEL_NAME, opencl);
+
+				if (!res)
+				{
+					return;
+					// TODO!!!
+				}
+				ppr::parallel::Stat_processing_unit unit(configuration, opencl);
+				workers_stat[index_stat] = std::async(std::launch::async, &ppr::parallel::Stat_processing_unit::run_on_GPU, unit);
+			}
+			else
+			{
+				ppr::parallel::Stat_processing_unit unit(configuration, opencl);
+				workers_stat[index_stat] = std::async(std::launch::async, &ppr::parallel::Stat_processing_unit::run_on_CPU, unit);
+			}
+			
+			if (index_stat == workers_count - 1)
 			{
 				for (auto& worker : workers_stat)
 				{
@@ -260,69 +283,5 @@ namespace ppr::solver
 		}
 	}
 
-	void compute_statistics_gpu(std::vector<cl::Device> devices, SConfig& configuration, SDataStat& stat, 
-		const unsigned long long file_len, DWORD64 data_count)
-	{
-		int index_stat = 0;
-
-		std::vector<std::future<SDataStat>> workers_stat(devices.size());
-
-		for (unsigned long long offset = 0; offset < file_len; offset += data_count)
-		{
-			ppr::gpu::SOpenCLConfig opencl;
-			DWORD high = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFFul);
-			DWORD low = static_cast<DWORD>(offset & 0xFFFFFFFFul);
-
-			if (offset + data_count > file_len) {
-				data_count = static_cast<int>(file_len - offset);
-			}
-
-			bool res = ppr::gpu::init_opencl(devices[index_stat], STAT_KERNEL, STAT_KERNEL_NAME, opencl);
-
-			if (!res)
-			{
-				return;
-				// TODO!!!
-			}
-
-			opencl.high = high;
-			opencl.low = low;
-			opencl.data_count = data_count;
-
-			ppr::parallel::Stat_processing_unit unit(configuration, opencl);
-			workers_stat[index_stat] = std::async(std::launch::async, &ppr::parallel::Stat_processing_unit::run_on_GPU, unit);
-
-			if (index_stat == devices.size() - 1)
-			{
-				for (auto& worker : workers_stat)
-				{
-					SDataStat local_stat = worker.get();
-					stat.sum += local_stat.sum;
-					stat.n += local_stat.n;
-					stat.max = std::max({ stat.max, local_stat.max });
-					stat.min = std::min({ stat.min, local_stat.min });
-				}
-
-				index_stat = 0;
-				continue;
-			}
-			index_stat++;
-		}
-
-		for (auto& worker : workers_stat)
-		{
-			if (!worker.valid())
-			{
-				continue;
-			}
-			SDataStat local_stat = worker.get();
-			stat.sum += local_stat.sum;
-			stat.n += local_stat.n;
-			stat.max = std::max({ stat.max, local_stat.max });
-			stat.min = std::min({ stat.min, local_stat.min });
-		}
-	}
-
-	
 
 }
