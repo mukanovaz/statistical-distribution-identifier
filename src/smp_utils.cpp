@@ -28,10 +28,28 @@ namespace ppr::parallel
 		return local_stat;
 	}
 
-	SDataStat Stat_processing_unit::run_on_GPU(double* data, long long begin, long long end)
+	SDataStat Stat_processing_unit::run_on_GPU()
 	{
-		// Call Opencl kernel
-		return ppr::gpu::run_statistics_on_GPU(m_ocl_config, m_configuration, data, begin, end - 1);
+		SDataStat local_stat;
+		File_mapper* mapper = File_mapper::get_instance();
+		
+		long long data_count = m_ocl_config.data_count / sizeof(double);
+
+		// Map a file
+		double* pView = mapper->view(m_ocl_config.high, m_ocl_config.low, m_ocl_config.data_count);
+
+		if (pView == NULL)
+		{
+			return local_stat;
+		}
+
+		// Run
+		ppr::gpu::run_statistics_on_device(m_ocl_config, local_stat, data_count, pView);
+
+		// Unmap
+		UnmapViewOfFile(pView);
+
+		return local_stat;
 	}
 
 	std::tuple<std::vector<int>, double> Hist_processing_unit::run_on_CPU()
@@ -43,6 +61,11 @@ namespace ppr::parallel
 		std::vector<int> local_vector(m_hist.binCount + 1);
 
 		double* pView = mapper->view(m_ocl_config.high, m_ocl_config.low, m_ocl_config.data_count);
+
+		if (pView == NULL)
+		{
+			return std::make_tuple(local_vector, variance);
+		}
 
 		get_histogram(variance, data_count, pView, m_hist, m_stat, local_vector);
 
@@ -57,9 +80,20 @@ namespace ppr::parallel
 		// Local variables
 		std::vector<int> local_vector(m_hist.binCount + 1);
 		double variance = 0.0;
+		File_mapper* mapper = File_mapper::get_instance();
+		long long data_count = m_ocl_config.data_count / sizeof(double);
+
+		double* pView = mapper->view(m_ocl_config.high, m_ocl_config.low, m_ocl_config.data_count);
+
+		if (pView == NULL)
+		{
+			return std::make_tuple(local_vector, variance);
+		}
 
 		// Call Opencl kernel
-		ppr::gpu::run_histogram_on_GPU(m_ocl_config, m_configuration, m_hist, m_stat, data, begin, end - 1, local_vector, variance);
+		ppr::gpu::run_histogram_on_device(m_ocl_config, m_stat, data_count, pView, m_hist, local_vector, variance);
+
+		UnmapViewOfFile(pView);
 
 		// Create return value
 		return std::make_tuple(local_vector, variance);
@@ -108,6 +142,44 @@ namespace ppr::parallel
 		stat.max = max;
 	}
 
+	// TODO
+	double sum_vector_elements_vectorized(double* array, int size)
+	{
+		double result = 0;
+
+		for (int i = 0; i < size; i++)
+		{
+			result = result + array[i];
+		}
+
+		return result;
+	}
+
+	// TODO
+	double max_of_vector_vectorized(double* data, int size)
+	{
+		double max = std::numeric_limits<double>::min();
+
+		for (int i = 0; i < size; i++)
+		{
+			max = data[i] > max ? data[i] : max;
+		}
+
+		return max;
+	}
+
+	// TODO
+	double min_of_vector_vectorized(double* data, int size)
+	{
+		double min = std::numeric_limits<double>::max();
+
+		for (int i = 0; i < size; i++)
+		{
+			min = data[i] < min ? data[i] : min;
+		}
+
+		return min;
+	}
 	
 	void calculate_histogram_RSS_cpu(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist)
 	{

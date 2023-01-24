@@ -1,7 +1,6 @@
 #include "include/file_mapping.h"
 #include "include/config.h"
 #include "include/data.h"
-#include "include/smp_solver.h"
 #include "include/seq_solver.h"
 #include "include/seq_solver.h"
 #include "include/solver.h"
@@ -12,6 +11,9 @@ namespace ppr
 {
 	SResult run(SConfig& configuration)
 	{
+		return solver::run(configuration);
+
+		/*
 		switch (configuration.mode) {
 		case ERun_mode::SEQ:
 			return seq::run(configuration);
@@ -23,7 +25,7 @@ namespace ppr
 		//	return gpu::run(configuration);
 		default:
 			return SResult::error_res(EExitStatus::UNKNOWN);
-		}
+		}*/
 	}
 }
 

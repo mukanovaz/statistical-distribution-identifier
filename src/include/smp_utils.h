@@ -31,10 +31,8 @@ namespace ppr::parallel
 		/// <summary>
 		/// Collect statistics of data block using OpenCL device. (Not using)
 		/// </summary>
-		/// <param name="data">data block pointer</param>
-		/// <param name="data_count">data count</param>
 		/// <returns></returns>
-		SDataStat run_on_GPU(double* data, long long begin, long long end);
+		SDataStat run_on_GPU();
 	};
 
 	class Hist_processing_unit
@@ -63,6 +61,12 @@ namespace ppr::parallel
 		/// <returns>Histogram vector and variance</returns>
 		std::tuple<std::vector<int>, double> run_on_GPU(double* data, long long begin, long long end);
 	};
+
+	double sum_vector_elements_vectorized(double* data, int size);
+
+	double max_of_vector_vectorized(double* data, int size);
+
+	double min_of_vector_vectorized(double* data, int size);
 
 
 	/// <summary>
@@ -127,4 +131,5 @@ namespace ppr::parallel
 	/// <param name="hist">- Histogram configuration structure</param>
 	/// <returns>rss</returns>
 	double get_uniform_rss(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist);
+
 }

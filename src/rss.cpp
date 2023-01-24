@@ -108,7 +108,7 @@ namespace ppr::rss
 			{
 				double factorial = 1.0;
 				for (int i = 1; i <= n; ++i) {
-					factorial *= i;
+					factorial = factorial * i;
 				}
 				return factorial;
 			}

@@ -29,6 +29,7 @@
   <ItemGroup>
     <ClCompile Include="..\src\config.cpp" />
     <ClCompile Include="..\src\executor.cpp" />
+    <ClCompile Include="..\src\file_mapper.cpp" />
     <ClCompile Include="..\src\file_mapping.cpp" />
     <ClCompile Include="..\src\gpu_solver.cpp" />
     <ClCompile Include="..\src\gpu_utils.cpp" />
@@ -36,8 +37,8 @@
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\rss.cpp" />
     <ClCompile Include="..\src\seq_solver.cpp" />
-    <ClCompile Include="..\src\smp_solver.cpp" />
     <ClCompile Include="..\src\smp_utils.cpp" />
+    <ClCompile Include="..\src\solver.cpp" />
     <ClCompile Include="..\src\statistics.cpp" />
     <ClCompile Include="..\src\watchdog.cpp" />
   </ItemGroup>
@@ -45,14 +46,15 @@
     <ClInclude Include="..\src\include\config.h" />
     <ClInclude Include="..\src\include\data.h" />
     <ClInclude Include="..\src\include\executor.h" />
+    <ClInclude Include="..\src\include\file_mapper.h" />
     <ClInclude Include="..\src\include\file_mapping.h" />
     <ClInclude Include="..\src\include\gpu_solver.h" />
     <ClInclude Include="..\src\include\gpu_utils.h" />
     <ClInclude Include="..\src\include\histogram.h" />
     <ClInclude Include="..\src\include\main.h" />
     <ClInclude Include="..\src\include\seq_solver.h" />
-    <ClInclude Include="..\src\include\smp_solver.h" />
     <ClInclude Include="..\src\include\smp_utils.h" />
+    <ClInclude Include="..\src\include\solver.h" />
     <ClInclude Include="..\src\include\watchdog.h" />
   </ItemGroup>
   <ItemGroup>
@@ -127,7 +129,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>..\compiled\</OutDir>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -148,15 +150,17 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\include;$(TBBROOT)\include;D:\Study\ZCU\5.semestr\PPR\kiv-ppr\include</AdditionalIncludeDirectories>
-      <EnableParallelCodeGeneration>
-      </EnableParallelCodeGeneration>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <AssemblerOutput>AssemblyAndMachineCode</AssemblerOutput>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <ControlFlowGuard>false</ControlFlowGuard>
-      <AdditionalOptions>/D "UNICODE"  /D CL_USE_DEPRECATED_OPENCL_1_2_APIS  /Fe:pprsolver.exe %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/D "UNICODE"  /D CL_USE_DEPRECATED_OPENCL_1_2_APIS  /Fe:pprsolver.exe  /Qvec-report:2 %(AdditionalOptions)</AdditionalOptions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <CallingConvention>VectorCall</CallingConvention>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <CompileAsManaged>
+      </CompileAsManaged>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>
@@ -190,9 +194,11 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\include;$(TBBROOT)\include;D:\Study\ZCU\5.semestr\PPR\kiv-ppr\include</AdditionalIncludeDirectories>
-      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <EnableParallelCodeGeneration>
+      </EnableParallelCodeGeneration>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
-      <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions> /Qvec-report:2 %(AdditionalOptions)</AdditionalOptions>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

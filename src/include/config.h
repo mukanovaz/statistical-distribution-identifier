@@ -43,7 +43,9 @@ namespace ppr
     /// <summary>
     /// 0.5 Gigabyte in bytes aligned for allocation granularity on current system
     /// </summary>
-    const constexpr long MAX_FILE_SIZE_MEM_500mb = 499974144;
+    const constexpr long MAX_FILE_SIZE_MEM_500mb = 499974144
+        ;
+    const constexpr long MAX_FILE_SIZE_MEM_400mb = 400000000;
     /// <summary>
     /// Watchdog default interval
     /// </summary>

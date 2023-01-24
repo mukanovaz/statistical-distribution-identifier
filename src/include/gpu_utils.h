@@ -36,60 +36,12 @@ namespace ppr::gpu
 		DWORD64 data_count = 0;
 	};
 
-	/// <summary>
-	/// Create data histogram on Opencl device
-	/// </summary>
-	/// <param name="opencl">- Opencl configuration structure</param>
-	/// <param name="configuration">- Program configuration structure</param>
-	/// <param name="hist">- Histogram configuration structure</param>
-	/// <param name="data_stat">- Final Data statistics structure</param>
-	/// <param name="data">- Data pointer</param>
-	/// <param name="data_count">- Data count to process</param>
-	/// <param name="freq_buckets">- Frequency histogram reference</param>
-	/// <param name="var">- Final Variance</param>
-	void run_histogram_on_GPU(SOpenCLConfig& opencl, SConfig& configuration, SHistogram& hist, SDataStat& data_stat,
-		double* data, long long begin, long long end, std::vector<int>& freq_buckets, double& var);
+	bool init_opencl(cl::Device device, const std::string& file, const char* kernel_name, SOpenCLConfig& ocl_config);
 
-	/// <summary>
-	/// Collect data statistics on Opencl device
-	/// </summary>
-	/// <param name="m_ocl_config">- Opencl configuration structure</param>
-	/// <param name="configuration">- Program configuration structure</param>
-	/// <param name="data">- Data pointer</param>
-	/// <param name="data_count">- Data count to process</param>
-	/// <returns>Local data statistics</returns>
-	SDataStat run_statistics_on_GPU(SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, long long begin, long long end);
+	void run_statistics_on_device(SOpenCLConfig& ocl_config, SDataStat& stat, long long data_count, double* data);
 
-	/// <summary>
-	/// Init opencl 
-	/// </summary>
-	/// <param name="configuration">- Program configuration structure</param>
-	/// <param name="file">- kernel file</param>
-	/// <param name="kernel_name">- kernel name</param>
-	/// <returns>Opencl configuration structure</returns>
-	SOpenCLConfig init(SConfig& configuration, const std::string& file, const char* kernel_name);
-
-	/// <summary>
-	/// Update OpenCL kernel program
-	/// </summary>
-	/// <param name="configuration">- Program configuration structure</param>
-	/// <param name="file">- kernel file</param>
-	/// <param name="kernel_name">- kernel name</param>
-	void set_kernel_program(SOpenCLConfig& opencl, const std::string& file, const char* kernel_name);
-
-	/// <summary>
-	/// Create OpenCl kernel with init program
-	/// </summary>
-	/// <param name="opencl">- Opencl configuration structure</param>
-	/// <param name="kernel_name">- kernel name</param>
-	void create_kernel(SOpenCLConfig& opencl, const char* kernel_name);
-
-	/// <summary>
-	/// Create OpenCl kernel with program
-	/// </summary>
-	/// <param name="opencl">- Opencl configuration structure</param>
-	/// <param name="file">- kernel file</param>
-	void create_kernel_program(SOpenCLConfig& opencl, const std::string& file);
+	void run_histogram_on_device(SOpenCLConfig& ocl_config, SDataStat& stat, long long data_count, double* data,
+		SHistogram& hist, std::vector<int>& freq_buckets, double& variance);
 
 	/// <summary>
 	/// Find all OpenCl devices

@@ -26,8 +26,14 @@ namespace ppr::solver
 		SHistogram hist;
 		std::vector<int> histogramFreq(0);			// Will resize after collecting statistics
 		std::vector<double> histogramDensity(0);	// Will resize after collecting statistics
+		DWORD64 data_count = 0;
 
 		DWORDLONG ram_mem = getAvailPhysMem() - 1000000000;
+		// TODO: check ram_mem
+
+		std::vector<cl::Device> devices;
+		ppr::gpu::find_opencl_devices(devices, configuration.cl_devices_name);
+
 
 		//  ================ [Map input file]
 		File_mapper* mapper = File_mapper::get_instance();
@@ -35,18 +41,30 @@ namespace ppr::solver
 
 		const unsigned long long file_len = mapper->get_file_len();
 
-		DWORD64 ram_per_thread = ram_mem / configuration.thread_count;
-		DWORD granularity = mapper->get_granularity();
-		DWORD64 data_count = ram_per_thread - (ram_per_thread % granularity);
-
-		size_t page = GetLargePageMinimum();
+		if (configuration.mode == ERun_mode::SMP)
+		{
+			DWORD64 ram_per_thread = ram_mem / configuration.thread_count;
+			data_count = ram_per_thread - (ram_per_thread % mapper->get_granularity());
+		}
+		else
+		{
+			data_count = MAX_FILE_SIZE_MEM_400mb - (MAX_FILE_SIZE_MEM_400mb % mapper->get_granularity());
+		}
 
 		//  ================ [Start Watchdog]
 		std::thread watchdog = ppr::watchdog::start_watchdog(configuration, stat, hist, stage, histogramFreq, histogramDensity, data_count);
 
 		//  ================ [Get statistics]
 		t0 = tbb::tick_count::now();
-		compute_statistics(configuration, stat, file_len, data_count);
+		if (configuration.mode == ERun_mode::SMP)
+		{
+			compute_statistics_cpu(configuration, stat, file_len, data_count);
+		}
+		else
+		{
+			compute_statistics_gpu(devices, configuration, stat, file_len, data_count);
+		}
+		
 		t1 = tbb::tick_count::now();
 
 		res.total_stat_time = (t1 - t0).seconds();
@@ -86,7 +104,13 @@ namespace ppr::solver
 		histogramDensity.resize(static_cast<int>(hist.binCount));
 
 		t0 = tbb::tick_count::now();
-		compute_histogram(hist, configuration, stat, file_len, data_count, histogramFreq);
+		if (configuration.mode == ERun_mode::SMP)
+		{
+			compute_histogram_cpu(hist, configuration, stat, file_len, data_count, histogramFreq);
+		}
+		else
+		{
+		}
 		t1 = tbb::tick_count::now();
 
 		res.total_hist_time = (t1 - t0).seconds();
@@ -131,7 +155,7 @@ namespace ppr::solver
 		return res;
 	}
 
-	void compute_histogram(SHistogram& hist, SConfig& configuration, SDataStat& stat, const unsigned long long file_len, DWORD64 data_count,
+	void compute_histogram_cpu(SHistogram& hist, SConfig& configuration, SDataStat& stat, const unsigned long long file_len, DWORD64 data_count,
 		std::vector<int>& histogram)
 	{
 		int index = 0;
@@ -182,7 +206,7 @@ namespace ppr::solver
 		}
 	}
 
-	void compute_statistics(SConfig& configuration, SDataStat& stat, const unsigned long long file_len, DWORD64 data_count)
+	void compute_statistics_cpu(SConfig& configuration, SDataStat& stat, const unsigned long long file_len, DWORD64 data_count)
 	{
 		int index_stat = 0;
 
@@ -235,5 +259,70 @@ namespace ppr::solver
 			stat.min = std::min({ stat.min, local_stat.min });
 		}
 	}
+
+	void compute_statistics_gpu(std::vector<cl::Device> devices, SConfig& configuration, SDataStat& stat, 
+		const unsigned long long file_len, DWORD64 data_count)
+	{
+		int index_stat = 0;
+
+		std::vector<std::future<SDataStat>> workers_stat(devices.size());
+
+		for (unsigned long long offset = 0; offset < file_len; offset += data_count)
+		{
+			ppr::gpu::SOpenCLConfig opencl;
+			DWORD high = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFFul);
+			DWORD low = static_cast<DWORD>(offset & 0xFFFFFFFFul);
+
+			if (offset + data_count > file_len) {
+				data_count = static_cast<int>(file_len - offset);
+			}
+
+			bool res = ppr::gpu::init_opencl(devices[index_stat], STAT_KERNEL, STAT_KERNEL_NAME, opencl);
+
+			if (!res)
+			{
+				return;
+				// TODO!!!
+			}
+
+			opencl.high = high;
+			opencl.low = low;
+			opencl.data_count = data_count;
+
+			ppr::parallel::Stat_processing_unit unit(configuration, opencl);
+			workers_stat[index_stat] = std::async(std::launch::async, &ppr::parallel::Stat_processing_unit::run_on_GPU, unit);
+
+			if (index_stat == devices.size() - 1)
+			{
+				for (auto& worker : workers_stat)
+				{
+					SDataStat local_stat = worker.get();
+					stat.sum += local_stat.sum;
+					stat.n += local_stat.n;
+					stat.max = std::max({ stat.max, local_stat.max });
+					stat.min = std::min({ stat.min, local_stat.min });
+				}
+
+				index_stat = 0;
+				continue;
+			}
+			index_stat++;
+		}
+
+		for (auto& worker : workers_stat)
+		{
+			if (!worker.valid())
+			{
+				continue;
+			}
+			SDataStat local_stat = worker.get();
+			stat.sum += local_stat.sum;
+			stat.n += local_stat.n;
+			stat.max = std::max({ stat.max, local_stat.max });
+			stat.min = std::min({ stat.min, local_stat.min });
+		}
+	}
+
+	
 
 }
