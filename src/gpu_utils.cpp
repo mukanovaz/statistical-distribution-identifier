@@ -74,7 +74,7 @@ namespace ppr::gpu
         std::vector<cl_uint> out_histogram(2 * hist.binCount, 0);
 
         // Buffers
-        cl::Buffer in_data_buf(ocl_config.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, count * sizeof(double), data, &err);
+        cl::Buffer in_data_buf(ocl_config.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_USE_HOST_PTR, count * sizeof(double), data, &err);
         cl::Buffer out_sum_buf(ocl_config.context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, out_histogram.size() * sizeof(cl_uint), out_histogram.data(), &err);
         cl::Buffer out_var_buf(ocl_config.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, work_group_number * sizeof(double), nullptr, &err);
 
@@ -86,7 +86,7 @@ namespace ppr::gpu
 
         // Set kernel arguments
         err = ocl_config.kernel.setArg(0, in_data_buf);
-        err = ocl_config.kernel.setArg(1, work_group_number * sizeof(double), nullptr);
+        err = ocl_config.kernel.setArg(1, ocl_config.wg_size * sizeof(double), nullptr);
         err = ocl_config.kernel.setArg(2, out_sum_buf);
         err = ocl_config.kernel.setArg(3, out_var_buf);
         err = ocl_config.kernel.setArg(4, sizeof(double), &stat.mean);
@@ -237,7 +237,6 @@ namespace ppr::gpu
                     (user_devices.size() == 0 || std::find(user_devices.begin(), user_devices.end(), device_name) != user_devices.end()))
                 {
                     all_devices.emplace_back(device);
-                    return;
                 }
             }
         }

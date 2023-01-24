@@ -49,7 +49,7 @@ namespace ppr::solver
 		}
 		else
 		{
-			data_count = MAX_FILE_SIZE_MEM_400mb - (MAX_FILE_SIZE_MEM_400mb % mapper->get_granularity());
+			data_count = (MAX_FILE_SIZE_MEM_400mb - (MAX_FILE_SIZE_MEM_400mb % mapper->get_granularity())) / devices.size();
 		}
 
 		//  ================ [Start Watchdog]
@@ -174,8 +174,7 @@ namespace ppr::solver
 					// TODO!!!
 				}
 				ppr::parallel::Hist_processing_unit unit(hist, configuration, opencl, stat);
-				unit.run_on_GPU();
-				//workers_hist[index] = std::async(std::launch::async, &ppr::parallel::Hist_processing_unit::run_on_GPU, unit);
+				workers_hist[index] = std::async(std::launch::async, &ppr::parallel::Hist_processing_unit::run_on_GPU, unit);
 			}
 			else
 			{
