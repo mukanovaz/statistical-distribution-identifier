@@ -60,11 +60,9 @@ namespace ppr::parallel
 		std::tuple<std::vector<int>, double> run_on_GPU();
 	};
 
-	double sum_vector_elements_vectorized(double* data, int size);
+	void agregate_gpu_stat_vectorized(SDataStat& stat, double* array_sum, double* array_min, double* array_max, int size);
 
-	double max_of_vector_vectorized(double* data, int size);
-
-	double min_of_vector_vectorized(double* data, int size);
+	double sum_vector_elements_vectorized(double* array, int size);
 
 
 	/// <summary>

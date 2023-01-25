@@ -132,7 +132,7 @@ namespace ppr::gpu
         }
 
         // Agregate results on CPU
-        variance += ppr::parallel::sum_vector_elements_vectorized(out_var, 2 * hist.binCount);
+        variance += ppr::parallel::sum_vector_elements_vectorized(out_var, work_group_number);
     }
 
     void run_statistics_on_device(SOpenCLConfig& ocl_config, SDataStat& stat, long long data_count, double* data)
@@ -199,18 +199,9 @@ namespace ppr::gpu
         cl::finish();
 
         // Agregate results on CPU
-        double sum = ppr::parallel::sum_vector_elements_vectorized(out_sum, work_group_number);
-        double max = ppr::parallel::max_of_vector_vectorized(out_max, work_group_number);
-        double min = ppr::parallel::min_of_vector_vectorized(out_min, work_group_number);
+        ppr::parallel::agregate_gpu_stat_vectorized(stat, out_sum, out_min, out_max, work_group_number);
 
-        stat.sum = sum;
-        stat.max = max;
-        stat.min = min;
         stat.n = data_count;
-        //stat.mean = ;
-        //stat.variance = ;
-        //stat.isNegative = ;
-
     }
 
     void find_opencl_devices(std::vector<cl::Device>& all_devices, std::vector<std::string>& user_devices)

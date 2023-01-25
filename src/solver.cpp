@@ -49,7 +49,8 @@ namespace ppr::solver
 		}
 		else
 		{
-			data_count = (MAX_FILE_SIZE_MEM_400mb - (MAX_FILE_SIZE_MEM_400mb % mapper->get_granularity())) / devices.size();
+			DWORD64 mem_per_thread = MAX_FILE_SIZE_MEM_400mb / devices.size();
+			data_count = mem_per_thread - (mem_per_thread % mapper->get_granularity());
 		}
 
 		//  ================ [Start Watchdog]

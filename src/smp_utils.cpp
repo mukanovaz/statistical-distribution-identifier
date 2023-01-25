@@ -142,7 +142,24 @@ namespace ppr::parallel
 		stat.max = max;
 	}
 
-	// TODO
+	void agregate_gpu_stat_vectorized(SDataStat& stat, double* array_sum, double* array_min, double* array_max, int size)
+	{
+		double sum = 0;
+		double max = std::numeric_limits<double>::min();
+		double min = std::numeric_limits<double>::max();
+
+		for (int i = 0; i < size; i++)
+		{
+			sum = sum + array_sum[i];
+			max = array_max[i] > max ? array_max[i] : max;
+			min = array_min[i] < min ? array_min[i] : min;
+		}
+
+		stat.sum = sum;
+		stat.max = max;
+		stat.min = min;
+	}
+
 	double sum_vector_elements_vectorized(double* array, int size)
 	{
 		double result = 0;
@@ -155,31 +172,6 @@ namespace ppr::parallel
 		return result;
 	}
 
-	// TODO
-	double max_of_vector_vectorized(double* data, int size)
-	{
-		double max = std::numeric_limits<double>::min();
-
-		for (int i = 0; i < size; i++)
-		{
-			max = data[i] > max ? data[i] : max;
-		}
-
-		return max;
-	}
-
-	// TODO
-	double min_of_vector_vectorized(double* data, int size)
-	{
-		double min = std::numeric_limits<double>::max();
-
-		for (int i = 0; i < size; i++)
-		{
-			min = data[i] < min ? data[i] : min;
-		}
-
-		return min;
-	}
 	
 	void calculate_histogram_RSS_cpu(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist)
 	{
