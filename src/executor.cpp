@@ -45,12 +45,16 @@ namespace ppr::executor
 
 	void compute_propability_density_histogram(SHistogram& hist, std::vector<int>& bucket_frequency, std::vector<double>& bucket_density, unsigned long long count)
 	{
-		for (size_t i = 0; i < static_cast<size_t>(hist.binCount); i++)
+		int binCount = hist.binCount;
+		double n = static_cast<double>(count);
+
+		for (int i = 0; i < binCount; i++)
 		{
 			double next_edge = hist.min + (hist.binSize * (static_cast<double>(i) + 1.0));
 			double curr_edge = hist.min + (hist.binSize * static_cast<double>(i));
+
 			double diff = next_edge - curr_edge;
-			bucket_density[i] = bucket_frequency[i] / diff / count;
+			bucket_density[i] = (double)bucket_frequency[i] / diff / n;
 		}
 	}
 	

@@ -22,23 +22,18 @@ __kernel void Get_Data_Histogram(
     uint localSize = get_local_size(0);
 
     local_var[localId] = (data[globalId] - mean) * (data[globalId] - mean);
-    
+
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    double val = data[globalId];
-
-    val = min < 0 ? val / 2 : val;
-
     // Increase number on histogram position
-    int position = (int)((val - min) * scale_factor);
-    uint old_val = atomic_inc(&out_sum[2 * position]);
-    atomic_add(&out_sum[2 * position + 1], old_val == 0xFFFFFFFF);
+    int position = (int)((data[globalId] - min) * scale_factor);
+    atomic_inc(&out_sum[2 * position]);
 
     // Compute part of gauss variance
     for (int i = 1; i < groupSize; i++)
     {
-        double tmp = (double)data[globalId + i] - (double)mean;
-        local_var[localId] += tmp * tmp;
+        double tmp = data[globalId + i] - mean;
+        local_var[localId] = local_var[localId] + (tmp * tmp);
         barrier(CLK_LOCAL_MEM_FENCE);
     }
 

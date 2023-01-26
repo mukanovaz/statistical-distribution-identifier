@@ -17,8 +17,12 @@ namespace ppr::parallel
 
 	SDataStat Stat_processing_unit::run_on_GPU(double* data, long long begin, long long end)
 	{
+		SDataStat local_stat;
+
 		// Call Opencl kernel
-		return ppr::gpu::run_statistics_on_GPU(m_ocl_config, m_configuration, data, begin, end - 1);
+		ppr::gpu::run_statistics_on_GPU(local_stat, m_ocl_config, m_configuration, data, begin, end - 1);
+
+		return local_stat;
 	}
 
 	std::tuple<std::vector<int>, double> Hist_processing_unit::run_on_CPU(double* data, long long data_count)
@@ -46,191 +50,81 @@ namespace ppr::parallel
 		return std::make_tuple(local_vector, variance);
 	}
 
-	void get_histogram_vectorized(std::vector<int>& local_vector, double& variance, long long data_count, double* data, SHistogram& hist, SDataStat& stat)
+	void get_histogram_vectorized(std::vector<int>& histogram, double& variance, long long data_count, double* data, SHistogram& hist, SDataStat& stat)
 	{
-		// Fill vector with mean/min and scale value
-		const __m256d mean = _mm256_set1_pd(stat.mean);
-		const __m256d min = _mm256_set1_pd(stat.min);
-		const __m256d scale = _mm256_set1_pd(hist.scaleFactor);
+		double mean = stat.mean;
+		double min = stat.min;
+		double scale = hist.scaleFactor;
+		double variance_local = 0.0;
 
-		for (int block = 0; block < data_count; block += 4)
+		for (int i = 0; i < data_count; i++)
 		{
-			__m256d vec = _mm256_load_pd(data + block);
-			// Compute variance of 4 vector elements
-			variance += variance_double_avx(vec, mean);
+			// Update histogram
+			int x = (int)data[i];
+			double position = (data[i] - min) * scale;
+			histogram[static_cast<int>(position)] += 1;
 
-			// Find position for 4 elements
-			__m256d position = position_double_avx(vec, min, scale);
-			double* pos = (double*)&position;
-
-			local_vector[static_cast<size_t>(pos[0])] += 1;
-			local_vector[static_cast<size_t>(pos[1])] += 1;
-			local_vector[static_cast<size_t>(pos[2])] += 1;
-			local_vector[static_cast<size_t>(pos[3])] += 1;
+			// Find variance
+			double tmp = data[i] - mean;
+			variance_local = variance_local + (tmp * tmp);
 		}
+
+		variance = variance_local;
 	}
 
-	double max_of_vector_vectorized(std::vector<double> vector)
+
+	void agregate_gpu_stat_vectorized(SDataStat& stat, double* array_sum, double* array_min, double* array_max, int size)
 	{
-		__m256d max = _mm256_set1_pd(
-			std::numeric_limits<double>::min()
-		);
+		double sum = 0;
+		double max = std::numeric_limits<double>::min();
+		double min = std::numeric_limits<double>::max();
 
-		int vec_size = static_cast<int>(vector.size());
-		int size = vec_size - (vec_size % 4);
-
-		// Find maximum value in all vector elements in blocks of 4
-		for (size_t block = 0; block < static_cast<size_t>(size); block += 4)
+		for (int i = 0; i < size; i++)
 		{
-			__m256d vec = _mm256_set_pd(
-				vector[block],
-				vector[block + 1],
-				vector[block + 2],
-				vector[block + 3]
-			);
-			max = _mm256_max_pd(max, vec);
+			sum = sum + array_sum[i];
+			max = array_max[i] > max ? array_max[i] : max;
+			min = array_min[i] < min ? array_min[i] : min;
 		}
 
-		// Find min on the rest of the vector (if last block is not full of 4 elements)
-		double* max_d = (double*)&max;
-		if (vec_size - size != 0)
-		{
-			double max_l = std::numeric_limits<double>::min();
-			int size2 = vec_size - size;
-			for (size_t i = 0; i < static_cast<size_t>(size2); i++)
-			{
-				max_l = std::max({ max_l, vector[size + i] });
-			}
-			return std::max({ max_d[0], max_d[1], max_d[2], max_d[3], max_l });
-		}
-		else
-		{
-			return std::max({ max_d[0], max_d[1], max_d[2], max_d[3] });
-		}
+		stat.sum = sum;
+		stat.max = max;
+		stat.min = min;
 	}
 
-	double min_of_vector_vectorized(std::vector<double> vector)
+	double sum_vector_elements_vectorized(double* array, int size)
 	{
-		__m256d min = _mm256_set1_pd(
-			std::numeric_limits<double>::max()
-		);
-		int vec_size = static_cast<int>(vector.size());
-		int size = vec_size - (vec_size % 4);
+		double result = 0;
 
-		// Find minimum value in all vector elements in blocks of 4
-		for (size_t block = 0; block < static_cast<size_t>(size); block += 4)
+		for (int i = 0; i < size; i++)
 		{
-			__m256d vec = _mm256_set_pd(
-				vector[block],
-				vector[block + 1],
-				vector[block + 2],
-				vector[block + 3]
-			);
-			min = _mm256_min_pd(min, vec);
+			result = result + array[i];
 		}
 
-		// Find min on the rest of the vector (if last block is not full of 4 elements)
-		double* min_d = (double*)&min;
-		if (vec_size - size != 0)
-		{
-			double min_l = std::numeric_limits<double>::max();
-			int size2 = vec_size - size;
-			for (size_t i = 0; i < static_cast<size_t>(size2); i++)
-			{
-				min_l = std::min({min_l, vector[size + i] });
-			}
-			return std::min({ min_d[0], min_d[1], min_d[2], min_d[3], min_l });
-		}
-		else
-		{
-			return std::min({ min_d[0], min_d[1], min_d[2], min_d[3] });
-		}
-		
-	}
-
-	double sum_vector_elements_vectorized(std::vector<double> vector)
-	{
-		double sum = 0.0;
-		int vec_size = static_cast<int>(vector.size());
-		int size = vec_size - (vec_size % 4);
-
-		// Sum all vector elements in blocks of 4
-		for (size_t block = 0; block < static_cast<size_t>(size); block += 4)
-		{
-			__m256d vec = _mm256_set_pd(
-				vector[block],
-				vector[block + 1],
-				vector[block + 2],
-				vector[block + 3]
-			);
-			sum += hsum_double_avx(vec);
-		}
-
-		// Sum the rest if exist (if last block is not full of 4 elements)
-		if (vec_size - size != 0)
-		{
-			int size2 = vec_size - size;
-			for (int i = 0; i < size2; i++)
-			{
-				sum += vector[static_cast<size_t>(size) + i];
-			}
-		}
-
-		return sum;
+		return result;
 	}
 
 	void get_statistics_vectorized(SDataStat& stat, long long data_count, double* data)
 	{
-		__m256d min = _mm256_set1_pd(
-			std::numeric_limits<double>::max()
-		);
+		long long n = 0;
+		double sum = 0;
+		double min = std::numeric_limits<double>::max();
+		double max = std::numeric_limits<double>::min();
 
-		__m256d max = _mm256_set1_pd(
-			std::numeric_limits<double>::lowest()
-		);
-		long long size = data_count - (data_count % 4);
-
-		for (int block = 0; block < size; block += 4)
+		for (int i = 0; i < data_count; i++)
 		{
-			// Count elements
-			stat.n += 4;
-
-			// Find sum of 4 vector element
-			__m256d vec = _mm256_load_pd(data + block);
-			stat.sum += hsum_double_avx(vec);
-
-			// Find Max and Min of 4 vector element
-			max = _mm256_max_pd(max, vec);
-			min = _mm256_min_pd(min, vec);
+			n = n + 1;
+			sum = sum + data[i];
+			min = data[i] < min ? data[i] : min;
+			max = data[i] > max ? data[i] : max;
 		}
 
-		// Agregate results
-		double* min_d = (double*)& min;
-		double* max_d = (double*)& max;
-		stat.min = std::min({ min_d[0], min_d[1], min_d[2], min_d[3] });
-		stat.max = std::max({ max_d[0], max_d[1], max_d[2], max_d[3] });
+		stat.sum = sum;
+		stat.n = n;
+		stat.min = min;
+		stat.max = max;
 	}
 
-	inline __m256d position_double_avx(__m256d v, __m256d min, __m256d scale) {
-		__m256d sub = _mm256_sub_pd(v, min);
-		return _mm256_mul_pd(sub, scale);
-	}
-
-	inline double variance_double_avx(__m256d v, __m256d mean) {
-		__m256d sub = _mm256_sub_pd(v, mean);
-		__m256d mul = _mm256_mul_pd(sub, sub);
-
-		return  hsum_double_avx(mul); // reduce to scalar
-	}
-
-	inline double hsum_double_avx(__m256d v) {						
-		__m128d vlow = _mm256_castpd256_pd128(v);					
-		__m128d vhigh = _mm256_extractf128_pd(v, 1);				
-		vlow = _mm_add_pd(vlow, vhigh);								
-
-		__m128d high64 = _mm_unpackhi_pd(vlow, vlow);
-		return  _mm_cvtsd_f64(_mm_add_sd(vlow, high64)); // reduce to scalar
-	}
+	
 
 	void calculate_histogram_RSS_cpu(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist)
 	{

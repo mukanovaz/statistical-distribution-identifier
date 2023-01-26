@@ -67,6 +67,23 @@ namespace ppr::parallel
 		std::tuple<std::vector<int>, double> run_on_GPU(double* data, long long begin, long long end);
 	};
 
+	/// <summary>
+	/// Main function to start creating frequency histogram from input data using AVX2 instructions. (Not using)
+	/// </summary>
+	/// <param name="stat">- Statistics structure</param>
+	/// <param name="array_sum">- input array</param>
+	/// <param name="array_min">- input array</param>
+	/// <param name="array_max">- input array</param>
+	/// <param name="size">- array size</param>
+	void agregate_gpu_stat_vectorized(SDataStat& stat, double* array_sum, double* array_min, double* array_max, int size);
+	
+	/// <summary>
+	/// Find sum of all elements of array. Vectorized
+	/// </summary>
+	/// <param name="array">- input array</param>
+	/// <param name="size">- array size</param>
+	/// <returns></returns>
+	double sum_vector_elements_vectorized(double* array, int size);
 
 	/// <summary>
 	/// Main function to start collecting statistics from input data using AVX2 instructions.
@@ -88,50 +105,11 @@ namespace ppr::parallel
 	void get_histogram_vectorized(std::vector<int>& local_vector, double& variance, long long data_count, double* data, SHistogram& hist, SDataStat& stat);
 
 	/// <summary>
-	/// Find a minimum value of std::vector using AVX2 instructions.
-	/// </summary>
-	/// <param name="vector">- Vector with data (count should be multipy of 4)</param>
-	/// <returns>Minimum value</returns>
-	double min_of_vector_vectorized(std::vector<double> vector);
-
-	/// <summary>
 	/// Find a maximum value of std::vector using AVX2 instructions.
 	/// </summary>
 	/// <param name="vector">- Vector with data (count should be multipy of 4)</param>
 	/// <returns>Maximum value</returns>
 	double max_of_vector_vectorized(std::vector<double> vector);
-
-	/// <summary>
-	/// Computes sum of all vector elements using AVX2 instructions.
-	/// </summary>
-	/// <param name="vector">- Vector with data (count should be multipy of 4)</param>
-	/// <returns>Sum of all vector elements</returns>
-	double sum_vector_elements_vectorized(std::vector<double> vector);
-
-	/// <summary>
-	/// Computing number position in histogram using AVX2 instructions.
-	/// </summary>
-	/// <param name="v">- 4 element vector with data in double type</param>
-	/// <param name="min">- 4 element vector with minimum element of all data set (constant)</param>
-	/// <param name="scale">- 4 element vector with histogram scale (constant)</param>
-	/// <returns>position in histogram</returns>
-	inline __m256d position_double_avx(__m256d v, __m256d min, __m256d scale);
-
-	/// <summary>
-	/// Computing data variance using AVX2 instructions.
-	/// </summary>
-	/// <param name="v">- 4 element vector with data in double type</param>
-	/// <param name="mean">- 4 element vector mean value of all data set (constant)</param>
-	/// <returns>variance</returns>
-	inline double variance_double_avx(__m256d v, __m256d mean);
-
-	/// <summary>
-	/// Computes sum of 4 element vector using AVX2 instructions.
-	/// https://stackoverflow.com/questions/49941645/get-sum-of-values-stored-in-m256d-with-sse-avx
-	/// </summary>
-	/// <param name="v">- 4 element vector with data in double type</param>
-	/// <returns>sum of vector elements</returns>
-	inline double hsum_double_avx(__m256d v);
 
 	/// <summary>
 	/// Calculating RSS for each distribution i threads

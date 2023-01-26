@@ -48,8 +48,7 @@ namespace ppr::gpu
 	/// <param name="configuration">- Program configuration structure</param>
 	/// <param name="data">- Data pointer</param>
 	/// <param name="data_count">- Data count to process</param>
-	/// <returns>Local data statistics</returns>
-	SDataStat run_statistics_on_GPU(SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, long long begin, long long end);
+	void run_statistics_on_GPU(SDataStat& stat, SOpenCLConfig& m_ocl_config, SConfig& configuration, double* data, long long begin, long long end);
 
 	/// <summary>
 	/// Init opencl 
