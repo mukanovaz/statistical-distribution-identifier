@@ -1,4 +1,5 @@
 #include "include/seq_solver.h"
+#include "include/file_mapper.h"
 
 namespace ppr::seq
 {
@@ -9,9 +10,10 @@ namespace ppr::seq
 		tbb::tick_count total2;
 		total1 = tbb::tick_count::now();
 		SResult res;
-		File_mapping mapping(configuration.input_fn);
+		File_mapper* mapper = File_mapper::get_instance();
+		mapper->init(configuration.input_fn);
 
-		const double* data = mapping.view();
+		const double* data = mapper->view(0, 0, 0);
 
 		if (!data)
 		{
@@ -22,7 +24,8 @@ namespace ppr::seq
 
 		// ================ [Get statistics]
 		tbb::tick_count t0 = tbb::tick_count::now();
-		for (long i = 1; i < mapping.get_count(); i++)
+		int count = mapper->get_file_len() / sizeof(double);
+		for (long i = 1; i < count; i++)
 		{
 			double d = (double)data[i];
 			stat.Push(d);
@@ -71,7 +74,7 @@ namespace ppr::seq
 		std::vector<int> histogramFrequency(static_cast<int>(bin_count) + 1);
 		std::vector<double> histogramDensity(static_cast<int>(bin_count) + 1);
 
-		for (unsigned int i = 0; i < mapping.get_count(); i++)
+		for (unsigned int i = 0; i < count; i++)
 		{
 			double d = (double)data[i];
 			hist.push(histogramFrequency, d);
@@ -80,10 +83,12 @@ namespace ppr::seq
 		t1 = tbb::tick_count::now();
 		res.total_hist_time = (t1 - t0).seconds();
 
-		mapping.unmap_file();
+
+		// Close file
+		mapper->close_all();
 
 		// ================ [Get propability density of histogram]
-		hist.compute_propability_density_histogram(histogramDensity, histogramFrequency, mapping.get_count());
+		hist.compute_propability_density_histogram(histogramDensity, histogramFrequency, count);
 
 		// ================ [Calculate RSS]
 		t0 = tbb::tick_count::now();

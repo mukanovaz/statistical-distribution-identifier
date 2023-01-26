@@ -30,8 +30,6 @@
     <ClCompile Include="..\src\config.cpp" />
     <ClCompile Include="..\src\executor.cpp" />
     <ClCompile Include="..\src\file_mapper.cpp" />
-    <ClCompile Include="..\src\file_mapping.cpp" />
-    <ClCompile Include="..\src\gpu_solver.cpp" />
     <ClCompile Include="..\src\gpu_utils.cpp" />
     <ClCompile Include="..\src\histogram.cpp" />
     <ClCompile Include="..\src\main.cpp" />
@@ -47,8 +45,6 @@
     <ClInclude Include="..\src\include\data.h" />
     <ClInclude Include="..\src\include\executor.h" />
     <ClInclude Include="..\src\include\file_mapper.h" />
-    <ClInclude Include="..\src\include\file_mapping.h" />
-    <ClInclude Include="..\src\include\gpu_solver.h" />
     <ClInclude Include="..\src\include\gpu_utils.h" />
     <ClInclude Include="..\src\include\histogram.h" />
     <ClInclude Include="..\src\include\main.h" />

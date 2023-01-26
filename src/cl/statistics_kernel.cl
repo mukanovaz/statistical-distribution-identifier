@@ -37,7 +37,7 @@ __kernel void Get_Data_Statistics(
 	// Save/Agregate values
 	if (localId == 0)
 	{
-		out_sum[groupId] += local_sum[0];
+		out_sum[groupId] = out_sum[groupId] + local_sum[0];
 		out_min[groupId] = min(out_min[groupId], local_min[0]);
 		out_max[groupId] = max(out_max[groupId], local_max[0]);
 	}

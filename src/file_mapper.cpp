@@ -49,6 +49,12 @@ namespace ppr
         m_allocationGranularity = sysinfo.dwAllocationGranularity;
 	}
 
+    void File_mapper::close_all()
+    {
+        CloseHandle(m_mapping);
+        CloseHandle(m_file);
+    }
+
     bool File_mapper::create_file_n()
     {
         const WCHAR* filename = char2wchar(m_filename);

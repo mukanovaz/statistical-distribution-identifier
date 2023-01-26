@@ -172,7 +172,6 @@ namespace ppr::parallel
 		return result;
 	}
 
-	
 	void calculate_histogram_RSS_cpu(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist)
 	{
 		tbb::tick_count total1 = tbb::tick_count::now();

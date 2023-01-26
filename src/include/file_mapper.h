@@ -75,6 +75,8 @@ namespace ppr
             double* view(DWORD high, DWORD low, DWORD granulatity);
             void init(const char* filename);
 
+            void close_all();
+
             static File_mapper* get_instance();
     
     };

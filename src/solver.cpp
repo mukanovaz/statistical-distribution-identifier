@@ -28,13 +28,10 @@ namespace ppr::solver
 		std::vector<double> histogramDensity(0);	// Will resize after collecting statistics
 		DWORD64 data_count = 0;
 
-
-		DWORDLONG ram_mem = getAvailPhysMem() - 1000000000;
-		// TODO: check ram_mem
+		DWORDLONG ram_mem = getAvailPhysMem() > MAX_FILE_SIZE_MEM_2gb ? getAvailPhysMem() - 1000000000 : getAvailPhysMem();
 
 		std::vector<cl::Device> devices;
 		ppr::gpu::find_opencl_devices(devices, configuration.cl_devices_name);
-
 
 		//  ================ [Map input file]
 		File_mapper* mapper = File_mapper::get_instance();
@@ -49,7 +46,7 @@ namespace ppr::solver
 		}
 		else
 		{
-			DWORD64 mem_per_thread = MAX_FILE_SIZE_MEM_400mb / devices.size();
+			DWORD64 mem_per_thread = MAX_FILE_SIZE_MEM_300mb / devices.size();
 			data_count = mem_per_thread - (mem_per_thread % mapper->get_granularity());
 		}
 
@@ -75,6 +72,12 @@ namespace ppr::solver
 		res.poisson_lambda = stat.sum / stat.n;
 
 		//  ================ [Create frequency histogram]
+
+		if (configuration.mode != ERun_mode::SMP)
+		{
+			DWORD64 mem_per_thread = MAX_FILE_SIZE_MEM_600mb / devices.size();
+			data_count = mem_per_thread - (mem_per_thread % mapper->get_granularity());
+		}
 
 		// Find histogram limits
 		double bin_count = 0.0;
@@ -102,6 +105,9 @@ namespace ppr::solver
 		t1 = tbb::tick_count::now();
 
 		res.total_hist_time = (t1 - t0).seconds();
+
+		// Close file
+		mapper->close_all();
 
 		//  ================ [Fit params using Maximum likelihood estimation]
 
