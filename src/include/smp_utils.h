@@ -3,6 +3,14 @@
 #include "gpu_utils.h"
 #include "data.h"
 
+#undef min
+#undef max
+
+#include <tbb/tick_count.h>
+#include <tbb/parallel_reduce.h>
+#include <tbb/task_arena.h>
+#include <tbb/blocked_range.h>
+
 #include <vector>
 
 #undef min
@@ -59,6 +67,16 @@ namespace ppr::parallel
 		/// <returns>Histogram vector and variance</returns>
 		std::tuple<std::vector<int>, double> run_on_GPU();
 	};
+
+	template <typename T>
+	double RunOnCPU(T& class_to_execute, int begin, int end)
+	{
+		tbb::tick_count t0 = tbb::tick_count::now();
+		tbb::parallel_reduce(tbb::blocked_range<std::size_t>(begin, end), class_to_execute);
+		tbb::tick_count t1 = tbb::tick_count::now();
+
+		return (t1 - t0).seconds();
+	}
 
 	void agregate_gpu_stat_vectorized(SDataStat& stat, double* array_sum, double* array_min, double* array_max, int size);
 

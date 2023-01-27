@@ -193,8 +193,9 @@
       <EnableParallelCodeGeneration>
       </EnableParallelCodeGeneration>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
-      <AdditionalOptions> /Qvec-report:2 %(AdditionalOptions)</AdditionalOptions>
-      <FloatingPointModel>Fast</FloatingPointModel>
+      <AdditionalOptions> /Qvec-report:1 %(AdditionalOptions)</AdditionalOptions>
+      <FloatingPointModel>
+      </FloatingPointModel>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

@@ -2,6 +2,8 @@
 #include "include/file_mapper.h"
 #include "include/watchdog.h"
 
+#include <execution>
+
 namespace ppr::solver
 {
 	DWORDLONG getAvailPhysMem()
@@ -41,7 +43,7 @@ namespace ppr::solver
 
 		if (configuration.mode == ERun_mode::SMP)
 		{
-			DWORD64 ram_per_thread = ram_mem / configuration.thread_count;
+			DWORD64 ram_per_thread = MAX_FILE_SIZE_MEM_600mb / configuration.thread_count;
 			data_count = ram_per_thread - (ram_per_thread % mapper->get_granularity());
 		}
 		else
@@ -195,7 +197,7 @@ namespace ppr::solver
 				{
 					auto [vector, variance] = worker.get();
 					stat.variance += variance;
-					std::transform(histogram.begin(), histogram.end(), vector.begin(), histogram.begin(), std::plus<int>());
+					std::transform(std::execution::par, histogram.begin(), histogram.end(), vector.begin(), histogram.begin(), std::plus<int>());
 				}
 
 				index = 0;

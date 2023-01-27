@@ -3,6 +3,7 @@
 #include "include/executor.h"
 #include "include/file_mapper.h"
 #include <future>
+#include <execution>
 
 
 namespace ppr::parallel
@@ -123,53 +124,73 @@ namespace ppr::parallel
 
 	void get_statistics_vectorized(SDataStat& stat, long long data_count, double* data)
 	{
-		long long n = 0;
-		double sum = 0;
-		double min = std::numeric_limits<double>::max();
-		double max = std::numeric_limits<double>::min();
+		int half_count = data_count / 2;
 
-		for (int i = 0; i < data_count; i++)
+		double* data_right = data;
+		double* data_left = data + half_count;
+
+		std::vector<double> sum(half_count);
+		std::vector<double> min(half_count);
+		std::vector<double> max(half_count);
+
+		int count = data_count;
+
+		//#pragma loop(no_vector)
+		for (int i = 0; i < half_count - 1; ++i)
 		{
-			n = n + 1;
-			sum = sum + data[i];
-			min = data[i] < min ? data[i] : min;
-			max = data[i] > max ? data[i] : max;
+			sum[i] = data_right[i] + data_left[i];
+			min[i] = data_right[i] < data_left[i] ? data_right[i] : data_left[i];
+			max[i] = data_right[i] > data_left[i] ? data_right[i] : data_left[i];
 		}
 
-		stat.sum = sum;
-		stat.n = n;
-		stat.min = min;
-		stat.max = max;
+		stat.sum = std::reduce(std::execution::par_unseq, sum.cbegin(), sum.cend());
+		stat.n = data_count;
+		const auto [min_val, xxx1] = std::minmax_element(begin(min), end(min));
+		const auto [xxx2, max_val] = std::minmax_element(begin(max), end(max));
+		stat.min = *min_val;
+		stat.max = *max_val;
 	}
 
 	void agregate_gpu_stat_vectorized(SDataStat& stat, double* array_sum, double* array_min, double* array_max, int size)
 	{
-		double sum = 0;
-		double max = std::numeric_limits<double>::min();
-		double min = std::numeric_limits<double>::max();
+		int half_count = size / 2;
 
-		for (int i = 0; i < size; i++)
+		double* array_sum_left = array_sum + half_count;
+		double* array_min_left = array_min + half_count;
+		double* array_max_left = array_max + half_count;
+
+		std::vector<double> sum(half_count);
+		std::vector<double> min(half_count);
+		std::vector<double> max(half_count);
+
+		for (int i = 0; i < half_count - 1; i++)
 		{
-			sum = sum + array_sum[i];
-			max = array_max[i] > max ? array_max[i] : max;
-			min = array_min[i] < min ? array_min[i] : min;
+			sum[i] = array_sum[i] + array_sum_left[i];
+			min[i] = array_min[i] < array_min_left[i] ? array_min[i] : array_min_left[i];
+			max[i] = array_max[i] > array_max_left[i] ? array_max[i] : array_max_left[i];
 		}
 
-		stat.sum = sum;
-		stat.max = max;
-		stat.min = min;
+		stat.sum = std::reduce(std::execution::par_unseq, sum.cbegin(), sum.cend());
+		const auto [min_val, xxx1] = std::minmax_element(begin(min), end(min));
+		const auto [xxx2, max_val] = std::minmax_element(begin(max), end(max));
+		stat.min = *min_val;
+		stat.max = *max_val;
 	}
 
-	double sum_vector_elements_vectorized(double* array, int size)
+	double sum_vector_elements_vectorized(double* data, int size)
 	{
-		double result = 0;
+		int half_count = size / 2;
+		double* data_right = data;
+		double* data_left = data + half_count;
 
-		for (int i = 0; i < size; i++)
+		std::vector<double> sum(half_count);
+		
+		for (int i = 0; i < half_count - 1; i++)
 		{
-			result = result + array[i];
+			sum[i] = data_right[i] + data_left[i];
 		}
 
-		return result;
+		return std::reduce(std::execution::par_unseq, sum.cbegin(), sum.cend());
 	}
 
 	void calculate_histogram_RSS_cpu(SResult& res, std::vector<double>& histogramDensity, SHistogram& hist)
