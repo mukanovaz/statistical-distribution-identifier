@@ -125,7 +125,6 @@ namespace ppr::parallel
 	void get_statistics_vectorized(SDataStat& stat, long long data_count, double* data)
 	{
 		int half_count = data_count / 2;
-
 		double* data_right = data;
 		double* data_left = data + half_count;
 
@@ -135,7 +134,6 @@ namespace ppr::parallel
 
 		int count = data_count;
 
-		//#pragma loop(no_vector)
 		for (int i = 0; i < half_count - 1; ++i)
 		{
 			sum[i] = data_right[i] + data_left[i];
@@ -143,7 +141,7 @@ namespace ppr::parallel
 			max[i] = data_right[i] > data_left[i] ? data_right[i] : data_left[i];
 		}
 
-		stat.sum = std::reduce(std::execution::par_unseq, sum.cbegin(), sum.cend());
+		stat.sum = std::reduce(std::execution::par, sum.cbegin(), sum.cend());
 		stat.n = data_count;
 		const auto [min_val, xxx1] = std::minmax_element(begin(min), end(min));
 		const auto [xxx2, max_val] = std::minmax_element(begin(max), end(max));

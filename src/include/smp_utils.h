@@ -3,14 +3,6 @@
 #include "gpu_utils.h"
 #include "data.h"
 
-#undef min
-#undef max
-
-#include <tbb/tick_count.h>
-#include <tbb/parallel_reduce.h>
-#include <tbb/task_arena.h>
-#include <tbb/blocked_range.h>
-
 #include <vector>
 
 #undef min
@@ -68,18 +60,23 @@ namespace ppr::parallel
 		std::tuple<std::vector<int>, double> run_on_GPU();
 	};
 
-	template <typename T>
-	double RunOnCPU(T& class_to_execute, int begin, int end)
-	{
-		tbb::tick_count t0 = tbb::tick_count::now();
-		tbb::parallel_reduce(tbb::blocked_range<std::size_t>(begin, end), class_to_execute);
-		tbb::tick_count t1 = tbb::tick_count::now();
 
-		return (t1 - t0).seconds();
-	}
-
+	/// <summary>
+	/// Reduce 3 vectors to single values
+	/// </summary>
+	/// <param name="stat">- Statistics structure</param>
+	/// <param name="array_sum">- sum vector</param>
+	/// <param name="array_min">- min vector</param>
+	/// <param name="array_max">- max vector</param>
+	/// <param name="size">- Data count</param>
 	void agregate_gpu_stat_vectorized(SDataStat& stat, double* array_sum, double* array_min, double* array_max, int size);
 
+	/// <summary>
+	/// Sum all vector elents
+	/// </summary>
+	/// <param name="array">- vector</param>
+	/// <param name="size">- data count</param>
+	/// <returns>sum of elements</returns>
 	double sum_vector_elements_vectorized(double* array, int size);
 
 
