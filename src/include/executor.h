@@ -1,5 +1,4 @@
 #pragma once
-#include "statistics.cpp"
 #include "histogram.h"
 #include "gpu_utils.h"
 #include <numeric>

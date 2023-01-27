@@ -34,10 +34,8 @@
     <ClCompile Include="..\src\histogram.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\rss.cpp" />
-    <ClCompile Include="..\src\seq_solver.cpp" />
     <ClCompile Include="..\src\smp_utils.cpp" />
     <ClCompile Include="..\src\solver.cpp" />
-    <ClCompile Include="..\src\statistics.cpp" />
     <ClCompile Include="..\src\watchdog.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -48,7 +46,6 @@
     <ClInclude Include="..\src\include\gpu_utils.h" />
     <ClInclude Include="..\src\include\histogram.h" />
     <ClInclude Include="..\src\include\main.h" />
-    <ClInclude Include="..\src\include\seq_solver.h" />
     <ClInclude Include="..\src\include\smp_utils.h" />
     <ClInclude Include="..\src\include\solver.h" />
     <ClInclude Include="..\src\include\watchdog.h" />
@@ -193,7 +190,7 @@
       <EnableParallelCodeGeneration>
       </EnableParallelCodeGeneration>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
-      <AdditionalOptions> /Qvec-report:2 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions> /Qvec-report:1 %(AdditionalOptions)</AdditionalOptions>
       <FloatingPointModel>
       </FloatingPointModel>
     </ClCompile>

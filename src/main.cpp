@@ -1,7 +1,5 @@
 #include "include/config.h"
 #include "include/data.h"
-#include "include/seq_solver.h"
-#include "include/seq_solver.h"
 #include "include/solver.h"
 
 #include <iostream>

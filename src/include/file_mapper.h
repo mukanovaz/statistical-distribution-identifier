@@ -84,6 +84,11 @@ namespace ppr
             /// Create a file view. (Using only for sequential computing)
             /// </summary>
             double* view(DWORD high, DWORD low, DWORD granulatity);
+
+            /// <summary>
+            /// Init file 
+            /// </summary>
+            /// <param name="filename">- filename</param>
             void init(const char* filename);
 
             void close_all();

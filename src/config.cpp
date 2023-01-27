@@ -53,11 +53,6 @@ namespace ppr
 			man_argc++;
 			config.mode = ERun_mode::SMP;
 		}
-		else if (std::strncmp("seq", argv[2], 3) == 0)
-		{
-			man_argc++;
-			config.mode = ERun_mode::SEQ;
-		}
 		else if (std::strncmp("all", argv[2], 3) == 0)
 		{
 			man_argc++;

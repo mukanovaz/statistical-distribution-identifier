@@ -41,8 +41,7 @@ namespace ppr
             return;
         }
 
-        // Offsets must be a multiple of the system's allocation granularity.  We
-        // guarantee this by making our view size equal to the allocation granularity.
+        // Offsets must be a multiple of the system's allocation granularity. 
         SYSTEM_INFO sysinfo = { 0 };
         ::GetSystemInfo(&sysinfo);
 
