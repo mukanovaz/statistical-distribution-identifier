@@ -1,4 +1,3 @@
-#include "include/file_mapping.h"
 #include "include/config.h"
 #include "include/data.h"
 #include "include/seq_solver.h"

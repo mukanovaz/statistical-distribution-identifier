@@ -1,6 +1,17 @@
 #include "config.h"
 #include "data.h"
 
+#include "smp_utils.h"
+#include "config.h"
+#include "data.h"
+
+#include<future>
+
+#ifndef NOMINMAX
+# define NOMINMAX
+#endif
+#include <windows.h>
+
 namespace ppr
 {
     class File_mapper
