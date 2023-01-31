@@ -4,6 +4,8 @@
 #include <fstream>
 #include <algorithm>
 #include <vector>
+#include <future>
+#include <map>
 #include <Windows.h>
 
 #include "data.h"
@@ -111,6 +113,12 @@ namespace ppr
         WD_DHIST_ALL_ZERO = 12
     };
 
+    template <typename T>
+    struct SWorker {
+        bool inUse = false;
+        std::future<T> worker{};
+    };
+
     /// <summary>
     /// Structure of program configuration
     /// </summary>
@@ -125,6 +133,20 @@ namespace ppr
         int thread_per_core = THREAD_PER_CORE;
     };
 
+    template <typename T>
+    int get_ready_thread_id(std::map<int, SWorker<T>>& workers)
+    {
+        for (auto const& worker : workers)
+        {
+            if (worker.second.worker._Is_ready())
+            {
+                return worker.first;
+            }
+        }
+
+        return INT_MAX;
+    }
+    
     /// <summary>
     /// Parse user arguments and save it into SConfig structure
     /// </summary>

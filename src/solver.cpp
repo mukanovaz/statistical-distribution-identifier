@@ -3,6 +3,7 @@
 #include "include/watchdog.h"
 
 #include <execution>
+#include <map>
 
 namespace ppr::solver
 {
@@ -45,6 +46,11 @@ namespace ppr::solver
 		{
 			DWORD64 ram_per_thread = MAX_FILE_SIZE_MEM_600mb / configuration.thread_count;
 			data_count = ram_per_thread - (ram_per_thread % mapper->get_granularity());
+		}
+		else if (configuration.mode == ERun_mode::ALL)
+		{
+			DWORD64 mem_per_thread = MAX_FILE_SIZE_MEM_600mb / (devices.size() + configuration.thread_count);
+			data_count = mem_per_thread - (mem_per_thread % mapper->get_granularity());
 		}
 		else
 		{
@@ -155,12 +161,18 @@ namespace ppr::solver
 		std::vector<int>& histogram)
 	{
 		int index = 0;
-		int workers_count = configuration.mode == ERun_mode::SMP ? configuration.thread_count : devices.size();
+		int workers_count = 0;
+		bool first = true;
 
-		std::vector<std::future<std::tuple<std::vector<int>, double>>> workers_hist(workers_count);
+		workers_count = configuration.mode == ERun_mode::CL ? devices.size() : configuration.thread_count - 1;
+
+		// worker id - worker struct
+		std::map<int, SWorker<std::tuple<std::vector<int>, double>>> workers;
+
 
 		for (unsigned long long offset = 0; offset < file_len; offset += data_count)
 		{
+			int id = INT_MAX;
 			ppr::gpu::SOpenCLConfig opencl;
 			DWORD high = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFFul);
 			DWORD low = static_cast<DWORD>(offset & 0xFFFFFFFFul);
@@ -173,7 +185,31 @@ namespace ppr::solver
 			opencl.low = low;
 			opencl.data_count = data_count;
 
-			if (configuration.mode != ERun_mode::SMP)
+			if (first)
+			{
+				id = index;
+				index++;
+			}
+			else
+			{
+				while (true)
+				{
+					id = get_ready_thread_id<std::tuple<std::vector<int>, double>>(workers);
+					// Get results from ready thread
+					if (id != INT_MAX)
+					{
+						auto [vector, variance] = workers[id].worker.get();
+						stat.variance += variance;
+						std::transform(histogram.begin(), histogram.end(), vector.begin(), histogram.begin(), std::plus<int>());
+
+						workers[id].inUse = false;
+
+						break;
+					}
+				}
+			}
+
+			if (id < devices.size() - 1 && configuration.mode == ERun_mode::ALL || configuration.mode == ERun_mode::CL)
 			{
 				bool res = ppr::gpu::init_opencl(devices[index], HIST_KERNEL, HIST_KERNEL_NAME, opencl);
 
@@ -183,51 +219,53 @@ namespace ppr::solver
 					// TODO!!!
 				}
 				ppr::parallel::Hist_processing_unit unit(hist, configuration, opencl, stat);
-				workers_hist[index] = std::async(std::launch::async, &ppr::parallel::Hist_processing_unit::run_on_GPU, unit);
+				workers[index].worker = std::async(std::launch::async, &ppr::parallel::Hist_processing_unit::run_on_GPU, unit);
+
+				workers[id].inUse = true;
 			}
 			else
 			{
 				ppr::parallel::Hist_processing_unit unit(hist, configuration, opencl, stat);
-				workers_hist[index] = std::async(std::launch::async, &ppr::parallel::Hist_processing_unit::run_on_CPU, unit);
+				workers[index].worker = std::async(std::launch::async, &ppr::parallel::Hist_processing_unit::run_on_CPU, unit);
+
+				workers[id].inUse = true;
 			}
 
 			if (index == workers_count - 1)
 			{
-				for (auto& worker : workers_hist)
-				{
-					auto [vector, variance] = worker.get();
-					stat.variance += variance;
-					std::transform(std::execution::par, histogram.begin(), histogram.end(), vector.begin(), histogram.begin(), std::plus<int>());
-				}
-
 				index = 0;
+				first = false;
 				continue;
 			}
-			index++;
 		}
 
-		for (auto& worker : workers_hist)
+		for (auto& map : workers)
 		{
-			if (!worker.valid())
+			if (!map.second.worker.valid())
 			{
 				continue;
 			}
-
-			auto [vector, variance] = worker.get();
+			auto [vector, variance] = map.second.worker.get();
 			stat.variance += variance;
 			std::transform(histogram.begin(), histogram.end(), vector.begin(), histogram.begin(), std::plus<int>());
 		}
+
 	}
 
 	void compute_statistics(std::vector<cl::Device> devices, SConfig& configuration, SDataStat& stat, const unsigned long long file_len, DWORD64 data_count)
 	{
 		int index_stat = 0;
-		int workers_count = configuration.mode == ERun_mode::SMP ? configuration.thread_count : devices.size();
+		int workers_count = 0;
+		bool first = true;
 
-		std::vector<std::future<SDataStat>> workers_stat(workers_count);
+		workers_count = configuration.mode == ERun_mode::CL ? devices.size() : configuration.thread_count - 1;
+
+		// worker id - worker struct
+		std::map<int, SWorker<SDataStat>> workers_stat;
 
 		for (unsigned long long offset = 0; offset < file_len; offset += data_count)
 		{
+			int id = INT_MAX;
 			ppr::gpu::SOpenCLConfig opencl;
 			DWORD high = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFFul);
 			DWORD low = static_cast<DWORD>(offset & 0xFFFFFFFFul);
@@ -242,48 +280,69 @@ namespace ppr::solver
 
 			ppr::parallel::Stat_processing_unit unit(configuration, opencl);
 
-			if (configuration.mode != ERun_mode::SMP)
+			if (first)
 			{
-				bool res = ppr::gpu::init_opencl(devices[index_stat], STAT_KERNEL, STAT_KERNEL_NAME, opencl);
+				id = index_stat;
+				index_stat++;
+			}
+			else
+			{
+				while (true)
+				{
+					id = get_ready_thread_id<SDataStat>(workers_stat);
+					// Get results from ready thread
+					if (id != INT_MAX)
+					{
+						SDataStat local_stat = workers_stat[id].worker.get();
+
+						stat.sum += local_stat.sum;
+						stat.n += local_stat.n;
+						stat.max = std::max({ stat.max, local_stat.max });
+						stat.min = std::min({ stat.min, local_stat.min });
+
+						workers_stat[id].inUse = false;
+
+						break;
+					}
+				}
+			}
+
+			if (id < devices.size() - 1 && configuration.mode == ERun_mode::ALL || configuration.mode == ERun_mode::CL)
+			{
+				bool res = ppr::gpu::init_opencl(devices[id], STAT_KERNEL, STAT_KERNEL_NAME, opencl);
 
 				if (!res)
 				{
 					return;
-					// TODO!!!
 				}
 				ppr::parallel::Stat_processing_unit unit(configuration, opencl);
-				workers_stat[index_stat] = std::async(std::launch::async, &ppr::parallel::Stat_processing_unit::run_on_GPU, unit);
+				workers_stat[id].worker = std::async(std::launch::async, &ppr::parallel::Stat_processing_unit::run_on_GPU, unit);
+				workers_stat[id].inUse = true;
+
 			}
 			else
 			{
 				ppr::parallel::Stat_processing_unit unit(configuration, opencl);
-				workers_stat[index_stat] = std::async(std::launch::async, &ppr::parallel::Stat_processing_unit::run_on_CPU, unit);
+				workers_stat[id].worker = std::async(std::launch::async, &ppr::parallel::Stat_processing_unit::run_on_CPU, unit);
+				workers_stat[id].inUse = true;
 			}
 			
+			// Reset thread index
 			if (index_stat == workers_count - 1)
 			{
-				for (auto& worker : workers_stat)
-				{
-					SDataStat local_stat = worker.get();
-					stat.sum += local_stat.sum;
-					stat.n += local_stat.n;
-					stat.max = std::max({ stat.max, local_stat.max });
-					stat.min = std::min({ stat.min, local_stat.min });
-				}
-
 				index_stat = 0;
+				first = false;
 				continue;
 			}
-			index_stat++;
 		}
 
-		for (auto& worker : workers_stat)
+		for (auto& map : workers_stat)
 		{
-			if (!worker.valid())
+			if (!map.second.worker.valid())
 			{
 				continue;
 			}
-			SDataStat local_stat = worker.get();
+			SDataStat local_stat = map.second.worker.get();
 			stat.sum += local_stat.sum;
 			stat.n += local_stat.n;
 			stat.max = std::max({ stat.max, local_stat.max });
