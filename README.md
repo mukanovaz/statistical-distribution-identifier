@@ -262,7 +262,11 @@ Figure 5.1: Comparison of the speed of each program mode (size of the co
 
 ### Conclusion
 The assignment for the term paper has been completed. The program provides an accurate probability estimate for the input data, based on the calculated RSS (residual sum of squares) value. 
+
 The program was tested on a Windows 11 operating system with an Intel Core i7 processor and an NVIDIA GeForce MX150 graphics card, with the data located on an SSD disk. 
+
 The majority of my time was dedicated to the development of an algorithmic approach for the accurate identification of the optimal distribution. The subsequent challenge was to ascertain why the maximum CPU utilisation could not be employed. This work provided a practical overview of the functioning of threads and memory pages. 
+
 The most significant slowdowns in the program are attributable to the absence of pages in RAM. Furthermore, the speed of the program in SMP mode is influenced by the type of disk on which the data resides. Despite efforts, parallelisation using OpenCL devices has not resulted in faster processing. The time and memory required for data transfer to the device proved to be a significant limitation. The most efficient mode of the program was identified as SMP mode with automatic vectorisation.
+
 All individual data and their comparisons, including comparisons of computation speeds, are available in an Excel spreadsheet in the folder with this documentation.
